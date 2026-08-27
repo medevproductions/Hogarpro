@@ -10,11 +10,9 @@ import {
   Check, 
   RefreshCw, 
   Sparkles, 
-  ExternalLink, 
   ArrowLeft,
-  CheckCircle2,
   ShieldCheck,
-  AlertCircle
+  KeyRound
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -77,7 +75,7 @@ export default function CodePortalClient({
         },
         (payload: any) => {
           if (payload.new && payload.new.status === "completado" && payload.new.extracted_code) {
-            setReceivedCode(payload.new.extracted_code);
+            setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
             setIsWaiting(false);
           }
         }
@@ -98,7 +96,7 @@ export default function CodePortalClient({
           .maybeSingle();
 
         if (data && data.extracted_code) {
-          setReceivedCode(data.extracted_code);
+          setReceivedCode(cleanCodeDisplay(data.extracted_code));
           setIsWaiting(false);
           clearInterval(pollingTimer);
         }
@@ -112,6 +110,16 @@ export default function CodePortalClient({
       clearInterval(pollingTimer);
     };
   }, [isWaiting, email, actionType]);
+
+  // Limpia el código para extraer dígitos numéricos si por casualidad viene dentro de un link o texto
+  const cleanCodeDisplay = (raw: string): string => {
+    if (!raw) return "";
+    const digitMatch = raw.match(/\b([0-9]{4,8})\b/);
+    if (digitMatch && digitMatch[1]) {
+      return digitMatch[1];
+    }
+    return raw;
+  };
 
   // Enviar Petición / Iniciar Escucha
   const handleRequestCode = async (e: React.FormEvent) => {
@@ -141,9 +149,7 @@ export default function CodePortalClient({
     // Demo Fallback si no llega webhook en 6 segundos para pruebas
     setTimeout(() => {
       if (!receivedCode) {
-        if (actionType === "actualizar" || actionType === "login_confirm" || actionType === "reset_password") {
-          setReceivedCode(`https://netflix.com/account/verify-travel?token=${Math.random().toString(36).substring(2, 10)}`);
-        } else if (actionType === "temporal") {
+        if (actionType === "temporal") {
           setReceivedCode(`${Math.floor(1000 + Math.random() * 9000)}`);
         } else {
           setReceivedCode(`${Math.floor(100000 + Math.random() * 900000)}`);
@@ -159,8 +165,6 @@ export default function CodePortalClient({
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
-
-  const isUrl = receivedCode && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://"));
 
   return (
     <div className="min-h-screen bg-[#090d16] text-gray-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white relative overflow-hidden">
@@ -199,11 +203,11 @@ export default function CodePortalClient({
             <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
           </div>
 
-          {/* FORMULARIO DE INGRESO DE CORREO (Compatible con aliases/embudos +) */}
+          {/* FORMULARIO DE INGRESO DE CORREO */}
           <form onSubmit={handleRequestCode} noValidate className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                Correo de la Cuenta de Streaming (Permite embudos +alias)
+                Correo de la Cuenta de Streaming
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
@@ -237,13 +241,13 @@ export default function CodePortalClient({
             </button>
           </form>
 
-          {/* CONTENEDOR DE RESULTADO EN TIEMPO REAL */}
+          {/* RESULTADO: NÚMERO DIRECTO Y GIGANTE */}
           {isWaiting ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in">
               <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin mx-auto mb-3" />
-              <div className="text-sm font-semibold text-white">Escuchando bandeja de entrada...</div>
+              <div className="text-sm font-semibold text-white">Escuchando correo entrante...</div>
               <p className="text-xs text-gray-400 mt-1">
-                Presiona "Enviar código" en tu TV o pantalla. El código se reflejará aquí en menos de 10 segundos.
+                Presiona "Enviar código" en tu TV o pantalla. El número aparecerá aquí en segundos.
               </p>
             </div>
           ) : receivedCode ? (
@@ -252,38 +256,21 @@ export default function CodePortalClient({
                 ¡Código Recibido!
               </span>
 
-              {isUrl ? (
-                <div className="mt-4 p-4 rounded-xl bg-[#0b0f19] border border-gray-700 text-left">
-                  <div className="text-xs text-gray-400 font-semibold mb-1">Enlace de Confirmación:</div>
-                  <div className="font-mono text-xs text-indigo-300 break-all bg-black/40 p-2.5 rounded-lg border border-gray-800">
-                    {receivedCode}
-                  </div>
-                  <a
-                    href={receivedCode}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Abrir Enlace
-                  </a>
-                </div>
-              ) : (
-                <div className="my-5 bg-[#0b0f19] border-2 border-emerald-500/40 rounded-2xl py-5 px-6">
-                  <span className="text-5xl sm:text-6xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
-                    {receivedCode}
-                  </span>
-                </div>
-              )}
+              {/* NÚMERO DIRECTO GIGANTE */}
+              <div className="my-5 bg-[#0b0f19] border-2 border-emerald-500/40 rounded-2xl py-6 px-6 shadow-2xl">
+                <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
+                  {receivedCode}
+                </span>
+              </div>
 
               <button
                 onClick={handleCopy}
-                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition"
+                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition transform hover:scale-[1.02]"
               >
                 {copied ? (
                   <>
                     <Check className="w-4 h-4 text-white" />
-                    <span>¡Copiado al Portapapeles!</span>
+                    <span>¡Código Copiado al Portapapeles!</span>
                   </>
                 ) : (
                   <>
@@ -297,7 +284,7 @@ export default function CodePortalClient({
 
           <div className="mt-6 pt-4 border-t border-gray-800/60 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Compatible con embudos y aliases (+alias)</span>
+            <span>Código directo de 4 o 6 dígitos para tu televisor o pantalla</span>
           </div>
         </div>
       </main>
