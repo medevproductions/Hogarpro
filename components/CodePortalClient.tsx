@@ -53,7 +53,7 @@ export default function CodePortalClient({
     return () => clearInterval(interval);
   }, [isWaiting]);
 
-  // SUSCRIPCIÓN EN TIEMPO REAL & POLLING AUTOMÁTICO CADA 2s
+  // SUSCRIPCIÓN EN TIEMPO REAL & POLLING AUTOMÁTICO CADA 1.5s
   useEffect(() => {
     if (!isWaiting || !email) return;
 
@@ -62,17 +62,30 @@ export default function CodePortalClient({
 
     // 1. Escuchar por WebSocket
     const channel = supabase
-      .channel(`live_portal_${actionType}_${cleanEmail}`)
+      .channel(`live_portal_${cleanEmail}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "code_requests"
+        },
+        (payload: any) => {
+          if (payload.new && payload.new.account_email?.toLowerCase() === cleanEmail && payload.new.extracted_code) {
+            setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
+            setIsWaiting(false);
+          }
+        }
+      )
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
-          table: "code_requests",
-          filter: `account_email=eq.${cleanEmail}`
+          table: "code_requests"
         },
         (payload: any) => {
-          if (payload.new && payload.new.status === "completado" && payload.new.extracted_code) {
+          if (payload.new && payload.new.account_email?.toLowerCase() === cleanEmail && payload.new.extracted_code) {
             setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
             setIsWaiting(false);
           }
@@ -80,15 +93,13 @@ export default function CodePortalClient({
       )
       .subscribe();
 
-    // 2. Polling cada 2 segundos hacia Supabase
+    // 2. Polling cada 1.5 segundos hacia Supabase buscando el último código recibido para este correo
     const pollingTimer = setInterval(async () => {
       try {
         const { data } = await (supabase as any)
           .from("code_requests")
           .select("status, extracted_code, created_at")
           .eq("account_email", cleanEmail)
-          .eq("action_type", actionType)
-          .eq("status", "completado")
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -101,7 +112,7 @@ export default function CodePortalClient({
       } catch (err) {
         // En caso de que no haya conexión
       }
-    }, 2000);
+    }, 1500);
 
     return () => {
       supabase.removeChannel(channel);
@@ -119,10 +130,10 @@ export default function CodePortalClient({
     return raw;
   };
 
-  // Enviar Petición / Iniciar Escucha (SOLO CÓDIGO REAL)
+  // Enviar Petición / Iniciar Escucha
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) return;
 
     setIsWaiting(true);
@@ -133,12 +144,12 @@ export default function CodePortalClient({
     try {
       const supabase = createClient();
       await (supabase as any).from("code_requests").insert({
-        account_email: cleanEmail.toLowerCase(),
+        account_email: cleanEmail,
         action_type: actionType,
         status: "pendiente"
       });
     } catch (err) {
-      console.log("Modo standalone activo");
+      console.log("Modo activo");
     }
   };
 
@@ -213,7 +224,7 @@ export default function CodePortalClient({
               {isWaiting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Esperando código de Netflix ({secondsElapsed}s)...</span>
+                  <span>Esperando código ({secondsElapsed}s)...</span>
                 </>
               ) : (
                 <>
@@ -228,15 +239,15 @@ export default function CodePortalClient({
           {isWaiting ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in">
               <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin mx-auto mb-3" />
-              <div className="text-sm font-semibold text-white">Escuchando correo entrante de Netflix...</div>
+              <div className="text-sm font-semibold text-white">Escuchando correo entrante...</div>
               <p className="text-xs text-gray-400 mt-1">
-                Presiona "Enviar código" en tu TV o pantalla. El código real aparecerá aquí en segundos.
+                Presiona "Enviar código" en tu TV o pantalla. El código aparecerá aquí automáticamente.
               </p>
             </div>
           ) : receivedCode ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in zoom-in-95">
               <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-                ¡Código Real Recibido!
+                ¡Código Recibido!
               </span>
 
               {/* NÚMERO DIRECTO GIGANTE */}
@@ -267,7 +278,7 @@ export default function CodePortalClient({
 
           <div className="mt-6 pt-4 border-t border-gray-800/60 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Código de inicio de sesión directo de Netflix</span>
+            <span>Sincronización instantánea con Gmail</span>
           </div>
         </div>
       </main>
