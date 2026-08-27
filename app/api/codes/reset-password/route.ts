@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processIncomingCode, CodeActionType } from "@/lib/code-processor";
+import { processIncomingCode } from "@/lib/code-processor";
 
 /**
- * ENDPOINT GENERAL: POST /api/webhooks/incoming-code
- * Recibe cualquier acción y la despacha dinámicamente
+ * ENDPOINT: POST /api/codes/reset-password
+ * Acción: 5. Restablecer contraseña
+ * Body esperado: { "account_email": "cuenta@ejemplo.com", "extracted_code": "https://netflix.com/password/reset?token=xyz" }
  */
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     const body = await req.json();
 
-    const action_type = (body.action_type || body.request_type || "login_code") as CodeActionType;
-
     return await processIncomingCode({
       account_email: body.account_email,
       extracted_code: body.extracted_code || body.code || body.link,
-      action_type: action_type,
-      raw_subject: body.raw_subject || body.raw_email_subject,
-      raw_body: body.raw_body || body.raw_email_body
+      action_type: "reset_password",
+      raw_subject: body.raw_subject,
+      raw_body: body.raw_body
     }, authHeader);
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
