@@ -11,8 +11,7 @@ import {
   RefreshCw, 
   Sparkles, 
   ArrowLeft,
-  ShieldCheck,
-  KeyRound
+  ShieldCheck
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,7 +39,6 @@ export default function CodePortalClient({
   const [receivedCode, setReceivedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
 
   // Contador de segundos en espera
   useEffect(() => {
@@ -82,12 +80,12 @@ export default function CodePortalClient({
       )
       .subscribe();
 
-    // 2. Polling cada 2 segundos como respaldo automático
+    // 2. Polling cada 2 segundos hacia Supabase
     const pollingTimer = setInterval(async () => {
       try {
         const { data } = await (supabase as any)
           .from("code_requests")
-          .select("status, extracted_code")
+          .select("status, extracted_code, created_at")
           .eq("account_email", cleanEmail)
           .eq("action_type", actionType)
           .eq("status", "completado")
@@ -111,7 +109,7 @@ export default function CodePortalClient({
     };
   }, [isWaiting, email, actionType]);
 
-  // Limpia el código para extraer dígitos numéricos si por casualidad viene dentro de un link o texto
+  // Limpia el código para extraer dígitos numéricos
   const cleanCodeDisplay = (raw: string): string => {
     if (!raw) return "";
     const digitMatch = raw.match(/\b([0-9]{4,8})\b/);
@@ -121,7 +119,7 @@ export default function CodePortalClient({
     return raw;
   };
 
-  // Enviar Petición / Iniciar Escucha
+  // Enviar Petición / Iniciar Escucha (SOLO CÓDIGO REAL)
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim();
@@ -130,9 +128,6 @@ export default function CodePortalClient({
     setIsWaiting(true);
     setReceivedCode(null);
     setCopied(false);
-
-    const reqId = `req_${Date.now()}`;
-    setCurrentRequestId(reqId);
 
     // Registrar solicitud pendiente en Supabase
     try {
@@ -145,18 +140,6 @@ export default function CodePortalClient({
     } catch (err) {
       console.log("Modo standalone activo");
     }
-
-    // Demo Fallback si no llega webhook en 6 segundos para pruebas
-    setTimeout(() => {
-      if (!receivedCode) {
-        if (actionType === "temporal") {
-          setReceivedCode(`${Math.floor(1000 + Math.random() * 9000)}`);
-        } else {
-          setReceivedCode(`${Math.floor(100000 + Math.random() * 900000)}`);
-        }
-        setIsWaiting(false);
-      }
-    }, 6000);
   };
 
   const handleCopy = () => {
@@ -230,7 +213,7 @@ export default function CodePortalClient({
               {isWaiting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Esperando código ({secondsElapsed}s)...</span>
+                  <span>Esperando código de Netflix ({secondsElapsed}s)...</span>
                 </>
               ) : (
                 <>
@@ -245,15 +228,15 @@ export default function CodePortalClient({
           {isWaiting ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in">
               <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin mx-auto mb-3" />
-              <div className="text-sm font-semibold text-white">Escuchando correo entrante...</div>
+              <div className="text-sm font-semibold text-white">Escuchando correo entrante de Netflix...</div>
               <p className="text-xs text-gray-400 mt-1">
-                Presiona "Enviar código" en tu TV o pantalla. El número aparecerá aquí en segundos.
+                Presiona "Enviar código" en tu TV o pantalla. El código real aparecerá aquí en segundos.
               </p>
             </div>
           ) : receivedCode ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in zoom-in-95">
               <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-                ¡Código Recibido!
+                ¡Código Real Recibido!
               </span>
 
               {/* NÚMERO DIRECTO GIGANTE */}
@@ -284,7 +267,7 @@ export default function CodePortalClient({
 
           <div className="mt-6 pt-4 border-t border-gray-800/60 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Código directo de 4 o 6 dígitos para tu televisor o pantalla</span>
+            <span>Código de inicio de sesión directo de Netflix</span>
           </div>
         </div>
       </main>

@@ -6,14 +6,9 @@
  */
 
 const CONFIG = {
-  // Tu dominio oficial de Vercel configurado
   BASE_URL: "https://hogarpro-xrhd.vercel.app",
-
-  // Token secreto de autorización
   API_SECRET: "token_ultra_secreto_para_proteger_endpoint_de_codigos_2026",
-
-  // Búsqueda de correos no leídos de plataformas
-  SEARCH_QUERY: "is:unread (from:netflix.com OR from:disneyplus.com OR from:hbomax.com OR from:max.com OR from:primevideo.com OR from:spotify.com)",
+  SEARCH_QUERY: "is:unread (from:account.netflix.com OR from:netflix.com OR from:disneyplus.com OR from:hbomax.com OR from:max.com OR from:primevideo.com OR from:spotify.com)",
   MAX_THREADS: 15
 };
 
@@ -30,19 +25,20 @@ function processIncomingEmails() {
       if (message.isUnread()) {
         const subject = message.getSubject();
         const body = message.getPlainBody();
-        const toEmail = extractCleanEmail(message.getTo(), body);
+        const rawTo = message.getTo();
+        const toEmail = extractCleanEmail(rawTo, body);
         
         const actionType = detectActionType(subject, body);
         const extractedCode = extractCodeOrLink(subject, body, actionType);
 
         if (toEmail && extractedCode) {
-          Logger.log(`Código detectado [${actionType}] para ${toEmail}: ${extractedCode}`);
+          Logger.log(`>>> Código REAL detectado [${actionType}] para ${toEmail}: "${extractedCode}"`);
 
           const success = dispatchCodeToApi(toEmail, extractedCode, actionType, subject, body);
 
           if (success) {
             message.markRead();
-            Logger.log(`Mensaje procesado y marcado como leído para: ${toEmail}`);
+            Logger.log(`Mensaje procesado con éxito para: ${toEmail}`);
           }
         }
       }
@@ -69,23 +65,30 @@ function detectActionType(subject, body) {
 }
 
 /**
- * Prioriza SIEMPRE la extracción del CÓDIGO NUMÉRICO de 4 a 8 dígitos primero.
+ * Extracción de código real adaptado al formato exacto de Netflix (ej: "9 1 8 3" o "9183")
  */
 function extractCodeOrLink(subject, body, actionType) {
   const fullText = subject + "\n" + body;
 
-  // 1. PRIORIDAD MÁXIMA: Buscar código numérico de 4 a 8 dígitos
-  // Casos: "Tu código es 8492", "Código: 481920", "8492 es tu código temporal", "Ingresa este código: 9281"
-  const digitMatches = fullText.match(/(?:código|code|clave|pin|código temporal|temporal)[\s\:\-]+([0-9]{4,8})/i) ||
-                       fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
-                       fullText.match(/(?:código de acceso|inicio de sesión)[\s\:\-]+([0-9]{4,8})/i) ||
-                       fullText.match(/\b([0-9]{4,6})\b/);
-
-  if (digitMatches && digitMatches[1]) {
-    return digitMatches[1].trim();
+  // 1. Caso Netflix con espacios entre dígitos: "9 1 8 3" o "9 1 8 3 2 0"
+  // Ejemplo: En el email viene escrito "9 1 8 3"
+  const spacedDigits = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
+  if (spacedDigits && spacedDigits[1]) {
+    // Eliminar espacios intermedios -> devuelve "9183"
+    return spacedDigits[1].replace(/\s+/g, "");
   }
 
-  // 2. Si es restablecer contraseña o confirmación que no trae dígitos, entonces extrae la URL
+  // 2. Patrones estándar de dígitos juntos (4 a 8 dígitos)
+  // Ejemplos: "Ingresa este código para iniciar sesión 9183", "Código: 8492"
+  const codeMatch = fullText.match(/(?:código|code|clave|pin|iniciar sesión)[\s\:\-]+([0-9]{4,8})/i) ||
+                    fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code|ingresa este código)/i) ||
+                    fullText.match(/\b([0-9]{4,6})\b/);
+
+  if (codeMatch && codeMatch[1]) {
+    return codeMatch[1].trim();
+  }
+
+  // 3. Si no hay dígitos y es link:
   const linkMatch = fullText.match(/(https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s\>\"]+)/i) ||
                     fullText.match(/(https:\/\/[^\s\>\"]+verify[^\s\>\"]*)/i);
   if (linkMatch && linkMatch[1]) {
@@ -95,9 +98,22 @@ function extractCodeOrLink(subject, body, actionType) {
   return null;
 }
 
+/**
+ * Limpia el correo y preserva exactamente el alias (ej: hogaryutu+acido@gmail.com)
+ */
 function extractCleanEmail(toHeader, body) {
+  // Primero buscar en el header To:
   const match = toHeader.match(/<([^>]+)>/) || [null, toHeader];
   let email = match[1] ? match[1].trim().toLowerCase() : toHeader.trim().toLowerCase();
+
+  // Si no trae alias en el header, buscar en el cuerpo si Netflix puso "para correo+alias@..."
+  if (!email.includes("+")) {
+    const bodyAliasMatch = body.match(/([a-zA-Z0-9._%+-]+\+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (bodyAliasMatch && bodyAliasMatch[1]) {
+      return bodyAliasMatch[1].toLowerCase().trim();
+    }
+  }
+
   return email;
 }
 
