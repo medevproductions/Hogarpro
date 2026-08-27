@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Tv, 
@@ -9,7 +9,6 @@ import {
   Copy, 
   Check, 
   RefreshCw, 
-  Sparkles, 
   ArrowLeft,
   ShieldCheck
 } from "lucide-react";
@@ -53,71 +52,60 @@ export default function CodePortalClient({
     return () => clearInterval(interval);
   }, [isWaiting]);
 
-  // SUSCRIPCIÓN EN TIEMPO REAL & POLLING AUTOMÁTICO CADA 1.5s
+  // POLLING ACTIVO CADA 1 SEGUNDO DIRECTO AL BACKEND + SUPABASE REALTIME
   useEffect(() => {
     if (!isWaiting || !email) return;
 
-    const supabase = createClient();
     const cleanEmail = email.toLowerCase().trim();
 
-    // 1. Escuchar por WebSocket
-    const channel = supabase
-      .channel(`live_portal_${cleanEmail}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "code_requests"
-        },
-        (payload: any) => {
-          if (payload.new && payload.new.account_email?.toLowerCase() === cleanEmail && payload.new.extracted_code) {
-            setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
-            setIsWaiting(false);
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "code_requests"
-        },
-        (payload: any) => {
-          if (payload.new && payload.new.account_email?.toLowerCase() === cleanEmail && payload.new.extracted_code) {
-            setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
-            setIsWaiting(false);
-          }
-        }
-      )
-      .subscribe();
-
-    // 2. Polling cada 1.5 segundos hacia Supabase buscando el último código recibido para este correo
-    const pollingTimer = setInterval(async () => {
+    // 1. Polling cada 1 segundo al endpoint de chequeo seguro
+    const fetchLatestCode = async () => {
       try {
-        const { data } = await (supabase as any)
-          .from("code_requests")
-          .select("status, extracted_code, created_at")
-          .eq("account_email", cleanEmail)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (data && data.extracted_code) {
-          setReceivedCode(cleanCodeDisplay(data.extracted_code));
-          setIsWaiting(false);
-          clearInterval(pollingTimer);
+        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.code) {
+            setReceivedCode(cleanCodeDisplay(json.code));
+            setIsWaiting(false);
+          }
         }
-      } catch (err) {
-        // En caso de que no haya conexión
+      } catch (e) {
+        // Fallback silencioso
       }
-    }, 1500);
-
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(pollingTimer);
     };
+
+    // Ejecutar de inmediato una primera vez
+    fetchLatestCode();
+    const interval = setInterval(fetchLatestCode, 1000);
+
+    // 2. Suscripción Supabase Realtime como complemento
+    try {
+      const supabase = createClient();
+      const channel = supabase
+        .channel(`code_channel_${cleanEmail}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "code_requests"
+          },
+          (payload: any) => {
+            if (payload.new && payload.new.account_email?.toLowerCase() === cleanEmail && payload.new.extracted_code) {
+              setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
+              setIsWaiting(false);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        clearInterval(interval);
+        supabase.removeChannel(channel);
+      };
+    } catch (e) {
+      return () => clearInterval(interval);
+    }
   }, [isWaiting, email, actionType]);
 
   // Limpia el código para extraer dígitos numéricos
@@ -278,7 +266,7 @@ export default function CodePortalClient({
 
           <div className="mt-6 pt-4 border-t border-gray-800/60 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Sincronización instantánea con Gmail</span>
+            <span>Sincronización instantánea en vivo</span>
           </div>
         </div>
       </main>
