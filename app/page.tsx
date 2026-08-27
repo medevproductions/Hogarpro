@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { 
   Tv, 
@@ -10,11 +10,18 @@ import {
   Flame, 
   CheckCircle2, 
   CreditCard, 
-  ArrowRight,
-  UserCheck,
-  ChevronRight,
-  HelpCircle,
-  Copy
+  ArrowRight, 
+  UserCheck, 
+  Copy, 
+  Headphones, 
+  ChevronDown, 
+  ExternalLink,
+  Home,
+  Clock,
+  KeyRound,
+  Lock,
+  Radio,
+  FileCode2
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -127,15 +134,36 @@ const SERVICES: ServiceItem[] = [
   }
 ];
 
+const SHORT_ENDPOINTS = [
+  { path: "/actualizar", title: "Actualizar Hogar", desc: "Red principal y enlaces de verificación", icon: <Home className="w-4 h-4 text-blue-400" /> },
+  { path: "/temporal", title: "Código Temporal", desc: "TV fuera de casa (4 a 6 dígitos)", icon: <Clock className="w-4 h-4 text-amber-400" /> },
+  { path: "/codigo", title: "Código de Inicio", desc: "OTP numérico de acceso", icon: <Zap className="w-4 h-4 text-emerald-400" /> },
+  { path: "/confirmar", title: "Confirmar Inicio", desc: "Aceptar acceso y links", icon: <ShieldCheck className="w-4 h-4 text-purple-400" /> },
+  { path: "/clave", title: "Restablecer Clave", desc: "Cambio de contraseña", icon: <Lock className="w-4 h-4 text-rose-400" /> }
+];
+
 export default function PublicStorePage() {
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [copiedMethod, setCopiedMethod] = useState<string | null>(null);
+  const [isSupportDropdownOpen, setIsSupportDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedMethod(id);
     setTimeout(() => setCopiedMethod(null), 2000);
   };
+
+  // Cerrar dropdown al hacer click afuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsSupportDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#090d16] text-gray-100 selection:bg-indigo-500 selection:text-white">
@@ -156,19 +184,90 @@ export default function PublicStorePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* BOTÓN DESPLEGABLE DE SOPORTE / ENDPOINTS */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsSupportDropdownOpen(!isSupportDropdownOpen)}
+                className="px-3.5 py-2 text-xs font-semibold bg-[#121826] hover:bg-gray-800 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl transition flex items-center gap-2 shadow-md"
+              >
+                <Headphones className="w-4 h-4 text-indigo-400" />
+                <span>Soporte & Endpoints</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSupportDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {/* Menú Desplegable */}
+              {isSupportDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[#121826] border border-gray-700 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-2 border-b border-gray-800">
+                    <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                      Endpoints Cortos del Sistema
+                    </div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">
+                      URLs simplificadas para enviar códigos o consultar estado
+                    </div>
+                  </div>
+
+                  <div className="py-2 space-y-1.5">
+                    {SHORT_ENDPOINTS.map((ep) => (
+                      <Link
+                        key={ep.path}
+                        href={ep.path}
+                        target="_blank"
+                        onClick={() => setIsSupportDropdownOpen(false)}
+                        className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-800/70 border border-transparent hover:border-gray-700 transition group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-gray-900 border border-gray-800 flex items-center justify-center">
+                            {ep.icon}
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-white group-hover:text-indigo-300 flex items-center gap-1.5">
+                              <span>{ep.title}</span>
+                              <span className="font-mono text-[10px] text-indigo-400 bg-indigo-950/80 px-1.5 py-0.2 rounded border border-indigo-500/20">{ep.path}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400">{ep.desc}</div>
+                          </div>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-indigo-300" />
+                      </Link>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-800/80 flex items-center justify-between px-2 text-[11px]">
+                    <Link
+                      href="/dashboard/seller"
+                      onClick={() => setIsSupportDropdownOpen(false)}
+                      className="text-emerald-400 hover:underline font-semibold flex items-center gap-1"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" /> Ir al Terminal de Códigos
+                    </Link>
+                    <a
+                      href="https://wa.me/584120000000?text=Hola,%20necesito%20soporte%20tecnico"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-gray-400 hover:text-white"
+                    >
+                      WhatsApp 24/7
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 rounded-lg transition"
+              className="hidden sm:inline-flex px-3.5 py-2 text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 rounded-xl transition"
             >
-              Ingresar al Sistema
+              Iniciar Sesión
             </Link>
             <a
               href="#catalogo"
-              className="px-5 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5 flex items-center gap-2"
+              className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5 flex items-center gap-1.5"
             >
               Ver Catálogo
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
