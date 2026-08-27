@@ -116,7 +116,8 @@ export default function CodePortalClient({
   // Enviar Petición / Iniciar Escucha
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes("@")) return;
 
     setIsWaiting(true);
     setReceivedCode(null);
@@ -129,12 +130,12 @@ export default function CodePortalClient({
     try {
       const supabase = createClient();
       await (supabase as any).from("code_requests").insert({
-        account_email: email.toLowerCase().trim(),
+        account_email: cleanEmail.toLowerCase(),
         action_type: actionType,
         status: "pendiente"
       });
     } catch (err) {
-      console.log("Modo standalone/mock activo");
+      console.log("Modo standalone activo");
     }
 
     // Demo Fallback si no llega webhook en 6 segundos para pruebas
@@ -198,18 +199,18 @@ export default function CodePortalClient({
             <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
           </div>
 
-          {/* FORMULARIO DE INGRESO DE CORREO */}
-          <form onSubmit={handleRequestCode} className="space-y-4">
+          {/* FORMULARIO DE INGRESO DE CORREO (Compatible con aliases/embudos +) */}
+          <form onSubmit={handleRequestCode} noValidate className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                Correo de la Cuenta de Streaming
+                Correo de la Cuenta de Streaming (Permite embudos +alias)
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
                 <input
-                  type="email"
+                  type="text"
                   required
-                  placeholder="ej: micuenta@correo.com"
+                  placeholder="ej: hogaryutu+acido@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#0b0f19] border border-gray-700/80 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
@@ -219,7 +220,7 @@ export default function CodePortalClient({
 
             <button
               type="submit"
-              disabled={isWaiting || !email}
+              disabled={isWaiting || !email || !email.includes("@")}
               className={`w-full py-3.5 px-4 rounded-xl bg-gradient-to-r ${buttonGradient} text-white font-bold text-sm uppercase tracking-wider shadow-xl flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:transform-none`}
             >
               {isWaiting ? (
@@ -296,7 +297,7 @@ export default function CodePortalClient({
 
           <div className="mt-6 pt-4 border-t border-gray-800/60 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Entrega 100% segura y automática en tiempo real</span>
+            <span>Compatible con embudos y aliases (+alias)</span>
           </div>
         </div>
       </main>
