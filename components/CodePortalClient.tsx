@@ -34,10 +34,20 @@ export default function CodePortalClient({
   buttonGradient
 }: CodePagePortalProps) {
   const [email, setEmail] = useState("");
+  const [platform, setPlatform] = useState<string>("netflix");
   const [isWaiting, setIsWaiting] = useState(false);
   const [receivedCode, setReceivedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+
+  const PLATFORMS = [
+    { id: "netflix", name: "Netflix", domain: "netflix.com", icon: "🎬" },
+    { id: "disney", name: "Disney+", domain: "disneyplus.com", icon: "🏰" },
+    { id: "max", name: "Max (HBO)", domain: "max.com", icon: "⚡" },
+    { id: "prime", name: "Prime Video", domain: "primevideo.com", icon: "📦" },
+    { id: "spotify", name: "Spotify", domain: "spotify.com", icon: "🎧" },
+    { id: "crunchyroll", name: "Crunchyroll", domain: "crunchyroll.com", icon: "🍥" },
+  ];
 
   // Contador de segundos en espera
   useEffect(() => {
@@ -61,7 +71,7 @@ export default function CodePortalClient({
     // 1. Polling cada 1 segundo al endpoint de chequeo seguro
     const fetchLatestCode = async () => {
       try {
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&t=${Date.now()}`);
+        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.code) {
@@ -106,7 +116,7 @@ export default function CodePortalClient({
     } catch (e) {
       return () => clearInterval(interval);
     }
-  }, [isWaiting, email, actionType]);
+  }, [isWaiting, email, actionType, platform]);
 
   // Limpia el código para extraer dígitos numéricos
   const cleanCodeDisplay = (raw: string): string => {
@@ -134,6 +144,7 @@ export default function CodePortalClient({
       await (supabase as any).from("code_requests").insert({
         account_email: cleanEmail,
         action_type: actionType,
+        service: platform,
         status: "pendiente"
       });
     } catch (err) {
@@ -185,11 +196,38 @@ export default function CodePortalClient({
             <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
           </div>
 
-          {/* FORMULARIO DE INGRESO DE CORREO */}
+          {/* FORMULARIO DE INGRESO DE CORREO Y SERVICIO */}
           <form onSubmit={handleRequestCode} noValidate className="space-y-4">
+            {/* SELECTOR DE SERVICIO / PLATAFORMA */}
             <div>
               <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                Correo de la Cuenta de Streaming
+                Selecciona el Servicio
+              </label>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
+                {PLATFORMS.map((p) => {
+                  const isSelected = platform === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPlatform(p.id)}
+                      className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
+                        isSelected
+                          ? "bg-indigo-600/30 border-indigo-500 text-white shadow-md shadow-indigo-500/20"
+                          : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:text-gray-200 hover:border-gray-700"
+                      }`}
+                    >
+                      <span className="text-base leading-none">{p.icon}</span>
+                      <span>{p.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                Correo de la Cuenta de Streaming (+embudo)
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
@@ -202,6 +240,9 @@ export default function CodePortalClient({
                   className="w-full bg-[#0b0f19] border border-gray-700/80 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
                 />
               </div>
+              <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
+                <span>🔍 Se buscará solo correos dirigidos a este embudo en {PLATFORMS.find(p => p.id === platform)?.name}.</span>
+              </p>
             </div>
 
             <button

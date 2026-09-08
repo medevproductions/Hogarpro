@@ -1,50 +1,149 @@
 /**
  * ==============================================================================
- * GOOGLE APPS SCRIPT (GAS) - STREAMHUB / HOGARPRO
- * Extractor Directo por Receptor Exacto (+alias) y Códigos Espaciados
+ * GOOGLE APPS SCRIPT (GAS) - STREAMHUB / HOGARPRO (ULTRA RÁPIDO)
+ * Busca ÚNICAMENTE en los últimos 10 minutos para ejecuciones de 1 a 2 segundos
  * ==============================================================================
  */
 
 const CONFIG = {
   BASE_URL: "https://hogarpro-xrhd.vercel.app",
   API_SECRET: "token_ultra_secreto_para_proteger_endpoint_de_codigos_2026",
-  SEARCH_QUERY: "is:unread (from:account.netflix.com OR from:netflix.com OR from:disneyplus.com OR from:hbomax.com OR from:max.com OR from:primevideo.com OR from:spotify.com)",
-  MAX_THREADS: 20
+  // Máximo 5 hilos recientes para no sobrecargar Gmail
+  MAX_THREADS: 5,
+  // Ventana de tiempo: últimos 10 minutos (en segundos)
+  TIME_WINDOW_SECONDS: 10 * 60 
+};
+
+// Mapeo de dominios según servicio seleccionado
+const SERVICE_DOMAINS = {
+  netflix: "from:account.netflix.com OR from:netflix.com",
+  disney: "from:disneyplus.com OR from:disney.com",
+  max: "from:max.com OR from:hbomax.com",
+  prime: "from:primevideo.com OR from:amazon.com",
+  spotify: "from:spotify.com",
+  crunchyroll: "from:crunchyroll.com",
+  all: "from:account.netflix.com OR from:netflix.com OR from:disneyplus.com OR from:hbomax.com OR from:max.com OR from:primevideo.com OR from:spotify.com"
 };
 
 /**
- * Función principal activada automáticamente cada minuto
+ * Webhook HTTP (doGet / doPost): Permite consultar el correo BAJO DEMANDA
+ * cada vez que un usuario introduce su correo+embudo en la web.
+ */
+function doGet(e) {
+  const email = (e && e.parameter && e.parameter.email) ? e.parameter.email.trim().toLowerCase() : "";
+  const service = (e && e.parameter && e.parameter.service) ? e.parameter.service.trim().toLowerCase() : "all";
+
+  if (!email) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: "email parameter is required" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const result = searchAndProcessRecipientEmail(email, service);
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const email = data.email ? data.email.trim().toLowerCase() : "";
+    const service = data.service ? data.service.trim().toLowerCase() : "all";
+
+    if (!email) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "email is required" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const result = searchAndProcessRecipientEmail(email, service);
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Búsqueda Ultra Precisa y Focalizada:
+ * Busca correos en los últimos 10 minutos dirigidos a ESTE correo+embudo y del servicio elegido
+ */
+function searchAndProcessRecipientEmail(targetRecipientEmail, serviceKey) {
+  const tenMinutesAgo = Math.floor((new Date().getTime() / 1000) - CONFIG.TIME_WINDOW_SECONDS);
+  const domainFilter = SERVICE_DOMAINS[serviceKey] || SERVICE_DOMAINS.all;
+  
+  // Gmail query específico: to:hogaryutu+acido@gmail.com after:... from:(servicio)
+  const searchQuery = `to:${targetRecipientEmail} after:${tenMinutesAgo} (${domainFilter})`;
+  Logger.log(`Ejecutando búsqueda bajo demanda: ${searchQuery}`);
+
+  const threads = GmailApp.search(searchQuery, 0, 3);
+  if (threads.length === 0) {
+    // Fallback: buscar sin el to: por si Gmail indexa el alias en el body
+    const fallbackQuery = `after:${tenMinutesAgo} (${domainFilter}) "${targetRecipientEmail}"`;
+    const fallbackThreads = GmailApp.search(fallbackQuery, 0, 3);
+    if (fallbackThreads.length > 0) {
+      return processThreadList(fallbackThreads, targetRecipientEmail);
+    }
+    return { success: false, message: "No se encontraron correos recientes para este destinatario y servicio" };
+  }
+
+  return processThreadList(threads, targetRecipientEmail);
+}
+
+function processThreadList(threads, targetRecipientEmail) {
+  for (let i = 0; i < threads.length; i++) {
+    const messages = threads[i].getMessages();
+    for (let j = 0; j < messages.length; j++) {
+      const message = messages[j];
+      const subject = message.getSubject();
+      const body = message.getPlainBody();
+      const rawTo = message.getTo();
+      const recipientEmail = getExactRecipientEmail(rawTo, body);
+
+      // Verificar que coincida con el receptor solicitado (o si target no fue dado)
+      if (!targetRecipientEmail || recipientEmail === targetRecipientEmail.toLowerCase()) {
+        const code = extractNetflixCode(subject, body);
+        const actionType = detectActionType(subject, body);
+
+        if (code) {
+          Logger.log(`[ENCONTRADO] ${recipientEmail} -> ${code}`);
+          const sent = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
+          if (sent) {
+            message.markRead();
+          }
+          return { success: true, code: code, email: recipientEmail, actionType: actionType };
+        }
+      }
+    }
+  }
+  return { success: false, message: "Correo encontrado pero sin código detectable aún" };
+}
+
+/**
+ * Función de reloj automático / Trigger periódico
  */
 function processIncomingEmails() {
-  const threads = GmailApp.search(CONFIG.SEARCH_QUERY, 0, CONFIG.MAX_THREADS);
-  Logger.log(`Hilos no leídos encontrados: ${threads.length}`);
+  const tenMinutesAgo = Math.floor((new Date().getTime() / 1000) - CONFIG.TIME_WINDOW_SECONDS);
+  const searchQuery = `is:unread after:${tenMinutesAgo} (${SERVICE_DOMAINS.all})`;
+
+  const threads = GmailApp.search(searchQuery, 0, CONFIG.MAX_THREADS);
+  if (threads.length === 0) return;
 
   for (let i = 0; i < threads.length; i++) {
     const messages = threads[i].getMessages();
-
     for (let j = 0; j < messages.length; j++) {
       const message = messages[j];
-
       if (message.isUnread()) {
         const subject = message.getSubject();
         const body = message.getPlainBody();
-        const rawTo = message.getTo(); // Exacto: "hogaryutu+acido@gmail.com"
-        
-        // 1. Extraer el correo EXACTO del receptor con su alias (+acido)
+        const rawTo = message.getTo();
         const recipientEmail = getExactRecipientEmail(rawTo, body);
-        
-        // 2. Extraer el código exacto de Netflix (ej: "3 5 9 7" -> "3597")
         const code = extractNetflixCode(subject, body);
         const actionType = detectActionType(subject, body);
 
         if (recipientEmail && code) {
-          Logger.log(`[EXITO] Receptor: ${recipientEmail} | Código extraído: ${code} | Acción: ${actionType}`);
-
           const success = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
-
           if (success) {
-            message.markRead(); // Marcar como leído
-            Logger.log(`Procesado y marcado como leído: ${recipientEmail}`);
+            message.markRead();
           }
         }
       }
@@ -52,18 +151,11 @@ function processIncomingEmails() {
   }
 }
 
-/**
- * Extrae el correo EXACTO del campo Para: (conserva +alias / embudos)
- */
 function getExactRecipientEmail(toHeader, body) {
-  // 1. Extraer de la cabecera To: ej: "hogaryutu+acido@gmail.com" o "Nombre <hogaryutu+acido@gmail.com>"
   const match = toHeader.match(/<([^>]+)>/) || [null, toHeader];
   let email = (match[1] || toHeader).trim().toLowerCase();
-
-  // Limpiar posibles comillas o espacios
   email = email.replace(/['"<>\s]/g, "");
 
-  // 2. Si no tiene alias en la cabecera, buscar si el cuerpo menciona el alias
   if (!email.includes("+")) {
     const bodyMatch = body.match(/([a-zA-Z0-9._%+-]+\+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
     if (bodyMatch && bodyMatch[1]) {
@@ -74,17 +166,10 @@ function getExactRecipientEmail(toHeader, body) {
   return email;
 }
 
-/**
- * Extrae con precisión el código de Netflix tanto espaciado como continuo
- * Ejemplos capturados:
- *  - "3 5 9 7" -> "3597"
- *  - "9 1 8 3" -> "9183"
- *  - "482019" -> "482019"
- */
 function extractNetflixCode(subject, body) {
   const fullText = subject + "\n" + body;
 
-  // 1. Patrón prioritario Netflix: 4, 6 u 8 dígitos separados por espacios ("3 5 9 7")
+  // Dígitos espaciados de Netflix: "3 5 9 7"
   const spacedMatch = fullText.match(/(?:iniciar sesión|código|code|código temporal|temporal)[\s\S]*?\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/i) ||
                       fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
 
@@ -95,7 +180,7 @@ function extractNetflixCode(subject, body) {
     }
   }
 
-  // 2. Patrón de 4 a 8 dígitos seguidos ("3597" o "9183")
+  // Dígitos continuos
   const continuousMatch = fullText.match(/(?:código|code|clave|pin|código de acceso)[\s\:\-]+([0-9]{4,8})/i) ||
                           fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code|ingresa este código)/i) ||
                           fullText.match(/\b([0-9]{4,6})\b/);
@@ -104,7 +189,7 @@ function extractNetflixCode(subject, body) {
     return continuousMatch[1].trim();
   }
 
-  // 3. Enlace de confirmación si no hay código numérico
+  // Enlace
   const linkMatch = fullText.match(/(https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s\>\"]+)/i) ||
                     fullText.match(/(https:\/\/[^\s\>\"]+verify[^\s\>\"]*)/i);
   if (linkMatch && linkMatch[1]) {
@@ -129,7 +214,7 @@ function detectActionType(subject, body) {
   if (text.includes("confirmar inicio") || text.includes("aceptar acceso") || text.includes("aprobar")) {
     return "login_confirm";
   }
-  return "login_code"; // Por defecto inicio de sesión
+  return "login_code";
 }
 
 function dispatchCodeToApi(accountEmail, code, actionType, subject, body) {
@@ -164,11 +249,8 @@ function dispatchCodeToApi(accountEmail, code, actionType, subject, body) {
   try {
     const response = UrlFetchApp.fetch(targetUrl, options);
     const responseCode = response.getResponseCode();
-    const responseBody = response.getContentText();
-    Logger.log(`Respuesta de Vercel (${targetUrl}) - HTTP ${responseCode}: ${responseBody}`);
     return responseCode >= 200 && responseCode < 300;
   } catch (err) {
-    Logger.log(`Error al enviar HTTP a Vercel: ${err.toString()}`);
     return false;
   }
 }

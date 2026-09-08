@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");
+  const service = searchParams.get("service");
 
   if (!email) {
     return NextResponse.json({ success: false, code: null });
@@ -20,14 +21,19 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data } = await supabase
+    let query = supabase
       .from("code_requests")
-      .select("extracted_code, created_at, status")
+      .select("extracted_code, created_at, status, service")
       .eq("account_email", cleanEmail)
       .not("extracted_code", "is", null)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (service) {
+      query = query.or(`service.eq.${service},service.is.null`);
+    }
+
+    const { data } = await query.maybeSingle();
 
     if (data && data.extracted_code) {
       return NextResponse.json({
