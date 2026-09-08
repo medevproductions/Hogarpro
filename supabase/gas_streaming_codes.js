@@ -119,44 +119,50 @@ function processThreadList(threads, targetRecipientEmail) {
 }
 
 /**
- * Función de reloj automático / Trigger periódico
+ * Obtiene los correos pendientes solicitados en la página web
+ */
+function getPendingRequestsFromWeb() {
+  try {
+    const url = CONFIG.BASE_URL + "/api/codes/pending";
+    const options = {
+      method: "get",
+      headers: { "Authorization": "Bearer " + CONFIG.API_SECRET },
+      muteHttpExceptions: true
+    };
+    const res = UrlFetchApp.fetch(url, options);
+    if (res.getResponseCode() === 200) {
+      const json = JSON.parse(res.getContentText());
+      return json.pending || [];
+    }
+  } catch (e) {
+    Logger.log("No se pudo obtener pendientes vía API: " + e.message);
+  }
+  return [];
+}
+
+/**
+ * Función principal que ejecuta el activador periódico
+ * BUSCA SOLO para los correos que los usuarios están pidiendo en la web
  */
 function processIncomingEmails() {
-  // Ventana de tiempo: correos recientes (últimas 2 horas)
-  const twoHoursAgo = Math.floor((new Date().getTime() / 1000) - (2 * 60 * 60));
-  // Buscar correos no leídos O los más recientes del servicio
-  const searchQuery = `after:${twoHoursAgo} (${SERVICE_DOMAINS.all})`;
+  const pendingRequests = getPendingRequestsFromWeb();
+  Logger.log(`Solicitudes pendientes activas en la web: ${pendingRequests.length}`);
 
-  Logger.log(`Buscando con query: ${searchQuery}`);
-  const threads = GmailApp.search(searchQuery, 0, CONFIG.MAX_THREADS);
-  Logger.log(`Hilos encontrados: ${threads.length}`);
-  if (threads.length === 0) return;
+  if (pendingRequests.length === 0) {
+    Logger.log("No hay usuarios esperando códigos en la web actualmente.");
+    return;
+  }
 
-  for (let i = 0; i < threads.length; i++) {
-    const messages = threads[i].getMessages();
-    for (let j = 0; j < messages.length; j++) {
-      const message = messages[j];
-      const subject = message.getSubject();
-      const body = message.getPlainBody();
-      const rawTo = message.getTo();
-      const recipientEmail = getExactRecipientEmail(rawTo, body);
-      const code = extractNetflixCode(subject, body);
-      const actionType = detectActionType(subject, body);
+  // Iterar ÚNICAMENTE sobre los correos+embudo que los usuarios han introducido
+  for (let p = 0; p < pendingRequests.length; p++) {
+    const req = pendingRequests[p];
+    const targetEmail = (req.account_email || "").trim().toLowerCase();
+    const serviceKey = (req.service || "all").trim().toLowerCase();
 
-      Logger.log(`Mensaje evaluado: Destinatario='${recipientEmail}', Código='${code}', Acción='${actionType}', Asunto='${subject}'`);
+    if (!targetEmail) continue;
 
-      if (recipientEmail && code) {
-        const success = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
-        if (success) {
-          message.markRead();
-          Logger.log(`[EXITO] Código ${code} enviado a la web para ${recipientEmail}.`);
-        } else {
-          Logger.log(`[FALLO] dispatchCodeToApi devolvió false.`);
-        }
-      } else {
-        Logger.log(`[AVISO] No se extrajo código o destinatario.`);
-      }
-    }
+    Logger.log(`--> Buscando código EXCLUSIVAMENTE para: ${targetEmail} (${serviceKey})`);
+    searchAndProcessRecipientEmail(targetEmail, serviceKey);
   }
 }
 
