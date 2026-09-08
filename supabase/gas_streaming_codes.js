@@ -125,7 +125,9 @@ function processIncomingEmails() {
   const tenMinutesAgo = Math.floor((new Date().getTime() / 1000) - CONFIG.TIME_WINDOW_SECONDS);
   const searchQuery = `is:unread after:${tenMinutesAgo} (${SERVICE_DOMAINS.all})`;
 
+  Logger.log(`Buscando con query: ${searchQuery}`);
   const threads = GmailApp.search(searchQuery, 0, CONFIG.MAX_THREADS);
+  Logger.log(`Hilos encontrados: ${threads.length}`);
   if (threads.length === 0) return;
 
   for (let i = 0; i < threads.length; i++) {
@@ -140,11 +142,18 @@ function processIncomingEmails() {
         const code = extractNetflixCode(subject, body);
         const actionType = detectActionType(subject, body);
 
+        Logger.log(`Mensaje evaluado: Destinatario='${recipientEmail}', Código='${code}', Acción='${actionType}', Asunto='${subject}'`);
+
         if (recipientEmail && code) {
           const success = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
           if (success) {
             message.markRead();
+            Logger.log(`[EXITO] Código enviado a la web y correo marcado como leído.`);
+          } else {
+            Logger.log(`[FALLO] dispatchCodeToApi devolvió false.`);
           }
+        } else {
+          Logger.log(`[AVISO] No se extrajo código o destinatario.`);
         }
       }
     }
@@ -247,10 +256,14 @@ function dispatchCodeToApi(accountEmail, code, actionType, subject, body) {
   };
 
   try {
+    Logger.log(`Enviando código a API: ${targetUrl} para ${accountEmail}...`);
     const response = UrlFetchApp.fetch(targetUrl, options);
     const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+    Logger.log(`Respuesta API (${responseCode}): ${responseText}`);
     return responseCode >= 200 && responseCode < 300;
   } catch (err) {
+    Logger.log(`Error al enviar a API: ${err.message}`);
     return false;
   }
 }
