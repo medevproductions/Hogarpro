@@ -122,8 +122,10 @@ function processThreadList(threads, targetRecipientEmail) {
  * Función de reloj automático / Trigger periódico
  */
 function processIncomingEmails() {
-  const tenMinutesAgo = Math.floor((new Date().getTime() / 1000) - CONFIG.TIME_WINDOW_SECONDS);
-  const searchQuery = `is:unread after:${tenMinutesAgo} (${SERVICE_DOMAINS.all})`;
+  // Ventana de tiempo: correos recientes (últimas 2 horas)
+  const twoHoursAgo = Math.floor((new Date().getTime() / 1000) - (2 * 60 * 60));
+  // Buscar correos no leídos O los más recientes del servicio
+  const searchQuery = `after:${twoHoursAgo} (${SERVICE_DOMAINS.all})`;
 
   Logger.log(`Buscando con query: ${searchQuery}`);
   const threads = GmailApp.search(searchQuery, 0, CONFIG.MAX_THREADS);
@@ -134,27 +136,25 @@ function processIncomingEmails() {
     const messages = threads[i].getMessages();
     for (let j = 0; j < messages.length; j++) {
       const message = messages[j];
-      if (message.isUnread()) {
-        const subject = message.getSubject();
-        const body = message.getPlainBody();
-        const rawTo = message.getTo();
-        const recipientEmail = getExactRecipientEmail(rawTo, body);
-        const code = extractNetflixCode(subject, body);
-        const actionType = detectActionType(subject, body);
+      const subject = message.getSubject();
+      const body = message.getPlainBody();
+      const rawTo = message.getTo();
+      const recipientEmail = getExactRecipientEmail(rawTo, body);
+      const code = extractNetflixCode(subject, body);
+      const actionType = detectActionType(subject, body);
 
-        Logger.log(`Mensaje evaluado: Destinatario='${recipientEmail}', Código='${code}', Acción='${actionType}', Asunto='${subject}'`);
+      Logger.log(`Mensaje evaluado: Destinatario='${recipientEmail}', Código='${code}', Acción='${actionType}', Asunto='${subject}'`);
 
-        if (recipientEmail && code) {
-          const success = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
-          if (success) {
-            message.markRead();
-            Logger.log(`[EXITO] Código enviado a la web y correo marcado como leído.`);
-          } else {
-            Logger.log(`[FALLO] dispatchCodeToApi devolvió false.`);
-          }
+      if (recipientEmail && code) {
+        const success = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
+        if (success) {
+          message.markRead();
+          Logger.log(`[EXITO] Código ${code} enviado a la web para ${recipientEmail}.`);
         } else {
-          Logger.log(`[AVISO] No se extrajo código o destinatario.`);
+          Logger.log(`[FALLO] dispatchCodeToApi devolvió false.`);
         }
+      } else {
+        Logger.log(`[AVISO] No se extrajo código o destinatario.`);
       }
     }
   }
