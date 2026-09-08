@@ -23,28 +23,31 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("code_requests")
-      .select("extracted_code, created_at, status, service")
+      .select("*")
       .eq("account_email", cleanEmail)
-      .not("extracted_code", "is", null)
       .order("created_at", { ascending: false })
-      .limit(1);
+      .limit(5);
 
-    if (service) {
-      query = query.or(`service.eq.${service},service.is.null`);
+    const { data: list, error: queryErr } = await query;
+
+    if (queryErr) {
+      return NextResponse.json({ success: false, code: null, error: queryErr.message, details: queryErr });
     }
 
-    const { data } = await query.maybeSingle();
-
-    if (data && data.extracted_code) {
-      return NextResponse.json({
-        success: true,
-        code: data.extracted_code,
-        status: data.status,
-        timestamp: data.created_at
-      });
+    if (list && list.length > 0) {
+      const itemWithCode = list.find((item: any) => item.extracted_code);
+      if (itemWithCode) {
+        return NextResponse.json({
+          success: true,
+          code: itemWithCode.extracted_code,
+          status: itemWithCode.status,
+          timestamp: itemWithCode.created_at,
+          matched: itemWithCode
+        });
+      }
     }
 
-    return NextResponse.json({ success: false, code: null });
+    return NextResponse.json({ success: false, code: null, foundRows: list ? list.length : 0, rows: list });
   } catch (error: any) {
     return NextResponse.json({ success: false, code: null, error: error.message });
   }
