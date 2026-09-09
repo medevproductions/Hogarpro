@@ -21,7 +21,7 @@ interface ProcessCodePayload {
  * Adaptada para funcionar con cualquier versión de la tabla code_requests
  */
 // Memoria compartida del servidor para entrega instantánea garantizada
-const memoryStore = new Map<string, { code: string; timestamp: number; service?: string }>();
+const memoryStore = new Map<string, { code: string; timestamp: number; service?: string; actionType?: string }>();
 
 export { memoryStore };
 
@@ -41,7 +41,8 @@ export async function processIncomingCode(payload: ProcessCodePayload, authHeade
   // 1. Guardar de inmediato en memoria ultra rápida garantizada
   memoryStore.set(cleanEmail, {
     code: cleanCode,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    actionType: action_type
   });
 
   // Guardar también bajo alias limpio o raíz si aplica
