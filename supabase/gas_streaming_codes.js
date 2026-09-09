@@ -91,27 +91,14 @@ function procesarHilos(threads, targetEmail) {
 function extraerCodigoOEnlace(subject, body, htmlBody) {
   const fullText = subject + "\n" + body;
 
-  // 1. Si es correo de Actualizar Hogar o Restablecer contraseña, buscar el LINK del botón
-  const esAccionConBoton = /actualizar|hogar|household|password|contrase|restablecer|confirmar|verify/i.test(fullText);
-  if (esAccionConBoton && htmlBody) {
-    // Buscar enlace dentro de etiquetas <a> con textos clave como "Actualizar hogar", "Sí, fui yo", "Restablecer"
-    const buttonLinkMatch = htmlBody.match(/<a[^>]+href=["'](https:\/\/[^"']*(?:update-primary-location|account\/update|password|reset|travel|verify|confirm)[^"']*)["'][^>]*>/i) ||
-                           htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'>]+)["'][^>]*>(?:[\s\S]*?(?:actualizar|hogar|restablecer|cambiar|confirmar|iniciar|acceso|código))?/i);
-    
-    if (buttonLinkMatch && buttonLinkMatch[1]) {
-      // Limpiar entidades HTML (&amp;)
-      return buttonLinkMatch[1].replace(/&amp;/g, "&");
-    }
-  }
-
-  // 2. Dígitos espaciados de Netflix: "3 5 9 7"
+  // 1. Dígitos espaciados de Netflix: "3 5 9 7"
   const spaced = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
   if (spaced && spaced[1]) {
     const clean = spaced[1].replace(/\s+/g, "");
     if (clean.length >= 4 && clean.length <= 8) return clean;
   }
 
-  // 3. Dígitos continuos (4 a 8 dígitos)
+  // 2. Dígitos continuos (4 a 8 dígitos)
   const continuous = fullText.match(/(?:código|code|pin|clave)[\s\:\-]+([0-9]{4,8})/i) ||
                      fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
                      fullText.match(/\b([0-9]{4,6})\b/);
@@ -119,11 +106,21 @@ function extraerCodigoOEnlace(subject, body, htmlBody) {
     return continuous[1].trim();
   }
 
-  // 4. Enlace general de verificación o acción
-  const anyLink = (htmlBody || body).match(/(https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'<>]+)/i) ||
-                  (htmlBody || body).match(/(https:\/\/[^\s"'<>]+(?:verify|confirm|reset|update)[^\s"'<>]*)/i);
-  if (anyLink && anyLink[1]) {
-    return anyLink[1].replace(/&amp;/g, "&").trim();
+  // 3. Si no hay dígitos numéricos, buscar el enlace de acción (Actualizar Hogar, Restablecer, Confirmar)
+  if (htmlBody) {
+    // Buscar enlace dentro de botones o textos de confirmación (evitando URL_LOGO o footer)
+    const buttonLinkMatch = htmlBody.match(/<a[^>]+href=["'](https:\/\/[^"']*(?:update-primary-location|account\/update|password|reset|travel|verify|confirm)[^"']*)["'][^>]*>/i) ||
+                           htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'>]+)["'][^>]*>[\s\S]*?(?:actualizar|hogar|restablecer|cambiar|confirmar|acceso|empezar|verificar)[\s\S]*?<\/a>/i);
+    
+    if (buttonLinkMatch && buttonLinkMatch[1]) {
+      return buttonLinkMatch[1].replace(/&amp;/g, "&").trim();
+    }
+  }
+
+  // 4. Enlace directo en texto plano
+  const textLink = body.match(/(https:\/\/[^\s"'<>]+(?:update-primary-location|account\/update|password\/reset|verify|confirm)[^\s"'<>]*)/i);
+  if (textLink && textLink[1]) {
+    return textLink[1].replace(/&amp;/g, "&").trim();
   }
 
   return null;
