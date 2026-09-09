@@ -40,47 +40,62 @@ function doPost(e) {
 function buscarCodigoParaCorreo(targetEmail, serviceKey, actionType) {
   const domainFilter = SERVICE_DOMAINS[serviceKey] || SERVICE_DOMAINS.all;
   
-  // Busca en Gmail: dirigido a este correo o que lo contenga
-  const query = `(${domainFilter}) "${targetEmail}"`;
+  // Busca en Gmail: dirigido a este correo o que lo contenga, priorizando las últimas 24 horas
+  const query = `(${domainFilter}) "${targetEmail}" newer_than:1d`;
   Logger.log("Buscando en Gmail: " + query);
   
   let threads = GmailApp.search(query, 0, 5);
   if (threads.length === 0) {
-    threads = GmailApp.search(`to:${targetEmail}`, 0, 5);
+    threads = GmailApp.search(`(${domainFilter}) "${targetEmail}"`, 0, 5);
+  }
+  if (threads.length === 0) {
+    threads = GmailApp.search(`to:${targetEmail} newer_than:1d`, 0, 5);
   }
 
   if (threads.length === 0) {
     return { success: false, message: "No se encontraron correos para " + targetEmail };
   }
 
+  // Asegurar que los hilos se ordenen por fecha del último mensaje
+  threads.sort((a, b) => b.getLastMessageDate().getTime() - a.getLastMessageDate().getTime());
+
   return procesarHilos(threads, targetEmail, actionType);
 }
 
 function procesarHilos(threads, targetEmail, requestedActionType) {
+  // Recopilar todos los mensajes y ordenarlos por fecha más reciente primero
+  const allMessages = [];
   for (let i = 0; i < threads.length; i++) {
-    const messages = threads[i].getMessages();
-    for (let j = messages.length - 1; j >= 0; j--) {
-      const message = messages[j];
-      const subject = message.getSubject();
-      const body = message.getPlainBody();
-      const htmlBody = message.getBody();
-      
-      const detectedAction = detectarTipoAccion(subject, body);
-      const actionType = requestedActionType || detectedAction;
+    const msgs = threads[i].getMessages();
+    for (let j = 0; j < msgs.length; j++) {
+      allMessages.push(msgs[j]);
+    }
+  }
 
-      const codeOrLink = extraerCodigoOEnlace(subject, body, htmlBody, actionType);
+  // Ordenar de más nuevo a más viejo
+  allMessages.sort((a, b) => b.getDate().getTime() - a.getDate().getTime());
 
-      if (codeOrLink) {
-        Logger.log(`[ENCONTRADO] ${targetEmail} -> ${codeOrLink}`);
-        enviarAlServidor(targetEmail, codeOrLink, actionType, subject, body);
-        return { 
-          success: true, 
-          code: codeOrLink, 
-          email: targetEmail,
-          actionType: actionType,
-          isLink: codeOrLink.startsWith("http://") || codeOrLink.startsWith("https://")
-        };
-      }
+  for (let i = 0; i < allMessages.length; i++) {
+    const message = allMessages[i];
+    const subject = message.getSubject();
+    const body = message.getPlainBody();
+    const htmlBody = message.getBody();
+    
+    const detectedAction = detectarTipoAccion(subject, body);
+    const actionType = requestedActionType || detectedAction;
+
+    const codeOrLink = extraerCodigoOEnlace(subject, body, htmlBody, actionType);
+
+    if (codeOrLink) {
+      Logger.log(`[ENCONTRADO MÁS RECIENTE (${message.getDate()})] ${targetEmail} -> ${codeOrLink}`);
+      enviarAlServidor(targetEmail, codeOrLink, actionType, subject, body);
+      return { 
+        success: true, 
+        code: codeOrLink, 
+        email: targetEmail,
+        actionType: actionType,
+        isLink: codeOrLink.startsWith("http://") || codeOrLink.startsWith("https://")
+      };
     }
   }
 
