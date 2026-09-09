@@ -39,31 +39,32 @@ function doPost(e) {
 
 function buscarCodigoParaCorreo(targetEmail, serviceKey, actionType) {
   const domainFilter = SERVICE_DOMAINS[serviceKey] || SERVICE_DOMAINS.all;
+  const cleanTarget = targetEmail.trim().toLowerCase();
   
-  // Busca en Gmail: dirigido a este correo o que lo contenga, priorizando las últimas 24 horas
-  const query = `(${domainFilter}) "${targetEmail}" newer_than:1d`;
-  Logger.log("Buscando en Gmail: " + query);
+  // 1. Búsqueda ESTRICTA por destinatario: to:correo+embudo@gmail.com
+  let query = `to:${cleanTarget} (${domainFilter})`;
+  Logger.log("Búsqueda estricta por receptor: " + query);
   
-  let threads = GmailApp.search(query, 0, 5);
+  let threads = GmailApp.search(query, 0, 10);
+  
+  // 2. Si no encuentra con to:, buscar entre comillas exactas el correo completo
   if (threads.length === 0) {
-    threads = GmailApp.search(`(${domainFilter}) "${targetEmail}"`, 0, 5);
-  }
-  if (threads.length === 0) {
-    threads = GmailApp.search(`to:${targetEmail} newer_than:1d`, 0, 5);
+    query = `(${domainFilter}) "${cleanTarget}"`;
+    Logger.log("Búsqueda por comillas exactas: " + query);
+    threads = GmailApp.search(query, 0, 10);
   }
 
   if (threads.length === 0) {
-    return { success: false, message: "No se encontraron correos para " + targetEmail };
+    return { success: false, message: "No se encontraron correos para " + cleanTarget };
   }
 
-  // Asegurar que los hilos se ordenen por fecha del último mensaje
+  // Ordenar los hilos por fecha del último mensaje descendente
   threads.sort((a, b) => b.getLastMessageDate().getTime() - a.getLastMessageDate().getTime());
 
-  return procesarHilos(threads, targetEmail, actionType);
+  return procesarHilos(threads, cleanTarget, actionType);
 }
 
 function procesarHilos(threads, targetEmail, requestedActionType) {
-  // Recopilar todos los mensajes y ordenarlos por fecha más reciente primero
   const allMessages = [];
   for (let i = 0; i < threads.length; i++) {
     const msgs = threads[i].getMessages();
@@ -77,17 +78,27 @@ function procesarHilos(threads, targetEmail, requestedActionType) {
 
   for (let i = 0; i < allMessages.length; i++) {
     const message = allMessages[i];
-    const subject = message.getSubject();
+    const rawTo = (message.getTo() || "").toLowerCase();
     const body = message.getPlainBody();
     const htmlBody = message.getBody();
-    
+    const subject = message.getSubject();
+
+    // VALIDACIÓN ESTRICTA: El correo analizado TIENE que ser para targetEmail
+    const actualRecipient = extraerDestinatarioExacto(rawTo, body, htmlBody);
+    Logger.log(`Mensaje ${message.getDate()}: Destinatario detectado = ${actualRecipient}, Solicitado = ${targetEmail}`);
+
+    if (actualRecipient !== targetEmail && !rawTo.includes(targetEmail)) {
+      // Ignorar este correo porque pertenece a otro embudo/cuenta
+      continue;
+    }
+
     const detectedAction = detectarTipoAccion(subject, body);
     const actionType = requestedActionType || detectedAction;
 
     const codeOrLink = extraerCodigoOEnlace(subject, body, htmlBody, actionType);
 
     if (codeOrLink) {
-      Logger.log(`[ENCONTRADO MÁS RECIENTE (${message.getDate()})] ${targetEmail} -> ${codeOrLink}`);
+      Logger.log(`[ENCONTRADO PARA ${targetEmail}] -> ${codeOrLink}`);
       enviarAlServidor(targetEmail, codeOrLink, actionType, subject, body);
       return { 
         success: true, 
@@ -99,7 +110,24 @@ function procesarHilos(threads, targetEmail, requestedActionType) {
     }
   }
 
-  return { success: false, message: "Correos encontrados pero no se detectó código ni enlace aún" };
+  return { success: false, message: "No se encontró código para el destinatario exacto: " + targetEmail };
+}
+
+function extraerDestinatarioExacto(toHeader, body, htmlBody) {
+  const match = toHeader.match(/<([^>]+)>/) || [null, toHeader];
+  let email = (match[1] || toHeader).trim().toLowerCase();
+  email = email.replace(/['"<>\s]/g, "");
+
+  // Si el To no tiene alias pero el body sí lo menciona
+  if (!email.includes("+")) {
+    const combined = body + " " + htmlBody;
+    const aliasMatch = combined.match(/([a-zA-Z0-9._%+-]+\+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (aliasMatch && aliasMatch[1]) {
+      return aliasMatch[1].trim().toLowerCase();
+    }
+  }
+
+  return email;
 }
 
 /**
