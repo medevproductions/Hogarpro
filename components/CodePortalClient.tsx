@@ -62,14 +62,31 @@ export default function CodePortalClient({
     return () => clearInterval(interval);
   }, [isWaiting]);
 
-  // POLLING ACTIVO CADA 1 SEGUNDO DIRECTO AL BACKEND + SUPABASE REALTIME
+  const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxUpVjJ4FXGpdENQTbVycN17-oMh37DzVEEZitziyh2BLjxy3w4FUNl1Yh9qfwpX29L_Q/exec";
+
+  // POLLING ACTIVO CADA 1 SEGUNDO DIRECTO AL BACKEND + SUPABASE REALTIME + GAS
   useEffect(() => {
     if (!isWaiting || !email) return;
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // 1. Polling cada 1 segundo al endpoint de chequeo seguro
+    // 1. Consultar a GAS directamente y a la API interna
     const fetchLatestCode = async () => {
+      try {
+        // Consultar primero directo al script de Google Apps Script (inmune a base de datos)
+        const gasRes = await fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`);
+        if (gasRes.ok) {
+          const gasJson = await gasRes.json();
+          if (gasJson.success && gasJson.code) {
+            setReceivedCode(cleanCodeDisplay(gasJson.code));
+            setIsWaiting(false);
+            return;
+          }
+        }
+      } catch (e) {
+        // Si hay bloqueo CORS en navegador o tarda, consultar endpoint local
+      }
+
       try {
         const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`);
         if (res.ok) {
@@ -86,7 +103,7 @@ export default function CodePortalClient({
 
     // Ejecutar de inmediato una primera vez
     fetchLatestCode();
-    const interval = setInterval(fetchLatestCode, 1000);
+    const interval = setInterval(fetchLatestCode, 2000);
 
     // 2. Suscripción Supabase Realtime como complemento
     try {
@@ -138,7 +155,20 @@ export default function CodePortalClient({
     setReceivedCode(null);
     setCopied(false);
 
-    // Registrar solicitud pendiente en Supabase
+    // Disparar búsqueda inmediata en Google Apps Script
+    try {
+      fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success && data.code) {
+            setReceivedCode(cleanCodeDisplay(data.code));
+            setIsWaiting(false);
+          }
+        })
+        .catch(() => {});
+    } catch (err) {}
+
+    // Registrar solicitud pendiente en Supabase si está disponible
     try {
       const supabase = createClient();
       await (supabase as any).from("code_requests").insert({

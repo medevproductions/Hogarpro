@@ -122,43 +122,18 @@ function processThreadList(threads, targetRecipientEmail) {
  * Función principal que ejecuta el activador automático
  * Busca correos entrantes de streaming que tengan destinatario con embudo (+alias)
  */
-function processIncomingEmails() {
-  const fifteenMinutesAgo = Math.floor((new Date().getTime() / 1000) - CONFIG.TIME_WINDOW_SECONDS);
-  // Buscar correos recientes dirigidos a cuentas con embudo (+):
-  const searchQuery = `after:${fifteenMinutesAgo} (${SERVICE_DOMAINS.all})`;
-
-  Logger.log(`Buscando con query: ${searchQuery}`);
-  const threads = GmailApp.search(searchQuery, 0, CONFIG.MAX_THREADS);
-  Logger.log(`Hilos encontrados: ${threads.length}`);
-  if (threads.length === 0) return;
-
-  for (let i = 0; i < threads.length; i++) {
-    const messages = threads[i].getMessages();
-    for (let j = 0; j < messages.length; j++) {
-      const message = messages[j];
-      const subject = message.getSubject();
-      const body = message.getPlainBody();
-      const rawTo = message.getTo();
-      
-      // Extraer el destinatario exacto con embudo: hogaryutu+acido@gmail.com
-      const recipientEmail = getExactRecipientEmail(rawTo, body);
-      const code = extractNetflixCode(subject, body);
-      const actionType = detectActionType(subject, body);
-
-      Logger.log(`Mensaje: Para='${recipientEmail}', Código='${code}', Acción='${actionType}', Asunto='${subject}'`);
-
-      if (recipientEmail && code) {
-        Logger.log(`Enviando a la web para destinatario: ${recipientEmail} con código: ${code}`);
-        const success = dispatchCodeToApi(recipientEmail, code, actionType, subject, body);
-        if (success) {
-          message.markRead();
-          Logger.log(`[EXITO] Código entregado a la web para ${recipientEmail}`);
-        } else {
-          Logger.log(`[FALLO] No se pudo entregar a la web.`);
-        }
-      }
-    }
-  }
+/**
+ * Búsqueda manual o de prueba:
+ * Permite buscar el código de tu correo exacto directamente desde Google Apps Script
+ */
+function buscarMiCodigo() {
+  // Cambia el correo por el que quieras buscar:
+  const miCorreo = "hogaryutu+acido@gmail.com";
+  const miPlataforma = "netflix";
+  
+  Logger.log(`Buscando código para ${miCorreo}...`);
+  const resultado = searchAndProcessRecipientEmail(miCorreo, miPlataforma);
+  Logger.log(`Resultado: ${JSON.stringify(resultado)}`);
 }
 
 function getExactRecipientEmail(toHeader, body) {

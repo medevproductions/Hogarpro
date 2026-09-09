@@ -30,6 +30,33 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // 2. Consulta de respaldo directa a Google Apps Script
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxUpVjJ4FXGpdENQTbVycN17-oMh37DzVEEZitziyh2BLjxy3w4FUNl1Yh9qfwpX29L_Q/exec";
+  try {
+    const gasRes = await fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service || "all")}&t=${Date.now()}`, {
+      next: { revalidate: 0 }
+    });
+    if (gasRes.ok) {
+      const gasData = await gasRes.json();
+      if (gasData && gasData.success && gasData.code) {
+        memoryStore.set(cleanEmail, {
+          code: gasData.code,
+          timestamp: Date.now(),
+          service: service || undefined
+        });
+        return NextResponse.json({
+          success: true,
+          code: gasData.code,
+          status: "completado",
+          timestamp: new Date().toISOString(),
+          source: "gas_direct"
+        });
+      }
+    }
+  } catch (gasErr) {
+    // Si GAS tarda, continuar
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gbdbtjgyilrppzyhcclw.supabase.co";
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZGJ0amd5aWxycHB6eWhjY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4OTI1MTAsImV4cCI6MjEwMjQ2ODUxMH0.3MlQma6py4jRJo7whiwP1tVVBh6CuK7SUJch87Uu2Vw";
 
