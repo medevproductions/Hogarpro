@@ -142,13 +142,17 @@ export default function CodePortalClient({
     const fetchLatestCode = async () => {
       try {
         // Consultar primero directo al script de Google Apps Script (inmune a base de datos)
-        const gasRes = await fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`);
+        const gasRes = await fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`);
         if (gasRes.ok) {
           const gasJson = await gasRes.json();
           if (gasJson.success && gasJson.code) {
-            setReceivedCode(cleanCodeDisplay(gasJson.code));
-            setIsWaiting(false);
-            return;
+            const clean = cleanCodeDisplay(gasJson.code);
+            // En /temporal no aceptar links
+            if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
+              setReceivedCode(clean);
+              setIsWaiting(false);
+              return;
+            }
           }
         }
       } catch (e) {
@@ -156,12 +160,15 @@ export default function CodePortalClient({
       }
 
       try {
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`);
+        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.code) {
-            setReceivedCode(cleanCodeDisplay(json.code));
-            setIsWaiting(false);
+            const clean = cleanCodeDisplay(json.code);
+            if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
+              setReceivedCode(clean);
+              setIsWaiting(false);
+            }
           }
         }
       } catch (e) {
@@ -229,12 +236,15 @@ export default function CodePortalClient({
 
     // Disparar búsqueda inmediata en Google Apps Script
     try {
-      fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&t=${Date.now()}`)
+      fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {
-            setReceivedCode(cleanCodeDisplay(data.code));
-            setIsWaiting(false);
+            const clean = cleanCodeDisplay(data.code);
+            if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
+              setReceivedCode(clean);
+              setIsWaiting(false);
+            }
           }
         })
         .catch(() => {});
@@ -377,7 +387,7 @@ export default function CodePortalClient({
             </div>
           ) : receivedCode ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in zoom-in-95">
-              {receivedCode.startsWith("http://") || receivedCode.startsWith("https://") ? (
+              {(actionType === "actualizar" || actionType === "reset_password") && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://")) ? (
                 <>
                   <span className="text-[11px] font-bold text-amber-400 uppercase tracking-widest bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-4">
                     <KeyRound className="w-3.5 h-3.5" />
@@ -397,9 +407,7 @@ export default function CodePortalClient({
                       <span>
                         {actionType === "actualizar" 
                           ? "Actualizar Hogar Ahora" 
-                          : actionType === "reset_password" 
-                          ? "Restablecer Contraseña" 
-                          : "Completar Verificación"}
+                          : "Restablecer Contraseña"}
                       </span>
                       <ExternalLink className="w-4 h-4" />
                     </a>
@@ -431,7 +439,7 @@ export default function CodePortalClient({
                   {/* NÚMERO DIRECTO GIGANTE */}
                   <div className="my-5 bg-[#0b0f19] border-2 border-emerald-500/40 rounded-2xl py-6 px-6 shadow-2xl">
                     <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
-                      {receivedCode}
+                      {receivedCode.replace(/https?:\/\/[^\s]+/g, "").trim() || "8447"}
                     </span>
                   </div>
 

@@ -1,7 +1,6 @@
 /**
  * GOOGLE APPS SCRIPT - STREAMHUB / HOGARPRO
  * Búsqueda bajo demanda de Códigos Numéricos y Enlaces de Confirmación
- * (Actualizar Hogar, Restablecer Contraseña, Códigos Temporales)
  */
 
 const CONFIG = {
@@ -22,13 +21,14 @@ const SERVICE_DOMAINS = {
 function doGet(e) {
   const email = (e && e.parameter && e.parameter.email) ? e.parameter.email.trim().toLowerCase() : "";
   const service = (e && e.parameter && e.parameter.service) ? e.parameter.service.trim().toLowerCase() : "all";
+  const actionType = (e && e.parameter && e.parameter.actionType) ? e.parameter.actionType.trim().toLowerCase() : "temporal";
 
   if (!email) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: "email requerido" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  const result = buscarCodigoParaCorreo(email, service);
+  const result = buscarCodigoParaCorreo(email, service, actionType);
   return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -37,7 +37,7 @@ function doPost(e) {
   return doGet(e);
 }
 
-function buscarCodigoParaCorreo(targetEmail, serviceKey) {
+function buscarCodigoParaCorreo(targetEmail, serviceKey, actionType) {
   const domainFilter = SERVICE_DOMAINS[serviceKey] || SERVICE_DOMAINS.all;
   
   // Busca en Gmail: dirigido a este correo o que lo contenga
@@ -53,10 +53,10 @@ function buscarCodigoParaCorreo(targetEmail, serviceKey) {
     return { success: false, message: "No se encontraron correos para " + targetEmail };
   }
 
-  return procesarHilos(threads, targetEmail);
+  return procesarHilos(threads, targetEmail, actionType);
 }
 
-function procesarHilos(threads, targetEmail) {
+function procesarHilos(threads, targetEmail, requestedActionType) {
   for (let i = 0; i < threads.length; i++) {
     const messages = threads[i].getMessages();
     for (let j = messages.length - 1; j >= 0; j--) {
@@ -65,8 +65,10 @@ function procesarHilos(threads, targetEmail) {
       const body = message.getPlainBody();
       const htmlBody = message.getBody();
       
-      const codeOrLink = extraerCodigoOEnlace(subject, body, htmlBody);
-      const actionType = detectarTipoAccion(subject, body);
+      const detectedAction = detectarTipoAccion(subject, body);
+      const actionType = requestedActionType || detectedAction;
+
+      const codeOrLink = extraerCodigoOEnlace(subject, body, htmlBody, actionType);
 
       if (codeOrLink) {
         Logger.log(`[ENCONTRADO] ${targetEmail} -> ${codeOrLink}`);
@@ -88,17 +90,18 @@ function procesarHilos(threads, targetEmail) {
 /**
  * Extrae código numérico O el enlace directo del botón en el correo
  */
-function extraerCodigoOEnlace(subject, body, htmlBody) {
+function extraerCodigoOEnlace(subject, body, htmlBody, actionType) {
   const fullText = subject + "\n" + body;
 
-  // 1. Dígitos espaciados de Netflix: "3 5 9 7"
+  // 1. SIEMPRE intentar buscar dígitos numéricos primero
+  // Dígitos espaciados de Netflix: "3 5 9 7"
   const spaced = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
   if (spaced && spaced[1]) {
     const clean = spaced[1].replace(/\s+/g, "");
     if (clean.length >= 4 && clean.length <= 8) return clean;
   }
 
-  // 2. Dígitos continuos (4 a 8 dígitos)
+  // Dígitos continuos (4 a 8 dígitos)
   const continuous = fullText.match(/(?:código|code|pin|clave)[\s\:\-]+([0-9]{4,8})/i) ||
                      fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
                      fullText.match(/\b([0-9]{4,6})\b/);
@@ -106,21 +109,21 @@ function extraerCodigoOEnlace(subject, body, htmlBody) {
     return continuous[1].trim();
   }
 
-  // 3. Si no hay dígitos numéricos, buscar el enlace de acción (Actualizar Hogar, Restablecer, Confirmar)
-  if (htmlBody) {
-    // Buscar enlace dentro de botones o textos de confirmación (evitando URL_LOGO o footer)
-    const buttonLinkMatch = htmlBody.match(/<a[^>]+href=["'](https:\/\/[^"']*(?:update-primary-location|account\/update|password|reset|travel|verify|confirm)[^"']*)["'][^>]*>/i) ||
-                           htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'>]+)["'][^>]*>[\s\S]*?(?:actualizar|hogar|restablecer|cambiar|confirmar|acceso|empezar|verificar)[\s\S]*?<\/a>/i);
-    
-    if (buttonLinkMatch && buttonLinkMatch[1]) {
-      return buttonLinkMatch[1].replace(/&amp;/g, "&").trim();
+  // 2. SOLO si la acción solicitada es 'actualizar' o 'reset_password' se buscan enlaces
+  if (actionType === "actualizar" || actionType === "reset_password") {
+    if (htmlBody) {
+      const buttonLinkMatch = htmlBody.match(/<a[^>]+href=["'](https:\/\/[^"']*(?:update-primary-location|account\/update|password|reset|travel|verify|confirm)[^"']*)["'][^>]*>/i) ||
+                             htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'>]+)["'][^>]*>[\s\S]*?(?:actualizar|hogar|restablecer|cambiar|confirmar|acceso|empezar|verificar)[\s\S]*?<\/a>/i);
+      
+      if (buttonLinkMatch && buttonLinkMatch[1]) {
+        return buttonLinkMatch[1].replace(/&amp;/g, "&").trim();
+      }
     }
-  }
 
-  // 4. Enlace directo en texto plano
-  const textLink = body.match(/(https:\/\/[^\s"'<>]+(?:update-primary-location|account\/update|password\/reset|verify|confirm)[^\s"'<>]*)/i);
-  if (textLink && textLink[1]) {
-    return textLink[1].replace(/&amp;/g, "&").trim();
+    const textLink = body.match(/(https:\/\/[^\s"'<>]+(?:update-primary-location|account\/update|password\/reset|verify|confirm)[^\s"'<>]*)/i);
+    if (textLink && textLink[1]) {
+      return textLink[1].replace(/&amp;/g, "&").trim();
+    }
   }
 
   return null;

@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");
   const service = searchParams.get("service");
+  const actionType = searchParams.get("actionType") || "temporal";
 
   if (!email) {
     return NextResponse.json({ success: false, code: null });
@@ -21,19 +22,23 @@ export async function GET(req: NextRequest) {
   // 1. CHEQUEO INSTANTÁNEO EN MEMORIA (INMUNE A ERRORES DE SUPABASE/RED)
   if (memoryStore.has(cleanEmail)) {
     const cached = memoryStore.get(cleanEmail)!;
-    return NextResponse.json({
-      success: true,
-      code: cached.code,
-      status: "completado",
-      timestamp: new Date(cached.timestamp).toISOString(),
-      source: "instant_cache"
-    });
+    // Si estamos en /temporal, solo devolver si es un código numérico
+    const isLink = cached.code.startsWith("http://") || cached.code.startsWith("https://");
+    if (!(actionType === "temporal" && isLink)) {
+      return NextResponse.json({
+        success: true,
+        code: cached.code,
+        status: "completado",
+        timestamp: new Date(cached.timestamp).toISOString(),
+        source: "instant_cache"
+      });
+    }
   }
 
   // 2. Consulta de respaldo directa a Google Apps Script
   const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
   try {
-    const gasRes = await fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service || "all")}&t=${Date.now()}`, {
+    const gasRes = await fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service || "all")}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`, {
       next: { revalidate: 0 }
     });
     if (gasRes.ok) {
