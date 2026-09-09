@@ -10,7 +10,9 @@ import {
   Check, 
   RefreshCw, 
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink,
+  KeyRound
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -201,14 +203,18 @@ export default function CodePortalClient({
     }
   }, [isWaiting, email, actionType, platform]);
 
-  // Limpia el código para extraer dígitos numéricos
+  // Limpia el código para extraer dígitos numéricos o preservar enlaces directos
   const cleanCodeDisplay = (raw: string): string => {
     if (!raw) return "";
-    const digitMatch = raw.match(/\b([0-9]{4,8})\b/);
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return trimmed;
+    }
+    const digitMatch = trimmed.match(/\b([0-9]{4,8})\b/);
     if (digitMatch && digitMatch[1]) {
       return digitMatch[1];
     }
-    return raw;
+    return trimmed;
   };
 
   // Enviar Petición / Iniciar Escucha
@@ -371,33 +377,82 @@ export default function CodePortalClient({
             </div>
           ) : receivedCode ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in zoom-in-95">
-              <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-                ¡Código Recibido!
-              </span>
+              {receivedCode.startsWith("http://") || receivedCode.startsWith("https://") ? (
+                <>
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-widest bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-4">
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Enlace de Confirmación Listo</span>
+                  </span>
 
-              {/* NÚMERO DIRECTO GIGANTE */}
-              <div className="my-5 bg-[#0b0f19] border-2 border-emerald-500/40 rounded-2xl py-6 px-6 shadow-2xl">
-                <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
-                  {receivedCode}
-                </span>
-              </div>
+                  <div className="my-3 bg-[#0b0f19] border-2 border-amber-500/40 rounded-2xl p-6 shadow-2xl text-left">
+                    <p className="text-xs text-gray-300 font-medium mb-3">
+                      Se ha generado tu enlace oficial de acceso/actualización. Haz clic en el botón a continuación para abrirlo directamente:
+                    </p>
+                    <a
+                      href={receivedCode}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-4 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-orange-950/50 flex items-center justify-center gap-2.5 transition transform hover:scale-[1.02] active:scale-98"
+                    >
+                      <span>
+                        {actionType === "actualizar" 
+                          ? "Actualizar Hogar Ahora" 
+                          : actionType === "reset_password" 
+                          ? "Restablecer Contraseña" 
+                          : "Completar Verificación"}
+                      </span>
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
 
-              <button
-                onClick={handleCopy}
-                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition transform hover:scale-[1.02]"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 text-white" />
-                    <span>¡Código Copiado al Portapapeles!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copiar Código</span>
-                  </>
-                )}
-              </button>
+                  <button
+                    onClick={handleCopy}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gray-800/80 hover:bg-gray-700 text-gray-300 text-xs font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>¡Enlace copiado al portapapeles!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copiar enlace directo</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
+                    ¡Código Recibido!
+                  </span>
+
+                  {/* NÚMERO DIRECTO GIGANTE */}
+                  <div className="my-5 bg-[#0b0f19] border-2 border-emerald-500/40 rounded-2xl py-6 px-6 shadow-2xl">
+                    <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
+                      {receivedCode}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={handleCopy}
+                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition transform hover:scale-[1.02]"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 text-white" />
+                        <span>¡Código Copiado al Portapapeles!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copiar Código</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           ) : null}
 
