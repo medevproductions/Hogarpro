@@ -5,6 +5,8 @@ import { createClient } from "@supabase/supabase-js";
  * ENDPOINT GET: /api/codes/check?email=correo@ejemplo.com
  * Permite a la página web consultar el código de inmediato sin depender de RLS
  */
+import { memoryStore } from "@/lib/code-processor";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");
@@ -15,6 +17,19 @@ export async function GET(req: NextRequest) {
   }
 
   const cleanEmail = email.toLowerCase().trim();
+
+  // 1. CHEQUEO INSTANTÁNEO EN MEMORIA (INMUNE A ERRORES DE SUPABASE/RED)
+  if (memoryStore.has(cleanEmail)) {
+    const cached = memoryStore.get(cleanEmail)!;
+    return NextResponse.json({
+      success: true,
+      code: cached.code,
+      status: "completado",
+      timestamp: new Date(cached.timestamp).toISOString(),
+      source: "instant_cache"
+    });
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gbdbtjgyilrppzyhcclw.supabase.co";
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZGJ0amd5aWxycHB6eWhjY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4OTI1MTAsImV4cCI6MjEwMjQ2ODUxMH0.3MlQma6py4jRJo7whiwP1tVVBh6CuK7SUJch87Uu2Vw";
 
