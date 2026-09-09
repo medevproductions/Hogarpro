@@ -130,7 +130,7 @@ export default function CodePortalClient({
     return () => clearInterval(interval);
   }, [isWaiting]);
 
-  const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxUpVjJ4FXGpdENQTbVycN17-oMh37DzVEEZitziyh2BLjxy3w4FUNl1Yh9qfwpX29L_Q/exec";
+  const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
 
   // POLLING ACTIVO CADA 1 SEGUNDO DIRECTO AL BACKEND + SUPABASE REALTIME + GAS
   useEffect(() => {

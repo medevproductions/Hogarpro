@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 2. Consulta de respaldo directa a Google Apps Script
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbxUpVjJ4FXGpdENQTbVycN17-oMh37DzVEEZitziyh2BLjxy3w4FUNl1Yh9qfwpX29L_Q/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
   try {
     const gasRes = await fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service || "all")}&t=${Date.now()}`, {
       next: { revalidate: 0 }
