@@ -132,22 +132,23 @@ export default function CodePortalClient({
 
   const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
 
-  // POLLING ACTIVO CADA 1 SEGUNDO DIRECTO AL BACKEND + SUPABASE REALTIME + GAS
+  // POLLING INTELIGENTE CADA 3 SEGUNDOS HACIA EL BACKEND
   useEffect(() => {
     if (!isWaiting || !email) return;
 
     const cleanEmail = email.toLowerCase().trim();
+    let isMounted = true;
+    let inFlight = false;
 
-    // 1. Consultar a GAS directamente y a la API interna
-    const fetchLatestCode = async () => {
+    const checkCode = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
-        // Consultar primero directo al script de Google Apps Script (inmune a base de datos)
-        const gasRes = await fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`);
-        if (gasRes.ok) {
-          const gasJson = await gasRes.json();
-          if (gasJson.success && gasJson.code) {
-            const clean = cleanCodeDisplay(gasJson.code);
-            // En /temporal no aceptar links
+        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.code && isMounted) {
+            const clean = cleanCodeDisplay(json.code);
             if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
               setReceivedCode(clean);
               setIsWaiting(false);
@@ -156,58 +157,20 @@ export default function CodePortalClient({
           }
         }
       } catch (e) {
-        // Si hay bloqueo CORS en navegador o tarda, consultar endpoint local
-      }
-
-      try {
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.code) {
-            const clean = cleanCodeDisplay(json.code);
-            if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
-              setReceivedCode(clean);
-              setIsWaiting(false);
-            }
-          }
-        }
-      } catch (e) {
-        // Fallback silencioso
+        // Silencioso
+      } finally {
+        inFlight = false;
       }
     };
 
-    // Ejecutar de inmediato una primera vez
-    fetchLatestCode();
-    const interval = setInterval(fetchLatestCode, 2000);
+    // Primera verificación rápida
+    checkCode();
+    const interval = setInterval(checkCode, 3000);
 
-    // 2. Suscripción Supabase Realtime como complemento
-    try {
-      const supabase = createClient();
-      const channel = supabase
-        .channel(`code_channel_${cleanEmail}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "code_requests"
-          },
-          (payload: any) => {
-            if (payload.new && payload.new.account_email?.toLowerCase() === cleanEmail && payload.new.extracted_code) {
-              setReceivedCode(cleanCodeDisplay(payload.new.extracted_code));
-              setIsWaiting(false);
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        clearInterval(interval);
-        supabase.removeChannel(channel);
-      };
-    } catch (e) {
-      return () => clearInterval(interval);
-    }
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isWaiting, email, actionType, platform]);
 
   // Limpia el código para extraer dígitos numéricos o preservar enlaces directos
