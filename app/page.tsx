@@ -1,28 +1,33 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Tv, 
-  Sparkles, 
-  ShieldCheck, 
-  Zap, 
-  Flame, 
-  CheckCircle2, 
-  CreditCard, 
+  Lock, 
+  Mail, 
   ArrowRight, 
-  UserCheck, 
-  Copy, 
-  Headphones, 
-  ChevronDown, 
+  ShieldCheck, 
+  AlertCircle, 
+  LogOut, 
+  CheckCircle2, 
   ExternalLink,
-  Home,
+  Flame,
+  Zap,
   Clock,
-  KeyRound,
-  Lock,
-  Radio,
-  FileCode2
+  Sparkles,
+  ShoppingBag,
+  Layers,
+  KeyRound
 } from "lucide-react";
+import { 
+  getCurrentUser, 
+  setCurrentUser, 
+  SystemUser, 
+  getStoredAccounts, 
+  StoredStreamingAccount 
+} from "@/lib/account-manager";
 import { formatCurrency } from "@/lib/utils";
 
 interface ServiceItem {
@@ -73,48 +78,49 @@ const SERVICES: ServiceItem[] = [
   },
   {
     id: "max-plat",
-    name: "Max (HBO Max) Platino",
-    category: "4K Dolby Atmos • 1 Pantalla",
-    price: 2.50,
-    originalPrice: 4.99,
-    stock: 19,
-    color: "from-purple-600 to-blue-900",
-    badge: "Promo",
+    name: "Max (HBO) Platino 4K",
+    category: "4K UHD • 3 Dispositivos",
+    price: 2.80,
+    originalPrice: 6.50,
+    stock: 12,
+    color: "from-purple-600 to-violet-950",
+    badge: "Estreno House of Dragon",
     features: [
-      "Series HBO, Warner Bros & DC",
-      "Audio envolvente Dolby Atmos",
-      "Perfil renovable mes a mes",
-      "Activación en menos de 5 min"
+      "Series HBO, Warner Bros, Discovery & DC",
+      "Perfiles simultáneos activos",
+      "Audio Dolby Atmos envolvente",
+      "Activación inmediata al pagar"
     ]
   },
   {
-    id: "prime-vid",
+    id: "prime-video",
     name: "Amazon Prime Video",
-    category: "UHD • 1 Pantalla",
-    price: 2.00,
-    originalPrice: 4.50,
-    stock: 5,
-    color: "from-sky-500 to-blue-800",
+    category: "4K HDR • 2 Pantallas",
+    price: 1.80,
+    originalPrice: 4.99,
+    stock: 20,
+    color: "from-sky-500 to-blue-900",
     features: [
-      "Películas exclusivas y Prime Originals",
-      "Calidad Ultra HD en cualquier dispositivo",
-      "Perfil privado con tu nombre",
-      "Reemplazo inmediato por fallas"
+      "Envíos Prime + Video streaming",
+      "Contenido original exclusivo Amazon",
+      "Modo niños y control parental",
+      "Acceso garantizado mes a mes"
     ]
   },
   {
-    id: "spotify-fam",
-    name: "Spotify Premium",
-    category: "Música Sin Límites • Cuenta Propia",
-    price: 2.00,
+    id: "spotify-prem",
+    name: "Spotify Individual Premium",
+    category: "Música Sin Límites",
+    price: 2.20,
     originalPrice: 5.99,
-    stock: 22,
-    color: "from-emerald-500 to-green-900",
+    stock: 15,
+    color: "from-emerald-600 to-green-950",
+    badge: "A tu propio correo",
     features: [
-      "Audio en máxima fidelidad (320 kbps)",
-      "Sin anuncios en música ni podcasts",
-      "A tu propio correo personal",
-      "Listas y descargas activas"
+      "Sin anuncios, música offline",
+      "Máxima calidad de audio (320kbps)",
+      "Saltos de canción ilimitados",
+      "Renovación limpia mes a mes"
     ]
   },
   {
@@ -134,40 +140,190 @@ const SERVICES: ServiceItem[] = [
   }
 ];
 
-const SHORT_ENDPOINTS = [
-  { path: "/actualizar", title: "Actualizar Hogar", desc: "Red principal y enlaces de verificación", icon: <Home className="w-4 h-4 text-blue-400" /> },
-  { path: "/temporal", title: "Código Temporal", desc: "TV fuera de casa (4 a 6 dígitos)", icon: <Clock className="w-4 h-4 text-amber-400" /> },
-  { path: "/codigo", title: "Código de Inicio", desc: "OTP numérico de acceso", icon: <Zap className="w-4 h-4 text-emerald-400" /> },
-  { path: "/confirmar", title: "Confirmar Inicio", desc: "Aceptar acceso y links", icon: <ShieldCheck className="w-4 h-4 text-purple-400" /> },
-  { path: "/clave", title: "Restablecer Clave", desc: "Cambio de contraseña", icon: <Lock className="w-4 h-4 text-rose-400" /> }
-];
+export default function HomeOrSellerCatalogPage() {
+  const router = useRouter();
+  const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
 
-export default function PublicStorePage() {
-  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
-  const [copiedMethod, setCopiedMethod] = useState<string | null>(null);
-  const [isSupportDropdownOpen, setIsSupportDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Formulario de Login de Vendedor
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedMethod(id);
-    setTimeout(() => setCopiedMethod(null), 2000);
-  };
+  // Cuentas del vendedor logueado
+  const [userAccounts, setUserAccounts] = useState<StoredStreamingAccount[]>([]);
 
-  // Cerrar dropdown al hacer click afuera
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsSupportDropdownOpen(false);
-      }
+    const user = getCurrentUser();
+    setCurrentUserState(user);
+    if (user) {
+      const allAccounts = getStoredAccounts();
+      const myAccs = allAccounts.filter(a => 
+        a.sellerId === user.id || 
+        a.sellerId === user.email || 
+        a.sellerName?.toLowerCase() === user.name?.toLowerCase()
+      );
+      setUserAccounts(myAccs);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    setLoadingSession(false);
   }, []);
 
+  const handleSellerLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    setLoggingIn(true);
+
+    setTimeout(() => {
+      const cleanEmail = loginEmail.trim().toLowerCase();
+      // Validar o auto-crear usuario vendedor
+      const sellerUser: SystemUser = {
+        id: `s-${Date.now().toString().slice(-4)}`,
+        email: cleanEmail,
+        name: cleanEmail.split("@")[0].toUpperCase(),
+        role: "seller",
+        status: "active"
+      };
+
+      setCurrentUser(sellerUser);
+      setCurrentUserState(sellerUser);
+
+      // Cargar cuentas asignadas a este vendedor
+      const allAccounts = getStoredAccounts();
+      const myAccs = allAccounts.filter(a => 
+        a.sellerId === sellerUser.id || 
+        a.sellerId === cleanEmail || 
+        a.sellerName?.toLowerCase() === sellerUser.name.toLowerCase()
+      );
+      setUserAccounts(myAccs);
+
+      setLoggingIn(false);
+    }, 500);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentUserState(null);
+    setUserAccounts([]);
+  };
+
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-[#090d16] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // PANTALLA 1: SI NO ESTÁ LOGUEADO -> MOSTRAR LOGIN EXCLUSIVO PARA VENDEDORES
+  // =========================================================================
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#070a12] flex items-center justify-center p-4 relative overflow-hidden selection:bg-indigo-500 selection:text-white">
+        {/* Glows */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] bg-indigo-600/15 blur-[140px] rounded-full pointer-events-none" />
+
+        <div className="w-full max-w-md relative z-10">
+          {/* Logo & Encabezado */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center shadow-xl shadow-indigo-500/25">
+                <Tv className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-2xl font-black tracking-tight text-white">
+                STREAM<span className="text-indigo-400">HUB</span>
+              </span>
+            </div>
+            <h1 className="mt-4 text-2xl font-extrabold text-white tracking-tight">Portal de Revendedores</h1>
+            <p className="text-xs text-gray-400 mt-1">
+              Inicia sesión con tu cuenta de vendedor para acceder al catálogo y a tus cuentas
+            </p>
+          </div>
+
+          {/* Tarjeta de Login */}
+          <div className="bg-[#0f1422]/90 border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+            {loginError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSellerLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                  Correo de Vendedor
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="tucorreo@ventas.com"
+                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                  Contraseña de Acceso
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loggingIn || !loginEmail || !loginPassword}
+                className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+              >
+                {loggingIn ? (
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Entrar al Catálogo</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 pt-4 border-t border-gray-800/80 flex items-center justify-center gap-2 text-[11px] text-gray-500">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Plataforma privada para revendedores autorizados</span>
+            </div>
+          </div>
+
+          {/* Enlace discreto a /admin */}
+          <div className="mt-8 text-center">
+            <Link href="/admin" className="text-xs text-gray-600 hover:text-gray-400 transition">
+              ¿Eres el Administrador? Inicia sesión en /admin
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // PANTALLA 2: USUARIO LOGUEADO -> MOSTRAR CATÁLOGO Y PANEL DE VENDEDOR
+  // =========================================================================
   return (
     <div className="min-h-screen flex flex-col bg-[#090d16] text-gray-100 selection:bg-indigo-500 selection:text-white">
-      {/* NAVBAR */}
+      {/* NAVBAR AUTENTICADA */}
       <header className="sticky top-0 z-40 border-b border-gray-800/80 bg-[#090d16]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -178,320 +334,124 @@ export default function PublicStorePage() {
               <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-gray-100 to-indigo-300 bg-clip-text text-transparent">
                 STREAM<span className="text-indigo-400">HUB</span>
               </span>
-              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 rounded-full">
-                OFICIAL
+              <span className="hidden sm:inline-block ml-2 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 rounded-full">
+                VENDEDOR ACTIVO
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* BOTÓN DESPLEGABLE DE SOPORTE / ENDPOINTS */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsSupportDropdownOpen(!isSupportDropdownOpen)}
-                className="px-3.5 py-2 text-xs font-semibold bg-[#121826] hover:bg-gray-800 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-xl transition flex items-center gap-2 shadow-md"
-              >
-                <Headphones className="w-4 h-4 text-indigo-400" />
-                <span>Soporte & Endpoints</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isSupportDropdownOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {/* Menú Desplegable */}
-              {isSupportDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-[#121826] border border-gray-700 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-3 py-2 border-b border-gray-800">
-                    <div className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                      Endpoints Cortos del Sistema
-                    </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">
-                      URLs simplificadas para enviar códigos o consultar estado
-                    </div>
-                  </div>
-
-                  <div className="py-2 space-y-1.5">
-                    {SHORT_ENDPOINTS.map((ep) => (
-                      <Link
-                        key={ep.path}
-                        href={ep.path}
-                        target="_blank"
-                        onClick={() => setIsSupportDropdownOpen(false)}
-                        className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-800/70 border border-transparent hover:border-gray-700 transition group"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-gray-900 border border-gray-800 flex items-center justify-center">
-                            {ep.icon}
-                          </div>
-                          <div>
-                            <div className="text-xs font-semibold text-white group-hover:text-indigo-300 flex items-center gap-1.5">
-                              <span>{ep.title}</span>
-                              <span className="font-mono text-[10px] text-indigo-400 bg-indigo-950/80 px-1.5 py-0.2 rounded border border-indigo-500/20">{ep.path}</span>
-                            </div>
-                            <div className="text-[10px] text-gray-400">{ep.desc}</div>
-                          </div>
-                        </div>
-                        <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-indigo-300" />
-                      </Link>
-                    ))}
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-800/80 flex items-center justify-between px-2 text-[11px]">
-                    <Link
-                      href="/dashboard/seller"
-                      onClick={() => setIsSupportDropdownOpen(false)}
-                      className="text-emerald-400 hover:underline font-semibold flex items-center gap-1"
-                    >
-                      <KeyRound className="w-3.5 h-3.5" /> Ir al Terminal de Códigos
-                    </Link>
-                    <a
-                      href="https://wa.me/584120000000?text=Hola,%20necesito%20soporte%20tecnico"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-gray-400 hover:text-white"
-                    >
-                      WhatsApp 24/7
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
-
             <Link
-              href="/login"
-              className="hidden sm:inline-flex px-3.5 py-2 text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-800/60 rounded-xl transition"
+              href="/dashboard/seller"
+              className="px-4 py-2 text-xs font-bold bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-xl transition flex items-center gap-2"
             >
-              Iniciar Sesión
+              <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Mis Códigos y Cuentas ({userAccounts.length})</span>
             </Link>
-            <a
-              href="#catalogo"
-              className="px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5 flex items-center gap-1.5"
+
+            <button
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl bg-gray-900 border border-gray-800 text-gray-400 hover:text-red-400 hover:border-red-500/30 transition"
+              title="Cerrar sesión"
             >
-              Ver Catálogo
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-12 pb-20 overflow-hidden">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-medium mb-6">
-            <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-            <span>Entrega Automática y Códigos 24/7 en Tiempo Real</span>
+      {/* BANNER DE BIENVENIDA */}
+      <section className="relative overflow-hidden py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="rounded-3xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-gray-900/60 border border-indigo-500/20 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-2xl">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-900/60 border border-indigo-400/30 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Panel Mayorista</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">
+              Bienvenido, {currentUser.name}
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-xl">
+              Aquí puedes ver los servicios disponibles para venta y consultar los códigos de acceso de tus cuentas autorizadas.
+            </p>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight max-w-4xl mx-auto leading-[1.15]">
-            Tus Cuentas de Streaming Favoritas al{" "}
-            <span className="bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300 bg-clip-text text-transparent">
-              Mejor Precio
-            </span>
-          </h1>
-
-          <p className="mt-6 text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-            Disfruta de Netflix, Disney+, Max y más sin caídas. Activación instantánea, perfiles con PIN privado y soporte garantizado.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <span>Garantía de 30 Días</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" />
-              <span>Activación en 5 minutos</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-indigo-400" />
-              <span>+3,500 Clientes Satisfechos</span>
+          <div className="flex gap-3">
+            <div className="bg-[#0b0f19] border border-gray-800 rounded-2xl px-5 py-3 text-center">
+              <div className="text-xl font-extrabold text-indigo-400">{userAccounts.length}</div>
+              <div className="text-[11px] text-gray-500 uppercase font-semibold">Cuentas Asignadas</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CATALOGO SECTION */}
-      <section id="catalogo" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 flex-1">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 pb-4 border-b border-gray-800">
+      {/* CATÁLOGO DE SERVICIOS */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-              <Flame className="w-7 h-7 text-amber-500" />
-              Plataformas Disponibles
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-indigo-400" />
+              <span>Catálogo de Servicios Disponibles</span>
             </h2>
-            <p className="text-gray-400 text-sm mt-1">
-              Selecciona tu plan y paga mediante Binance, Pago Móvil o Zelle.
-            </p>
+            <p className="text-xs text-gray-400 mt-0.5">Precios preferenciales para revendedores</p>
           </div>
-          <span className="mt-4 sm:mt-0 inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-500/20 px-3 py-1 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            Stock Actualizado en Vivo
-          </span>
         </div>
 
-        {/* PRODUCT GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {SERVICES.map((srv) => (
-            <div
-              key={srv.id}
-              className={`relative rounded-2xl bg-gradient-to-b from-[#161d2d] to-[#0f1422] border ${
-                srv.popular ? "border-indigo-500/60 shadow-xl shadow-indigo-950/50" : "border-gray-800/80"
-              } p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] hover:border-indigo-400/80`}
+          {SERVICES.map((s) => (
+            <div 
+              key={s.id}
+              className="bg-[#121826]/90 border border-gray-800/80 rounded-2xl p-6 hover:border-indigo-500/40 transition-all flex flex-col justify-between group shadow-xl"
             >
-              {srv.badge && (
-                <div className="absolute -top-3 right-6 bg-gradient-to-r from-pink-600 to-indigo-600 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-md">
-                  {srv.badge}
-                </div>
-              )}
-
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">
-                    {srv.category}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-800/80 text-gray-300">
+                    {s.category}
                   </span>
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-gray-800/80 text-gray-300 border border-gray-700">
-                    Stock: <strong className="text-emerald-400">{srv.stock} disp.</strong>
+                  {s.badge && (
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      {s.badge}
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-lg font-black text-white group-hover:text-indigo-300 transition">
+                  {s.name}
+                </h3>
+
+                <div className="my-4 flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-white">{formatCurrency(s.price)}</span>
+                  <span className="text-xs text-gray-500 line-through">{formatCurrency(s.originalPrice)}</span>
+                  <span className="text-[11px] text-emerald-400 font-semibold ml-auto">
+                    Stock: {s.stock} disponibles
                   </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-white tracking-tight">{srv.name}</h3>
-
-                <div className="mt-4 mb-6 flex items-baseline gap-3">
-                  <span className="text-3xl font-extrabold text-white">
-                    {formatCurrency(srv.price)}
-                  </span>
-                  <span className="text-sm text-gray-500 line-through">
-                    {formatCurrency(srv.originalPrice)}
-                  </span>
-                  <span className="text-xs font-medium text-emerald-400">/mes</span>
-                </div>
-
-                <div className="space-y-2.5 pt-4 border-t border-gray-800/80 mb-6">
-                  {srv.features.map((f, idx) => (
-                    <div key={idx} className="flex items-center gap-2.5 text-sm text-gray-300">
-                      <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                <ul className="space-y-2 border-t border-gray-800/80 pt-4 mb-6">
+                  {s.features.map((f, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-xs text-gray-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>{f}</span>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
 
-              <button
-                onClick={() => setSelectedService(srv)}
-                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition"
+              <Link
+                href="/dashboard/seller"
+                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider text-center transition flex items-center justify-center gap-2 shadow-md shadow-indigo-900/30"
               >
-                Comprar Ahora
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                <span>Ver Mis Cuentas de este Servicio</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           ))}
         </div>
-      </section>
-
-      {/* MODAL DE COMPRA / MÉTODOS DE PAGO */}
-      {selectedService && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#121826] border border-gray-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-            <button
-              onClick={() => setSelectedService(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white text-lg w-8 h-8 rounded-full bg-gray-800/80 flex items-center justify-center"
-            >
-              ✕
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-                <CreditCard className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Comprar {selectedService.name}</h3>
-                <p className="text-sm text-gray-400">Total a pagar: <strong className="text-emerald-400 text-base">{formatCurrency(selectedService.price)}</strong></p>
-              </div>
-            </div>
-
-            <p className="text-xs text-gray-400 mb-4 bg-indigo-950/40 p-3 rounded-lg border border-indigo-500/20">
-              Selecciona tu método de pago preferido, realiza la transferencia y envía el comprobante a nuestro asesor para recibir tus credenciales inmediatamente.
-            </p>
-
-            <div className="space-y-3">
-              {/* Binance */}
-              <div className="p-3.5 rounded-xl bg-gray-800/60 border border-gray-700/60 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-amber-400 font-bold uppercase">Binance Pay (USDT)</div>
-                  <div className="text-sm font-mono text-gray-200 font-semibold mt-0.5">Pay ID: 789201942</div>
-                  <div className="text-[11px] text-gray-400">Nombre: StreamHub Oficial</div>
-                </div>
-                <button
-                  onClick={() => handleCopy("789201942", "binance")}
-                  className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  {copiedMethod === "binance" ? "Copiado!" : "Copiar"}
-                </button>
-              </div>
-
-              {/* Pago Móvil */}
-              <div className="p-3.5 rounded-xl bg-gray-800/60 border border-gray-700/60 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-indigo-400 font-bold uppercase">Pago Móvil (Venezuela)</div>
-                  <div className="text-sm text-gray-200 font-semibold mt-0.5">0412-1234567 • Banesco (0102)</div>
-                  <div className="text-[11px] text-gray-400">C.I: 28.123.456 (Tasa BCV del día)</div>
-                </div>
-                <button
-                  onClick={() => handleCopy("04121234567", "pm")}
-                  className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  {copiedMethod === "pm" ? "Copiado!" : "Copiar"}
-                </button>
-              </div>
-
-              {/* Zelle */}
-              <div className="p-3.5 rounded-xl bg-gray-800/60 border border-gray-700/60 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-purple-400 font-bold uppercase">Zelle (USD)</div>
-                  <div className="text-sm font-mono text-gray-200 font-semibold mt-0.5">pagos@streamhub.com</div>
-                  <div className="text-[11px] text-gray-400">Titular: Stream Services LLC</div>
-                </div>
-                <button
-                  onClick={() => handleCopy("pagos@streamhub.com", "zelle")}
-                  className="px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded-lg flex items-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  {copiedMethod === "zelle" ? "Copiado!" : "Copiar"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-800 flex gap-3">
-              <a
-                href={`https://wa.me/584120000000?text=Hola,%20deseo%20comprar%20la%20cuenta%20de%20${encodeURIComponent(
-                  selectedService.name
-                )}%20por%20${selectedService.price}$`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-center flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/40"
-              >
-                Notificar Pago por WhatsApp
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+      </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-gray-800/80 bg-[#070a12] py-8 text-center text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 StreamHub Pro. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="hover:text-gray-300">Acceso Vendedores</Link>
-            <Link href="/login" className="hover:text-gray-300">Acceso Dueño</Link>
-            <span className="text-gray-700">|</span>
-            <span className="text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Servidores Operacionales
-            </span>
-          </div>
-        </div>
+      <footer className="py-8 text-center text-xs text-gray-500 border-t border-gray-800/80 mt-12">
+        © 2026 StreamHub Pro • Portal Privado de Distribución de Streaming
       </footer>
     </div>
   );

@@ -19,6 +19,13 @@ import {
   AlertCircle
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { 
+  getCurrentUser, 
+  getStoredAccounts, 
+  checkAccountAuthorization, 
+  StoredStreamingAccount,
+  SystemUser
+} from "@/lib/account-manager";
 
 export type CodeAction = 
   | "actualizar" 
@@ -90,13 +97,42 @@ export default function SellerLiveCodesPage() {
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Lista de Cuentas Asignadas al Vendedor
-  const myAccounts = [
-    { id: "1", service: "Netflix Premium 4K", email: "netflix01@streamhub.io", profiles: "4/5" },
-    { id: "2", service: "Disney+ Standard", email: "disney.latam.master@gmail.com", profiles: "4/4" },
-    { id: "3", service: "Max (HBO Max)", email: "max.ultra.hd2026@streamhub.io", profiles: "3/5" },
-    { id: "4", service: "Prime Video", email: "prime.seller01@gmail.com", profiles: "2/3" }
-  ];
+  const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string }>>([]);
+
+  // Cargar cuentas asignadas al vendedor logueado
+  useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUserState(user);
+
+    const allAccounts = getStoredAccounts();
+    // Si hay usuario vendedor, filtrar sus cuentas. Si es owner, mostrar todas. Si no hay sesión, mostrar de demo
+    let validAccs: StoredStreamingAccount[] = [];
+    if (user?.role === "owner") {
+      validAccs = allAccounts;
+    } else if (user) {
+      validAccs = allAccounts.filter(a =>
+        a.sellerId === user.id ||
+        a.sellerId === user.email ||
+        a.sellerName?.toLowerCase() === user.name?.toLowerCase()
+      );
+    } else {
+      validAccs = allAccounts.slice(0, 4);
+    }
+
+    const formatted = validAccs.map((a) => ({
+      id: a.id,
+      service: a.platform,
+      email: a.email,
+      profiles: `${a.occupiedProfiles || 0}/${a.maxProfiles || 5}`
+    }));
+
+    setAssignedAccounts(formatted);
+    if (formatted.length > 0 && !selectedAccount) {
+      setSelectedAccount(formatted[0].email);
+    }
+  }, []);
 
   // Temporizador de espera visual
   useEffect(() => {
@@ -163,8 +199,20 @@ export default function SellerLiveCodesPage() {
     };
   }, [isWaiting, currentRequestId]);
 
-  // DISPARAR SOLICITUD DE ACCIÓN
+  // DISPARAR SOLICITUD DE ACCIÓN CON VALIDACIÓN ESTRICTA DE VENDEDOR
   const handleTriggerAction = async (action: CodeAction) => {
+    setAuthError(null);
+    const cleanEmail = selectedAccount.trim().toLowerCase();
+
+    // 1. REGLA ESTRICTA: Solo puede consultar si la cuenta está asignada al vendedor y no ha expirado
+    const authCheck = checkAccountAuthorization(cleanEmail, currentUser);
+    if (!authCheck.authorized) {
+      setAuthError(authCheck.reason || "No tienes autorización para consultar códigos de esta cuenta.");
+      setIsWaiting(false);
+      setReceivedCode(null);
+      return;
+    }
+
     setActiveAction(action);
     setIsWaiting(true);
     setReceivedCode(null);
@@ -173,11 +221,25 @@ export default function SellerLiveCodesPage() {
     const generatedReqId = `req_${Date.now()}`;
     setCurrentRequestId(generatedReqId);
 
+    // Consulta directa a Google Apps Script
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
+    try {
+      fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success && data.code) {
+            setReceivedCode(data.code);
+            setIsWaiting(false);
+          }
+        })
+        .catch(() => {});
+    } catch (e) {}
+
     // Registrar en Supabase si está disponible
     try {
       const supabase = createClient();
       await (supabase as any).from("code_requests").insert({
-        account_email: selectedAccount,
+        account_email: cleanEmail,
         action_type: action,
         status: "pendiente"
       });
@@ -185,7 +247,7 @@ export default function SellerLiveCodesPage() {
       console.log("Modo standalone activo");
     }
 
-    // Demo Fallback: Si no hay webhook enviando en 5 segundos, autocompletar para demostración interactiva
+    // Demo Fallback: Si no hay webhook enviando en 5.5 segundos
     setTimeout(() => {
       if (!receivedCode) {
         if (action === "actualizar" || action === "login_confirm" || action === "reset_password") {
@@ -263,34 +325,60 @@ export default function SellerLiveCodesPage() {
           </div>
         </div>
 
+        {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
+        {authError && (
+          <div className="mb-6 p-4 rounded-2xl bg-red-950/70 border-2 border-red-500/50 text-red-200 flex items-start gap-3 shadow-xl">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-bold text-sm text-red-300">Consulta Bloqueada</div>
+              <div className="text-xs text-red-200/90 mt-0.5">{authError}</div>
+            </div>
+          </div>
+        )}
+
         {/* SELECTOR DE CUENTA ACTIVA */}
         <div className="bg-[#121826] border border-gray-800/80 rounded-2xl p-5 mb-8 shadow-lg">
-          <label className="block text-xs font-bold text-indigo-300 uppercase tracking-wider mb-2">
-            Cuenta de Streaming Seleccionada
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {myAccounts.map((acc) => (
-              <div
-                key={acc.id}
-                onClick={() => {
-                  setSelectedAccount(acc.email);
-                  setReceivedCode(null);
-                  setIsWaiting(false);
-                }}
-                className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                  selectedAccount === acc.email
-                    ? "bg-indigo-950/60 border-indigo-500 text-white shadow-md shadow-indigo-950/50"
-                    : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:border-gray-700"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-indigo-400">{acc.service}</span>
-                  <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">{acc.profiles}</span>
-                </div>
-                <div className="font-mono text-xs text-white truncate">{acc.email}</div>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-bold text-indigo-300 uppercase tracking-wider">
+              Tus Cuentas de Streaming Asignadas ({assignedAccounts.length})
+            </label>
+            {currentUser && (
+              <span className="text-[11px] text-gray-400">
+                Vendedor: <strong className="text-white">{currentUser.name}</strong>
+              </span>
+            )}
           </div>
+
+          {assignedAccounts.length === 0 ? (
+            <div className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800 text-center text-xs text-gray-500">
+              No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {assignedAccounts.map((acc) => (
+                <div
+                  key={acc.id}
+                  onClick={() => {
+                    setSelectedAccount(acc.email);
+                    setAuthError(null);
+                    setReceivedCode(null);
+                    setIsWaiting(false);
+                  }}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    selectedAccount === acc.email
+                      ? "bg-indigo-950/60 border-indigo-500 text-white shadow-md shadow-indigo-950/50"
+                      : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:border-gray-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-indigo-400">{acc.service}</span>
+                    <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">{acc.profiles}</span>
+                  </div>
+                  <div className="font-mono text-xs text-white truncate">{acc.email}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 5 BOTONES DE ACCIONES PRINCIPALES */}

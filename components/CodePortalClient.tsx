@@ -12,9 +12,12 @@ import {
   ArrowLeft,
   ShieldCheck,
   ExternalLink,
-  KeyRound
+  KeyRound,
+  AlertCircle,
+  ShieldAlert
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getCurrentUser, checkAccountAuthorization } from "@/lib/account-manager";
 
 interface CodePagePortalProps {
   actionType: "actualizar" | "temporal" | "login_code" | "login_confirm" | "reset_password";
@@ -39,6 +42,7 @@ export default function CodePortalClient({
   const [platform, setPlatform] = useState<string>("netflix");
   const [isWaiting, setIsWaiting] = useState(false);
   const [receivedCode, setReceivedCode] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
@@ -188,10 +192,23 @@ export default function CodePortalClient({
   };
 
   // Enviar Petición / Iniciar Escucha
+  // Enviar Petición / Iniciar Escucha con Verificación de Autorización
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) return;
+
+    // 1. REGLA ESTRICTA DE AUTORIZACIÓN:
+    // El vendedor solo puede consultar códigos de cuentas asignadas a él y que no estén vencidas
+    const user = getCurrentUser();
+    const authCheck = checkAccountAuthorization(cleanEmail, user);
+    if (!authCheck.authorized) {
+      setAuthError(authCheck.reason || "No estás autorizado para consultar códigos de esta cuenta.");
+      setIsWaiting(false);
+      setReceivedCode(null);
+      return;
+    }
 
     setIsWaiting(true);
     setReceivedCode(null);
@@ -338,6 +355,25 @@ export default function CodePortalClient({
               )}
             </button>
           </form>
+
+          {/* MENSAJE DE BLOQUEO POR AUTORIZACIÓN / EXPIRACIÓN */}
+          {authError && (
+            <div className="mt-6 p-4 rounded-2xl bg-red-950/60 border border-red-500/40 text-left animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-red-900/50 text-red-400 shrink-0">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-red-300">
+                    Acceso No Autorizado
+                  </h4>
+                  <p className="text-xs text-red-200/90 mt-1 leading-relaxed">
+                    {authError}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* RESULTADO: NÚMERO DIRECTO Y GIGANTE */}
           {isWaiting ? (

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,9 +23,30 @@ import {
   Eye, 
   EyeOff,
   Sparkles,
-  ArrowUpDown
+  ArrowUpDown,
+  FileSpreadsheet,
+  Upload,
+  Download,
+  KeyRound,
+  UserPlus,
+  RefreshCw,
+  Zap,
+  Home,
+  ShieldCheck,
+  Lock,
+  ExternalLink,
+  Copy
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { 
+  getStoredAccounts, 
+  saveStoredAccounts, 
+  getSystemUsers, 
+  saveSystemUsers, 
+  saveSystemUser,
+  SystemUser, 
+  StoredStreamingAccount 
+} from "@/lib/account-manager";
 
 export interface StreamingAccount {
   id: string;
@@ -47,6 +69,7 @@ export interface StreamingAccount {
 export interface Seller {
   id: string;
   name: string;
+  email?: string;
   phone: string;
   activeAccountsCount: number;
   status: "active" | "suspended";
@@ -67,85 +90,11 @@ export default function OwnerDashboard() {
   const [platformFilter, setPlatformFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Lista de Vendedores
-  const [sellers, setSellers] = useState<Seller[]>([
-    { id: "s-1", name: "Carlos Vendedor (Caracas)", phone: "+58 412 1112233", activeAccountsCount: 14, status: "active" },
-    { id: "s-2", name: "Maria Ventas (Bogotá)", phone: "+57 300 4445566", activeAccountsCount: 22, status: "active" },
-    { id: "s-3", name: "Andrés Gomez (Medellín)", phone: "+57 311 9998877", activeAccountsCount: 18, status: "active" },
-    { id: "s-4", name: "Juan Martinez (Santiago)", phone: "+56 9 8887766", activeAccountsCount: 8, status: "active" }
-  ]);
+  // Lista de Vendedores sincronizada con account-manager
+  const [sellers, setSellers] = useState<Seller[]>([]);
 
-  // Cuentas Maestras en Estado Local Interactivo
-  const [accounts, setAccounts] = useState<StreamingAccount[]>([
-    {
-      id: "acc-1",
-      platform: "Netflix Premium 4K",
-      platformColor: "text-red-500 bg-red-950/40 border-red-500/30",
-      email: "master.netflix01@streamhub.io",
-      password: "SuperSecretPass2026*",
-      seller: "Carlos Vendedor (Caracas)",
-      sellerId: "s-1",
-      profilesOccupied: 4,
-      maxProfiles: 5,
-      purchaseDate: "2026-08-01",
-      expirationDate: "2026-08-31",
-      status: "assigned",
-      monthlyCost: 2.00,
-      monthlyIncome: 14.00,
-      notes: "Cuenta colombiana con método de pago activo"
-    },
-    {
-      id: "acc-2",
-      platform: "Disney+ Standard",
-      platformColor: "text-blue-400 bg-blue-950/40 border-blue-500/30",
-      email: "disney.family.latam@gmail.com",
-      password: "DisneyPass2026#",
-      seller: "Maria Ventas (Bogotá)",
-      sellerId: "s-2",
-      profilesOccupied: 4,
-      maxProfiles: 4,
-      purchaseDate: "2026-08-10",
-      expirationDate: "2026-09-10",
-      status: "assigned",
-      monthlyCost: 1.50,
-      monthlyIncome: 10.00,
-      notes: "Combo Disney + Star"
-    },
-    {
-      id: "acc-3",
-      platform: "Max (HBO Max)",
-      platformColor: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30",
-      email: "max.ultra.hd2026@streamhub.io",
-      password: "MaxPassword778!",
-      seller: "Sin Asignar (En Stock)",
-      sellerId: undefined,
-      profilesOccupied: 0,
-      maxProfiles: 5,
-      purchaseDate: "2026-08-20",
-      expirationDate: "2026-09-20",
-      status: "available",
-      monthlyCost: 1.20,
-      monthlyIncome: 0.00,
-      notes: "Listo para asignar a nuevo vendedor"
-    },
-    {
-      id: "acc-4",
-      platform: "Spotify Familiar",
-      platformColor: "text-emerald-400 bg-emerald-950/40 border-emerald-500/30",
-      email: "spotify.master.sub@streamhub.io",
-      password: "SpotMusic2026#",
-      seller: "Andrés Gomez (Medellín)",
-      sellerId: "s-3",
-      profilesOccupied: 6,
-      maxProfiles: 6,
-      purchaseDate: "2026-07-28",
-      expirationDate: "2026-08-28",
-      status: "expiring",
-      monthlyCost: 0.90,
-      monthlyIncome: 12.00,
-      notes: "Plan familiar con 6 miembros"
-    }
-  ]);
+  // Cuentas Maestras sincronizadas con account-manager
+  const [accounts, setAccounts] = useState<StreamingAccount[]>([]);
 
   // Estados para Modales
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -154,6 +103,101 @@ export default function OwnerDashboard() {
   const [assigningAccount, setAssigningAccount] = useState<StreamingAccount | null>(null);
   const [selectedSellerToAssign, setSelectedSellerToAssign] = useState<string>("");
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+
+  // Modal de Importación Excel
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelPreviewData, setExcelPreviewData] = useState<any[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
+
+  // Modal para Crear Vendedor
+  const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
+  const [newSellerName, setNewSellerName] = useState("");
+  const [newSellerEmail, setNewSellerEmail] = useState("");
+  const [newSellerPhone, setNewSellerPhone] = useState("");
+
+  // Probador de Códigos en Vivo para Owner
+  const [testEmail, setTestEmail] = useState("");
+  const [testService, setTestService] = useState("netflix");
+  const [testAction, setTestAction] = useState("temporal");
+  const [testResult, setTestResult] = useState<string | null>(null);
+  const [isTestingCode, setIsTestingCode] = useState(false);
+  const [copiedTestCode, setCopiedTestCode] = useState(false);
+
+  // Cargar datos iniciales desde storage
+  useEffect(() => {
+    const rawUsers = getSystemUsers();
+    const rawAccounts = getStoredAccounts();
+
+    const formattedSellers: Seller[] = rawUsers.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone || "Sin teléfono",
+      activeAccountsCount: rawAccounts.filter(a => a.sellerId === u.id || a.sellerId === u.email).length,
+      status: u.status || "active"
+    }));
+    setSellers(formattedSellers);
+
+    const formattedAccounts: StreamingAccount[] = rawAccounts.map(a => {
+      const platObj = AVAILABLE_PLATFORMS.find(p => p.name.toLowerCase().includes(a.platform.toLowerCase())) || AVAILABLE_PLATFORMS[0];
+      return {
+        id: a.id,
+        platform: a.platform || platObj.name,
+        platformColor: platObj.color,
+        email: a.email,
+        password: a.password || "Password2026*",
+        seller: a.sellerName || (a.sellerId ? (rawUsers.find(u => u.id === a.sellerId)?.name || a.sellerId) : "Sin Asignar (En Stock)"),
+        sellerId: a.sellerId,
+        profilesOccupied: a.occupiedProfiles || 0,
+        maxProfiles: a.maxProfiles || platObj.defaultProfiles,
+        purchaseDate: "2026-08-01",
+        expirationDate: a.expirationDate || "2026-09-30",
+        status: (a.status as any) || (a.sellerId ? "assigned" : "available"),
+        monthlyCost: a.monthlyCost || platObj.defaultCost,
+        monthlyIncome: a.monthlyIncome || platObj.defaultIncome,
+        notes: a.notes || ""
+      };
+    });
+    setAccounts(formattedAccounts);
+  }, []);
+
+  // Guardar en Storage cuando accounts cambia
+  const persistAccounts = (newAccounts: StreamingAccount[]) => {
+    setAccounts(newAccounts);
+    const converted: StoredStreamingAccount[] = newAccounts.map(a => ({
+      id: a.id,
+      platform: a.platform,
+      email: a.email,
+      password: a.password,
+      sellerId: a.sellerId,
+      sellerName: a.seller,
+      maxProfiles: a.maxProfiles,
+      occupiedProfiles: a.profilesOccupied,
+      expirationDate: a.expirationDate,
+      status: a.status === "assigned" ? "assigned" : a.status === "available" ? "available" : "expired",
+      monthlyCost: a.monthlyCost,
+      monthlyIncome: a.monthlyIncome,
+      notes: a.notes
+    }));
+    saveStoredAccounts(converted);
+  };
+
+  // Guardar en Storage cuando sellers cambia
+  const persistSellers = (newSellers: Seller[]) => {
+    setSellers(newSellers);
+    const converted: SystemUser[] = newSellers.map(s => ({
+      id: s.id,
+      name: s.name,
+      email: s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`,
+      phone: s.phone,
+      role: "seller",
+      status: s.status,
+      activeAccountsCount: s.activeAccountsCount
+    }));
+    saveSystemUsers(converted);
+  };
 
   // Estado del Formulario de Cuenta
   const [formData, setFormData] = useState({
@@ -249,30 +293,32 @@ export default function OwnerDashboard() {
     e.preventDefault();
     const platObj = AVAILABLE_PLATFORMS.find((p) => p.name === formData.platform) || AVAILABLE_PLATFORMS[0];
     const isAssigned = formData.seller !== "Sin Asignar (En Stock)";
+    const matchedSeller = sellers.find(s => s.name === formData.seller);
 
     if (editingAccountId) {
       // Editar existente
-      setAccounts((prev) =>
-        prev.map((acc) =>
-          acc.id === editingAccountId
-            ? {
-                ...acc,
-                ...formData,
-                platformColor: platObj.color,
-                status: isAssigned ? (acc.status === "expiring" ? "expiring" : "assigned") : "available"
-              }
-            : acc
-        )
+      const updated = accounts.map((acc) =>
+        acc.id === editingAccountId
+          ? {
+              ...acc,
+              ...formData,
+              sellerId: matchedSeller ? matchedSeller.id : acc.sellerId,
+              platformColor: platObj.color,
+              status: (isAssigned ? (acc.status === "expiring" ? "expiring" : "assigned") : "available") as any
+            }
+          : acc
       );
+      persistAccounts(updated);
     } else {
       // Crear nueva
       const newAcc: StreamingAccount = {
         id: `acc-${Date.now()}`,
         ...formData,
+        sellerId: matchedSeller ? matchedSeller.id : undefined,
         platformColor: platObj.color,
-        status: isAssigned ? "assigned" : "available"
+        status: (isAssigned ? "assigned" : "available") as any
       };
-      setAccounts((prev) => [newAcc, ...prev]);
+      persistAccounts([newAcc, ...accounts]);
     }
     setIsAccountModalOpen(false);
   };
@@ -280,7 +326,7 @@ export default function OwnerDashboard() {
   // ELIMINAR CUENTA
   const handleDeleteAccount = (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar esta cuenta maestra?")) {
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      persistAccounts(accounts.filter((a) => a.id !== id));
     }
   };
 
@@ -296,20 +342,192 @@ export default function OwnerDashboard() {
     if (!assigningAccount) return;
     const selectedSeller = sellers.find((s) => s.id === selectedSellerToAssign);
 
-    setAccounts((prev) =>
-      prev.map((acc) =>
-        acc.id === assigningAccount.id
-          ? {
-              ...acc,
-              seller: selectedSeller ? selectedSeller.name : "Sin Asignar (En Stock)",
-              sellerId: selectedSeller ? selectedSeller.id : undefined,
-              status: selectedSeller ? "assigned" : "available"
-            }
-          : acc
-      )
+    const updated = accounts.map((acc) =>
+      acc.id === assigningAccount.id
+        ? {
+            ...acc,
+            seller: selectedSeller ? selectedSeller.name : "Sin Asignar (En Stock)",
+            sellerId: selectedSeller ? selectedSeller.id : undefined,
+            status: (selectedSeller ? "assigned" : "available") as any
+          }
+        : acc
     );
+    persistAccounts(updated);
     setIsAssignModalOpen(false);
     setAssigningAccount(null);
+  };
+
+  // MANEJO DE ARCHIVO EXCEL (.xlsx / .csv)
+  const handleExcelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setExcelFile(file);
+    setImportSuccessMessage(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        setExcelPreviewData(data);
+      } catch (err) {
+        alert("Error al leer el archivo Excel/CSV. Asegúrate de que sea un formato válido.");
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // IMPORTAR FILAS PARSEADAS DE EXCEL
+  const handleProcessExcelImport = () => {
+    if (excelPreviewData.length === 0) return;
+    setIsImporting(true);
+
+    try {
+      const importedAccounts: StreamingAccount[] = [];
+
+      excelPreviewData.forEach((row: any, idx) => {
+        // Encontrar plataforma mapeada
+        const rawPlatform = row["Plataforma"] || row["Servicio"] || row["Platform"] || "Netflix Premium 4K";
+        const platObj = AVAILABLE_PLATFORMS.find(p => p.name.toLowerCase().includes(String(rawPlatform).toLowerCase())) || AVAILABLE_PLATFORMS[0];
+        
+        const email = String(row["Correo"] || row["Email"] || row["Usuario"] || "").trim();
+        if (!email) return;
+
+        const password = String(row["Contraseña"] || row["Password"] || row["Clave"] || "Password2026*").trim();
+        const maxProfiles = Number(row["Perfiles"] || row["Cupos"] || platObj.defaultProfiles) || platObj.defaultProfiles;
+        const occupied = Number(row["Ocupados"] || 0);
+
+        // Vendedor asignado en el excel (por nombre o email)
+        const sellerCol = String(row["Vendedor"] || row["Seller"] || "").trim();
+        const matchedSeller = sellers.find(s => 
+          s.name.toLowerCase().includes(sellerCol.toLowerCase()) || 
+          (s.email && s.email.toLowerCase() === sellerCol.toLowerCase())
+        );
+
+        const expDate = row["Vencimiento"] || row["Fecha Vencimiento"] || row["Expiration"] || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+        importedAccounts.push({
+          id: `acc-imp-${Date.now()}-${idx}`,
+          platform: platObj.name,
+          platformColor: platObj.color,
+          email,
+          password,
+          seller: matchedSeller ? matchedSeller.name : (sellerCol || "Sin Asignar (En Stock)"),
+          sellerId: matchedSeller ? matchedSeller.id : undefined,
+          profilesOccupied: occupied,
+          maxProfiles,
+          purchaseDate: new Date().toISOString().split("T")[0],
+          expirationDate: String(expDate).substring(0, 10),
+          status: matchedSeller ? "assigned" : "available",
+          monthlyCost: platObj.defaultCost,
+          monthlyIncome: platObj.defaultIncome,
+          notes: "Importado vía Excel/CSV"
+        });
+      });
+
+      if (importedAccounts.length > 0) {
+        persistAccounts([...importedAccounts, ...accounts]);
+        setImportSuccessMessage(`¡Se importaron exitosamente ${importedAccounts.length} cuentas de streaming!`);
+        setTimeout(() => {
+          setIsExcelModalOpen(false);
+          setExcelFile(null);
+          setExcelPreviewData([]);
+          setImportSuccessMessage(null);
+        }, 1800);
+      } else {
+        alert("No se detectaron cuentas con correo válido en el archivo.");
+      }
+    } catch (err: any) {
+      alert("Error procesando importación: " + err.message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // DESCARGAR PLANTILLA EXCEL DE EJEMPLO
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        "Plataforma": "Netflix Premium 4K",
+        "Correo": "ejemplo.netflix1@correo.com",
+        "Contraseña": "ClaveSegura2026*",
+        "Perfiles": 5,
+        "Ocupados": 0,
+        "Vencimiento": "2026-10-15",
+        "Vendedor": "Carlos Vendedor"
+      },
+      {
+        "Plataforma": "Disney+ Standard",
+        "Correo": "ejemplo.disney2@correo.com",
+        "Contraseña": "DisneyPass2026#",
+        "Perfiles": 4,
+        "Ocupados": 1,
+        "Vencimiento": "2026-10-20",
+        "Vendedor": "Maria Ventas"
+      },
+      {
+        "Plataforma": "Max (HBO Max)",
+        "Correo": "ejemplo.max3@correo.com",
+        "Contraseña": "MaxPassword778!",
+        "Perfiles": 5,
+        "Ocupados": 0,
+        "Vencimiento": "2026-11-01",
+        "Vendedor": ""
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cuentas_Plantilla");
+    XLSX.writeFile(wb, "Plantilla_Cuentas_Streaming_StreamHub.xlsx");
+  };
+
+  // REGISTRAR NUEVO VENDEDOR
+  const handleCreateSeller = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSellerName.trim()) return;
+
+    const newSeller: Seller = {
+      id: `s-${Date.now().toString().slice(-4)}`,
+      name: newSellerName.trim(),
+      email: newSellerEmail.trim() || `${newSellerName.toLowerCase().replace(/\s+/g, "")}@ventas.com`,
+      phone: newSellerPhone.trim() || "Sin teléfono",
+      activeAccountsCount: 0,
+      status: "active"
+    };
+
+    persistSellers([...sellers, newSeller]);
+    setNewSellerName("");
+    setNewSellerEmail("");
+    setNewSellerPhone("");
+    setIsSellerModalOpen(false);
+  };
+
+  // PROBAR CÓDIGO DIRECTO DESDE PANEL OWNER (BYPASS TOTAL)
+  const handleExecuteCodeTest = async () => {
+    if (!testEmail.trim()) return;
+    setIsTestingCode(true);
+    setTestResult(null);
+    setCopiedTestCode(false);
+
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
+
+    try {
+      const res = await fetch(`${GAS_URL}?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(testAction)}&t=${Date.now()}`);
+      const data = await res.json();
+      if (data && data.success && data.code) {
+        setTestResult(data.code);
+      } else {
+        setTestResult(data?.message || "No se encontró código reciente para este correo.");
+      }
+    } catch (err: any) {
+      setTestResult("Error consultando el servicio: " + err.message);
+    } finally {
+      setIsTestingCode(false);
+    }
   };
 
   const togglePasswordVisibility = (id: string) => {
@@ -366,7 +584,7 @@ export default function OwnerDashboard() {
             <p className="text-sm text-gray-400 mt-1">Control financiero global, inventario y rendimiento de ventas</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
@@ -376,12 +594,39 @@ export default function OwnerDashboard() {
               <option value="last_month">Mes Anterior</option>
               <option value="this_year">Año Completo</option>
             </select>
+
+            {/* BOTÓN IMPORTAR EXCEL */}
+            <button
+              onClick={() => {
+                setExcelPreviewData([]);
+                setExcelFile(null);
+                setImportSuccessMessage(null);
+                setIsExcelModalOpen(true);
+              }}
+              className="px-3.5 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold rounded-xl flex items-center gap-2 transition"
+              title="Importar cuentas masivamente desde archivo Excel o CSV"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+              <span>Importar Excel / CSV</span>
+            </button>
+
+            {/* BOTÓN NUEVO VENDEDOR */}
+            <button
+              onClick={() => setIsSellerModalOpen(true)}
+              className="px-3.5 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-semibold rounded-xl flex items-center gap-2 transition"
+              title="Crear un nuevo vendedor en el sistema"
+            >
+              <UserPlus className="w-4 h-4 text-purple-400" />
+              <span>Nuevo Vendedor</span>
+            </button>
+
+            {/* BOTÓN NUEVA CUENTA */}
             <button
               onClick={handleOpenCreateModal}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5"
             >
               <Plus className="w-4 h-4" />
-              Nueva Cuenta Maestra
+              <span>Nueva Cuenta</span>
             </button>
           </div>
         </div>
@@ -599,6 +844,193 @@ export default function OwnerDashboard() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        {/* SECCIÓN 2: GESTIÓN DE VENDEDORES REGISTRADOS */}
+        <section id="vendedores" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-400" />
+                Vendedores y Revendedores Registrados ({sellers.length})
+              </h2>
+              <p className="text-xs text-gray-400">
+                Usuarios que pueden iniciar sesión en el portal y gestionar sus cuentas asignadas
+              </p>
+            </div>
+            <button
+              onClick={() => setIsSellerModalOpen(true)}
+              className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-purple-900/30 transition w-fit"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Registrar Vendedor</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sellers.map((s) => {
+              const assignedCount = accounts.filter(a => a.sellerId === s.id || a.sellerId === s.email || a.seller === s.name).length;
+              return (
+                <div key={s.id} className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800 flex flex-col justify-between">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-bold text-sm text-white">{s.name}</div>
+                      <div className="text-xs text-indigo-400 font-mono mt-0.5">{s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`}</div>
+                      <div className="text-[11px] text-gray-500 mt-1">{s.phone}</div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/20">
+                      Activo
+                    </span>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-800/60 flex items-center justify-between text-xs">
+                    <span className="text-gray-400">Cuentas Asignadas:</span>
+                    <span className="font-extrabold text-white bg-gray-800 px-2.5 py-0.5 rounded-lg text-xs text-indigo-300">
+                      {assignedCount}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* SECCIÓN 3: GESTOR Y PROBADOR MAESTRO DE CÓDIGOS (EXCLUSIVO OWNER) */}
+        <section id="codigos-owner" className="bg-gradient-to-br from-[#121826] to-[#0d121f] border border-indigo-500/30 rounded-2xl p-6 mb-8 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-2">
+                <Shield className="w-3 h-3" />
+                <span>Consola Master Owner (Acceso Ilimitado)</span>
+              </div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-indigo-400" />
+                <span>Probador y Extractor de Códigos en Vivo</span>
+              </h2>
+              <p className="text-xs text-gray-400">
+                Como Owner, puedes consultar el código de cualquier correo directamente sin restricciones de vendedor ni expiración
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="md:col-span-2">
+              <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1">
+                Correo de la Cuenta
+              </label>
+              <input
+                type="email"
+                placeholder="ej: hogaryutu+acido@gmail.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1">
+                Servicio
+              </label>
+              <select
+                value={testService}
+                onChange={(e) => setTestService(e.target.value)}
+                className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="netflix">Netflix</option>
+                <option value="disney">Disney+</option>
+                <option value="max">Max (HBO)</option>
+                <option value="prime">Prime Video</option>
+                <option value="spotify">Spotify</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1">
+                Acción
+              </label>
+              <select
+                value={testAction}
+                onChange={(e) => setTestAction(e.target.value)}
+                className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="temporal">Temporal (4-6 dígitos)</option>
+                <option value="actualizar">Actualizar Hogar</option>
+                <option value="login_code">Código Inicio OTP</option>
+                <option value="login_confirm">Confirmar Inicio (Link)</option>
+                <option value="reset_password">Restablecer Clave</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <button
+              onClick={handleExecuteCodeTest}
+              disabled={isTestingCode || !testEmail.trim()}
+              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/50 transition disabled:opacity-50"
+            >
+              {isTestingCode ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Consultando Gmail / GAS...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Extraer Código / Enlace Ahora</span>
+                </>
+              )}
+            </button>
+
+            {/* Accesos rápidos con correos del inventario */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-gray-400 text-[11px]">Rápido:</span>
+              {accounts.slice(0, 3).map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => setTestEmail(a.email)}
+                  className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-[10px] font-mono truncate max-w-[170px]"
+                >
+                  {a.email}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Resultado de la extracción */}
+          {testResult && (
+            <div className="mt-4 p-4 rounded-xl bg-[#070a12] border border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Resultado Obtenido:</span>
+                <div className="font-mono text-base font-black text-emerald-400 mt-0.5 break-all">
+                  {testResult}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(testResult);
+                    setCopiedTestCode(true);
+                    setTimeout(() => setCopiedTestCode(false), 2000);
+                  }}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition"
+                >
+                  {copiedTestCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedTestCode ? "Copiado" : "Copiar"}</span>
+                </button>
+                {testResult.startsWith("http") && (
+                  <a
+                    href={testResult}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Abrir</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* MODAL CREAR / EDITAR CUENTA MAESTRA */}
@@ -826,6 +1258,225 @@ export default function OwnerDashboard() {
                   Confirmar Asignación
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL IMPORTAR EXCEL / CSV */}
+        {isExcelModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#121826] border border-gray-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+              <button
+                onClick={() => setIsExcelModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
+                  <FileSpreadsheet className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Importar Cuentas desde Excel o CSV</h3>
+                  <p className="text-xs text-gray-400">
+                    Sube un archivo con tus cuentas de streaming y asígnalas a tus vendedores automáticamente
+                  </p>
+                </div>
+              </div>
+
+              {/* Botón Descargar Plantilla */}
+              <div className="mb-4 p-3 rounded-xl bg-[#0b0f19] border border-gray-800 flex items-center justify-between">
+                <div className="text-xs text-gray-300">
+                  <span className="font-semibold text-white">¿No tienes el formato exacto?</span>
+                  <div className="text-[11px] text-gray-500">Descarga la plantilla con las columnas recomendadas: Plataforma, Correo, Contraseña, Perfiles, Vencimiento, Vendedor.</div>
+                </div>
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-3"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar Plantilla .xlsx</span>
+                </button>
+              </div>
+
+              {/* Zona de Drop / Input de archivo */}
+              <div className="border-2 border-dashed border-gray-700 hover:border-emerald-500/50 rounded-2xl p-6 text-center transition bg-[#090d16]/60 cursor-pointer relative">
+                <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleExcelFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80" />
+                <div className="text-sm font-semibold text-white">
+                  {excelFile ? excelFile.name : "Selecciona o arrastra tu archivo Excel / CSV aquí"}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Formatos soportados: .xlsx, .xls, .csv
+                </div>
+              </div>
+
+              {/* Mensaje de éxito */}
+              {importSuccessMessage && (
+                <div className="mt-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  <span>{importSuccessMessage}</span>
+                </div>
+              )}
+
+              {/* Vista Previa de Filas Parseadas */}
+              {excelPreviewData.length > 0 && !importSuccessMessage && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-300 mb-2">
+                    <span>Vista Previa ({excelPreviewData.length} registros detectados)</span>
+                    <span className="text-[11px] text-emerald-400">Listo para importar</span>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto border border-gray-800 rounded-xl bg-[#0b0f19]">
+                    <table className="w-full text-left text-[11px] text-gray-300">
+                      <thead className="bg-[#070a12] text-gray-400 sticky top-0 border-b border-gray-800">
+                        <tr>
+                          <th className="py-2 px-3">Plataforma</th>
+                          <th className="py-2 px-3">Correo</th>
+                          <th className="py-2 px-3">Cupos</th>
+                          <th className="py-2 px-3">Vendedor</th>
+                          <th className="py-2 px-3">Vencimiento</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800/60">
+                        {excelPreviewData.slice(0, 15).map((row: any, i) => (
+                          <tr key={i} className="hover:bg-gray-800/30">
+                            <td className="py-2 px-3 font-semibold text-white">
+                              {row["Plataforma"] || row["Servicio"] || "Netflix"}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-indigo-300">
+                              {row["Correo"] || row["Email"] || "-"}
+                            </td>
+                            <td className="py-2 px-3">
+                              {row["Perfiles"] || row["Cupos"] || 5}
+                            </td>
+                            <td className="py-2 px-3 text-amber-300">
+                              {row["Vendedor"] || "Sin Asignar"}
+                            </td>
+                            <td className="py-2 px-3 text-gray-400 font-mono">
+                              {String(row["Vencimiento"] || "").substring(0, 10) || "30 días"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Botones de acción */}
+              <div className="mt-6 pt-4 border-t border-gray-800 flex justify-end gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsExcelModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={excelPreviewData.length === 0 || isImporting}
+                  onClick={handleProcessExcelImport}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-900/30 flex items-center gap-1.5 transition disabled:opacity-50"
+                >
+                  {isImporting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <span>Importando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Cargar {excelPreviewData.length} Cuentas</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CREAR NUEVO VENDEDOR */}
+        {isSellerModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#121826] border border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+              <button
+                onClick={() => setIsSellerModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center">
+                  <UserPlus className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Registrar Nuevo Vendedor</h3>
+                  <p className="text-xs text-gray-400">
+                    Crea un vendedor para que pueda iniciar sesión y recibir cuentas
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateSeller} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Nombre Completo del Vendedor</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: Andrés Ventas"
+                    value={newSellerName}
+                    onChange={(e) => setNewSellerName(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Correo Electrónico (Para Iniciar Sesión)</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="andres@ventas.com"
+                    value={newSellerEmail}
+                    onChange={(e) => setNewSellerEmail(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Teléfono / WhatsApp</label>
+                  <input
+                    type="text"
+                    placeholder="+58 412 0001122"
+                    value={newSellerPhone}
+                    onChange={(e) => setNewSellerPhone(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSellerModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-lg shadow-purple-900/30"
+                  >
+                    Registrar Vendedor
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
