@@ -115,6 +115,7 @@ export default function OwnerDashboard() {
   const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
   const [newSellerName, setNewSellerName] = useState("");
   const [newSellerEmail, setNewSellerEmail] = useState("");
+  const [newSellerPassword, setNewSellerPassword] = useState("");
   const [newSellerPhone, setNewSellerPhone] = useState("");
 
   // Probador de Códigos en Vivo para Owner
@@ -125,8 +126,8 @@ export default function OwnerDashboard() {
   const [isTestingCode, setIsTestingCode] = useState(false);
   const [copiedTestCode, setCopiedTestCode] = useState(false);
 
-  // Cargar datos iniciales desde storage
-  useEffect(() => {
+  // Función para refrescar vendedores y cuentas
+  const reloadData = () => {
     const rawUsers = getSystemUsers();
     const rawAccounts = getStoredAccounts();
 
@@ -161,6 +162,21 @@ export default function OwnerDashboard() {
       };
     });
     setAccounts(formattedAccounts);
+  };
+
+  // Cargar datos iniciales y escuchar cambios
+  useEffect(() => {
+    reloadData();
+
+    // Escuchar cambios entre pestañas o eventos locales
+    const handleStorageChange = () => reloadData();
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("streamhub_users_updated", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("streamhub_users_updated", handleStorageChange);
+    };
   }, []);
 
   // Guardar en Storage cuando accounts cambia
@@ -488,20 +504,25 @@ export default function OwnerDashboard() {
   // REGISTRAR NUEVO VENDEDOR
   const handleCreateSeller = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSellerName.trim()) return;
+    if (!newSellerName.trim() || !newSellerEmail.trim()) return;
 
-    const newSeller: Seller = {
+    const newSellerUser: SystemUser = {
       id: `s-${Date.now().toString().slice(-4)}`,
       name: newSellerName.trim(),
-      email: newSellerEmail.trim() || `${newSellerName.toLowerCase().replace(/\s+/g, "")}@ventas.com`,
+      email: newSellerEmail.trim().toLowerCase(),
+      password: newSellerPassword.trim() || "Ventas2026*",
       phone: newSellerPhone.trim() || "Sin teléfono",
+      role: "seller",
       activeAccountsCount: 0,
       status: "active"
     };
 
-    persistSellers([...sellers, newSeller]);
+    saveSystemUser(newSellerUser);
+    reloadData();
+
     setNewSellerName("");
     setNewSellerEmail("");
+    setNewSellerPassword("");
     setNewSellerPhone("");
     setIsSellerModalOpen(false);
   };
@@ -1446,6 +1467,18 @@ export default function OwnerDashboard() {
                     placeholder="andres@ventas.com"
                     value={newSellerEmail}
                     onChange={(e) => setNewSellerEmail(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Contraseña de Acceso para el Vendedor</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: ClaveVentas2026*"
+                    value={newSellerPassword}
+                    onChange={(e) => setNewSellerPassword(e.target.value)}
                     className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-purple-500"
                   />
                 </div>

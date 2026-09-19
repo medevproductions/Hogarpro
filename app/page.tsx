@@ -198,17 +198,9 @@ export default function HomeOrSellerCatalogPage() {
         status: "active"
       };
 
+      // Guardar sesión y redirigir DIRECTO al panel de vendedor
       setCurrentUser(sellerUser);
-      setCurrentUserState(sellerUser);
-
-      // Cargar cuentas asignadas
-      const allAccounts = getStoredAccounts();
-      const myAccs = allAccounts.filter(a => 
-        a.sellerId === sellerUser.id || 
-        a.sellerId === cleanEmail || 
-        a.sellerName?.toLowerCase() === sellerUser.name.toLowerCase()
-      );
-      setUserAccounts(myAccs);
+      router.push("/dashboard/seller");
       setLoggingIn(false);
     }, 500);
   };
@@ -235,11 +227,12 @@ export default function HomeOrSellerCatalogPage() {
         return;
       }
 
-      // Crear y guardar el nuevo vendedor
+      // Crear y guardar el nuevo vendedor con contraseña
       const newSeller: SystemUser = {
         id: `s-${Date.now().toString().slice(-4)}`,
         name: regName.trim(),
         email: cleanEmail,
+        password: regPassword,
         phone: regPhone.trim() || "Sin teléfono",
         role: "seller",
         status: "active",
@@ -248,8 +241,7 @@ export default function HomeOrSellerCatalogPage() {
 
       saveSystemUser(newSeller);
       setCurrentUser(newSeller);
-      setCurrentUserState(newSeller);
-      setUserAccounts([]);
+      router.push("/dashboard/seller");
       setLoggingIn(false);
     }, 600);
   };

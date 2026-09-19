@@ -3,6 +3,7 @@ export interface SystemUser {
   email: string;
   name: string;
   role: "owner" | "seller";
+  password?: string;
   phone?: string;
   activeAccountsCount?: number;
   status: "active" | "suspended";
@@ -81,19 +82,21 @@ export function getSystemUsers(): SystemUser[] {
 export function saveSystemUsers(users: SystemUser[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    window.dispatchEvent(new Event("streamhub_users_updated"));
   }
 }
 
 export function saveSystemUser(user: SystemUser) {
   const users = getSystemUsers();
-  const existingIndex = users.findIndex(u => u.id === user.id || u.email === user.email);
+  const existingIndex = users.findIndex(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
   if (existingIndex >= 0) {
-    users[existingIndex] = user;
+    users[existingIndex] = { ...users[existingIndex], ...user };
   } else {
     users.push(user);
   }
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
+    window.dispatchEvent(new Event("streamhub_users_updated"));
   }
 }
 
