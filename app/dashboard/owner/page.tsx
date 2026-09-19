@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { 
   TrendingUp, 
@@ -45,6 +46,7 @@ import {
   saveSystemUsers, 
   saveSystemUser,
   deleteSystemUser,
+  getCurrentUser,
   SystemUser, 
   StoredStreamingAccount 
 } from "@/lib/account-manager";
@@ -168,8 +170,16 @@ export default function OwnerDashboard() {
     setAccounts(formattedAccounts);
   };
 
-  // Cargar datos iniciales y escuchar cambios
+  const router = useRouter();
+
+  // Cargar datos iniciales y escuchar cambios (con protección de rol)
   useEffect(() => {
+    const user = getCurrentUser();
+    if (user && user.role === "seller") {
+      router.push("/dashboard/seller");
+      return;
+    }
+
     reloadData();
 
     // Escuchar cambios entre pestañas o eventos locales
@@ -181,7 +191,7 @@ export default function OwnerDashboard() {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("streamhub_users_updated", handleStorageChange);
     };
-  }, []);
+  }, [router]);
 
   // Guardar en Storage cuando accounts cambia
   const persistAccounts = (newAccounts: StreamingAccount[]) => {

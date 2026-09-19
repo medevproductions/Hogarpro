@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   KeyRound, 
   Tv, 
@@ -19,7 +20,11 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  User
+  User,
+  Settings,
+  Phone,
+  Mail,
+  LogOut
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -106,6 +111,11 @@ export default function SellerLiveCodesPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string }>>([]);
 
+  const router = useRouter();
+
+  // Navegación de pestañas: "cuentas" | "configuracion"
+  const [activeTab, setActiveTab] = useState<"cuentas" | "configuracion">("cuentas");
+
   // Estados para Cambiar Contraseña del Vendedor
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [currentPasswordInput, setCurrentPasswordInput] = useState("");
@@ -114,6 +124,11 @@ export default function SellerLiveCodesPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [showPassModalText, setShowPassModalText] = useState(false);
+
+  // Estados para Datos de la Cuenta (Nombre, Teléfono)
+  const [profileName, setProfileName] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   // MANEJO DE CAMBIO DE CONTRASEÑA
   const handleChangePassword = (e: React.FormEvent) => {
@@ -167,10 +182,38 @@ export default function SellerLiveCodesPage() {
     }, 1800);
   };
 
+  // MANEJO DE ACTUALIZACIÓN DE DATOS DEL PERFIL
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim() || !currentUser) return;
+
+    const updatedUser: SystemUser = {
+      ...currentUser,
+      name: profileName.trim(),
+      phone: profilePhone.trim() || "Sin teléfono"
+    };
+
+    saveSystemUser(updatedUser);
+    setCurrentUser(updatedUser);
+    setCurrentUserState(updatedUser);
+
+    setProfileSuccess("¡Datos de tu cuenta actualizados con éxito!");
+    setTimeout(() => setProfileSuccess(null), 2500);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    router.push("/");
+  };
+
   // Cargar cuentas asignadas al vendedor logueado
   useEffect(() => {
     const user = getCurrentUser();
     setCurrentUserState(user);
+    if (user) {
+      setProfileName(user.name || "");
+      setProfilePhone(user.phone || "");
+    }
 
     const allAccounts = getStoredAccounts();
     // Si hay usuario vendedor, filtrar sus cuentas. Si es owner, mostrar todas. Si no hay sesión, mostrar de demo
@@ -348,24 +391,47 @@ export default function SellerLiveCodesPage() {
             </div>
             <div>
               <div className="font-black text-white tracking-tight">STREAMHUB</div>
-              <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">MÓDULO DE CÓDIGOS</div>
+              <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
             </div>
           </div>
 
-          <nav className="space-y-1 text-sm font-medium">
-            <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-emerald-600/20 text-emerald-300 border border-emerald-500/30">
+          {/* NAVEGACIÓN PRINCIPAL */}
+          <nav className="space-y-1.5 text-sm font-medium">
+            <button
+              onClick={() => setActiveTab("cuentas")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-left ${
+                activeTab === "cuentas"
+                  ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-semibold"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+              }`}
+            >
               <KeyRound className="w-4 h-4" />
-              Terminal de 5 Acciones
-            </div>
-            <Link href="/dashboard/owner" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/60 transition">
-              <Tv className="w-4 h-4" />
-              Panel Dueño (Owner)
-            </Link>
+              <span>Gestión de Cuentas</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("configuracion")}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-left ${
+                activeTab === "configuracion"
+                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Configuración</span>
+            </button>
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-gray-800">
-          <Link href="/" className="block text-xs text-gray-500 hover:text-gray-300">
+        <div className="pt-4 border-t border-gray-800 space-y-2">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 text-xs text-red-400/80 hover:text-red-300 transition py-1.5 px-2 rounded-lg hover:bg-red-950/20"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Cerrar Sesión</span>
+          </button>
+          <Link href="/" className="block text-xs text-gray-500 hover:text-gray-300 px-2">
             ← Ver Tienda Pública
           </Link>
         </div>
@@ -378,15 +444,17 @@ export default function SellerLiveCodesPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Gestión y Solicitud de Códigos
+                {activeTab === "cuentas" ? "Gestión y Solicitud de Códigos" : "Configuración de tu Cuenta"}
               </h1>
             </div>
             <p className="text-sm text-gray-400 mt-1">
-              Selecciona la cuenta y presiona la acción deseada para extraer el código o enlace instantáneamente.
+              {activeTab === "cuentas" 
+                ? "Selecciona la cuenta y presiona la acción deseada para extraer el código o enlace instantáneamente." 
+                : "Actualiza tus datos personales de revendedor y tu contraseña de acceso."}
             </p>
           </div>
 
-          {/* PERFIL DEL VENDEDOR Y CAMBIAR CONTRASEÑA */}
+          {/* PERFIL DEL VENDEDOR */}
           <div className="flex items-center gap-3 bg-[#121826] border border-gray-800 p-2.5 px-4 rounded-2xl shadow-lg">
             <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
               <User className="w-4 h-4" />
@@ -395,23 +463,192 @@ export default function SellerLiveCodesPage() {
               <div className="text-xs font-bold text-white">{currentUser?.name || "Vendedor"}</div>
               <div className="text-[10px] text-gray-400 font-mono">{currentUser?.email || "vendedor@ventas.com"}</div>
             </div>
-            <button
-              onClick={() => {
-                setPasswordError(null);
-                setPasswordSuccess(null);
-                setCurrentPasswordInput("");
-                setNewPasswordInput("");
-                setConfirmPasswordInput("");
-                setIsPasswordModalOpen(true);
-              }}
-              className="ml-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-900/40 transition"
-              title="Cambiar mi Contraseña"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Cambiar Contraseña</span>
-            </button>
+            {activeTab !== "configuracion" && (
+              <button
+                onClick={() => setActiveTab("configuracion")}
+                className="ml-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-900/40 transition"
+                title="Ir a Configuración"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>Configurar</span>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* VISTA 1: CONFIGURACIÓN DE CUENTA Y CONTRASEÑA */}
+        {/* ========================================================================= */}
+        {activeTab === "configuracion" && (
+          <div className="max-w-3xl space-y-6 animate-in fade-in duration-200">
+            {/* Tarjeta 1: Datos Personales */}
+            <div className="bg-[#121826] border border-gray-800/90 rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-800/80">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Datos Personales del Revendedor</h2>
+                  <p className="text-xs text-gray-400">Información de contacto asociada a tu cuenta</p>
+                </div>
+              </div>
+
+              {profileSuccess && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{profileSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Nombre Completo</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Teléfono / WhatsApp</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="+57 300 1234567"
+                        value={profilePhone}
+                        onChange={(e) => setProfilePhone(e.target.value)}
+                        className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Correo Electrónico (Solo Lectura)</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={currentUser?.email || ""}
+                    className="w-full bg-[#070a12] border border-gray-800 text-gray-400 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed"
+                  />
+                  <span className="text-[11px] text-gray-500 mt-1 block">
+                    El correo es tu identificador único de vendedor y no se puede modificar.
+                  </span>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-900/30 transition flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Guardar Datos de la Cuenta</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Tarjeta 2: Cambiar Contraseña */}
+            <div className="bg-[#121826] border border-gray-800/90 rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-800/80">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Seguridad y Cambio de Contraseña</h2>
+                  <p className="text-xs text-gray-400">Actualiza tu clave de acceso para iniciar sesión en tu portal</p>
+                </div>
+              </div>
+
+              {passwordError && (
+                <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              {passwordSuccess && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{passwordSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+                {currentUser?.password && (
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Contraseña Actual</label>
+                    <input
+                      type={showPassModalText ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={currentPasswordInput}
+                      onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-medium text-gray-300">Nueva Contraseña</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassModalText(!showPassModalText)}
+                        className="text-[11px] text-gray-400 hover:text-indigo-400 flex items-center gap-1"
+                      >
+                        {showPassModalText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        <span>{showPassModalText ? "Ocultar" : "Mostrar"}</span>
+                      </button>
+                    </div>
+                    <input
+                      type={showPassModalText ? "text" : "password"}
+                      required
+                      placeholder="Mínimo 4 caracteres"
+                      value={newPasswordInput}
+                      onChange={(e) => setNewPasswordInput(e.target.value)}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Confirmar Nueva Contraseña</label>
+                    <input
+                      type={showPassModalText ? "text" : "password"}
+                      required
+                      placeholder="Repite la nueva clave"
+                      value={confirmPasswordInput}
+                      onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-purple-900/30 transition flex items-center gap-2"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>Actualizar Mi Contraseña</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VISTA 2: GESTIÓN DE CUENTAS (TERMINAL Y SOLICITUD DE CÓDIGOS) */}
+        {/* ========================================================================= */}
+        {activeTab === "cuentas" && (
+          <>
 
         {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
         {authError && (
@@ -617,6 +854,8 @@ export default function SellerLiveCodesPage() {
             )}
           </div>
         </div>
+        </>
+        )}
 
         {/* MODAL CAMBIAR CONTRASEÑA */}
         {isPasswordModalOpen && (
