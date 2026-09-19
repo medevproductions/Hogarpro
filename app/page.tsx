@@ -26,7 +26,9 @@ import {
   setCurrentUser, 
   SystemUser, 
   getStoredAccounts, 
-  StoredStreamingAccount 
+  StoredStreamingAccount,
+  getSystemUsers,
+  saveSystemUser
 } from "@/lib/account-manager";
 import { formatCurrency } from "@/lib/utils";
 
@@ -145,9 +147,16 @@ export default function HomeOrSellerCatalogPage() {
   const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
 
-  // Formulario de Login de Vendedor
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  
+  // Campos de formulario
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
 
@@ -169,6 +178,7 @@ export default function HomeOrSellerCatalogPage() {
     setLoadingSession(false);
   }, []);
 
+  // Manejador de Login de Vendedor
   const handleSellerLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
@@ -176,8 +186,11 @@ export default function HomeOrSellerCatalogPage() {
 
     setTimeout(() => {
       const cleanEmail = loginEmail.trim().toLowerCase();
-      // Validar o auto-crear usuario vendedor
-      const sellerUser: SystemUser = {
+      // Buscar usuario en el sistema o crear sesión
+      const allUsers = getSystemUsers();
+      const found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
+      const sellerUser: SystemUser = found || {
         id: `s-${Date.now().toString().slice(-4)}`,
         email: cleanEmail,
         name: cleanEmail.split("@")[0].toUpperCase(),
@@ -188,7 +201,7 @@ export default function HomeOrSellerCatalogPage() {
       setCurrentUser(sellerUser);
       setCurrentUserState(sellerUser);
 
-      // Cargar cuentas asignadas a este vendedor
+      // Cargar cuentas asignadas
       const allAccounts = getStoredAccounts();
       const myAccs = allAccounts.filter(a => 
         a.sellerId === sellerUser.id || 
@@ -196,9 +209,49 @@ export default function HomeOrSellerCatalogPage() {
         a.sellerName?.toLowerCase() === sellerUser.name.toLowerCase()
       );
       setUserAccounts(myAccs);
-
       setLoggingIn(false);
     }, 500);
+  };
+
+  // Manejador de Registro de Nuevo Vendedor
+  const handleSellerRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    setLoggingIn(true);
+
+    setTimeout(() => {
+      const cleanEmail = regEmail.trim().toLowerCase();
+      if (!cleanEmail || !regName.trim() || !regPassword) {
+        setLoginError("Por favor completa todos los campos requeridos.");
+        setLoggingIn(false);
+        return;
+      }
+
+      const allUsers = getSystemUsers();
+      const exists = allUsers.some(u => u.email.toLowerCase() === cleanEmail);
+      if (exists) {
+        setLoginError("Este correo ya se encuentra registrado. Por favor inicia sesión.");
+        setLoggingIn(false);
+        return;
+      }
+
+      // Crear y guardar el nuevo vendedor
+      const newSeller: SystemUser = {
+        id: `s-${Date.now().toString().slice(-4)}`,
+        name: regName.trim(),
+        email: cleanEmail,
+        phone: regPhone.trim() || "Sin teléfono",
+        role: "seller",
+        status: "active",
+        activeAccountsCount: 0
+      };
+
+      saveSystemUser(newSeller);
+      setCurrentUser(newSeller);
+      setCurrentUserState(newSeller);
+      setUserAccounts([]);
+      setLoggingIn(false);
+    }, 600);
   };
 
   const handleLogout = () => {
@@ -216,7 +269,7 @@ export default function HomeOrSellerCatalogPage() {
   }
 
   // =========================================================================
-  // PANTALLA 1: SI NO ESTÁ LOGUEADO -> MOSTRAR LOGIN EXCLUSIVO PARA VENDEDORES
+  // PANTALLA 1: SI NO ESTÁ LOGUEADO -> MOSTRAR LOGIN / REGISTRO DE VENDEDORES
   // =========================================================================
   if (!currentUser) {
     return (
@@ -226,7 +279,7 @@ export default function HomeOrSellerCatalogPage() {
 
         <div className="w-full max-w-md relative z-10">
           {/* Logo & Encabezado */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center shadow-xl shadow-indigo-500/25">
                 <Tv className="w-6 h-6 text-white" />
@@ -237,12 +290,44 @@ export default function HomeOrSellerCatalogPage() {
             </div>
             <h1 className="mt-4 text-2xl font-extrabold text-white tracking-tight">Portal de Revendedores</h1>
             <p className="text-xs text-gray-400 mt-1">
-              Inicia sesión con tu cuenta de vendedor para acceder al catálogo y a tus cuentas
+              Accede a precios mayoristas y gestiona las cuentas autorizadas
             </p>
           </div>
 
-          {/* Tarjeta de Login */}
+          {/* Tarjeta de Autenticación */}
           <div className="bg-[#0f1422]/90 border border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+            {/* Pestañas Iniciar Sesión / Registrarse */}
+            <div className="grid grid-cols-2 p-1 bg-[#070a12] border border-gray-800 rounded-2xl mb-5">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("login");
+                  setLoginError(null);
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition ${
+                  authMode === "login"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Iniciar Sesión
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("register");
+                  setLoginError(null);
+                }}
+                className={`py-2 text-xs font-bold rounded-xl transition ${
+                  authMode === "register"
+                    ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-md shadow-indigo-900/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Registrarme
+              </button>
+            </div>
+
             {loginError && (
               <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -250,56 +335,133 @@ export default function HomeOrSellerCatalogPage() {
               </div>
             )}
 
-            <form onSubmit={handleSellerLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  Correo de Vendedor
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
+            {/* FORMULARIO 1: INICIAR SESIÓN */}
+            {authMode === "login" ? (
+              <form onSubmit={handleSellerLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                    Correo de Vendedor
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="tucorreo@ventas.com"
+                      className="w-full bg-[#070a12] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                    Contraseña de Acceso
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
+                    <input
+                      type="password"
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-[#070a12] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loggingIn || !loginEmail || !loginPassword}
+                  className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+                >
+                  {loggingIn ? (
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Entrar al Catálogo</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* FORMULARIO 2: REGISTRO DE NUEVO VENDEDOR */
+              <form onSubmit={handleSellerRegister} className="space-y-3.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Nombre Completo
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: Juan Pérez"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Correo Electrónico
+                  </label>
                   <input
                     type="email"
                     required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="tucorreo@ventas.com"
-                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                    placeholder="juan@ventas.com"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 font-mono transition"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                  Contraseña de Acceso
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Número de Teléfono / WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+58 412 1234567"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Crear Contraseña
+                  </label>
                   <input
                     type="password"
                     required
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition font-mono"
+                    placeholder="Mínimo 6 caracteres"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    className="w-full bg-[#070a12] border border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition"
                   />
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loggingIn || !loginEmail || !loginPassword}
-                className="w-full mt-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
-              >
-                {loggingIn ? (
-                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>Entrar al Catálogo</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={loggingIn || !regName || !regEmail || !regPassword}
+                  className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-pink-900/30 flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+                >
+                  {loggingIn ? (
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Crear mi Cuenta de Revendedor</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
 
             <div className="mt-6 pt-4 border-t border-gray-800/80 flex items-center justify-center gap-2 text-[11px] text-gray-500">
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
