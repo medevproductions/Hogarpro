@@ -16,11 +16,16 @@ import {
   Lock, 
   ExternalLink,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff,
+  User
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { 
   getCurrentUser, 
+  setCurrentUser,
+  saveSystemUser,
   getStoredAccounts, 
   checkAccountAuthorization, 
   StoredStreamingAccount,
@@ -100,6 +105,67 @@ export default function SellerLiveCodesPage() {
   const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string }>>([]);
+
+  // Estados para Cambiar Contraseña del Vendedor
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [showPassModalText, setShowPassModalText] = useState(false);
+
+  // MANEJO DE CAMBIO DE CONTRASEÑA
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!newPasswordInput.trim()) {
+      setPasswordError("La nueva contraseña no puede estar vacía.");
+      return;
+    }
+
+    if (newPasswordInput.length < 4) {
+      setPasswordError("La contraseña debe tener al menos 4 caracteres.");
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      setPasswordError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    // Validar contraseña actual si el usuario tiene una configurada
+    if (currentUser?.password && currentPasswordInput && currentUser.password !== currentPasswordInput) {
+      setPasswordError("La contraseña actual no es correcta.");
+      return;
+    }
+
+    if (!currentUser) {
+      setPasswordError("No se encontró una sesión activa.");
+      return;
+    }
+
+    const updatedUser: SystemUser = {
+      ...currentUser,
+      password: newPasswordInput.trim()
+    };
+
+    saveSystemUser(updatedUser);
+    setCurrentUser(updatedUser);
+    setCurrentUserState(updatedUser);
+
+    setPasswordSuccess("¡Tu contraseña ha sido actualizada con éxito!");
+    setCurrentPasswordInput("");
+    setNewPasswordInput("");
+    setConfirmPasswordInput("");
+
+    setTimeout(() => {
+      setIsPasswordModalOpen(false);
+      setPasswordSuccess(null);
+    }, 1800);
+  };
 
   // Cargar cuentas asignadas al vendedor logueado
   useEffect(() => {
@@ -323,6 +389,32 @@ export default function SellerLiveCodesPage() {
               Selecciona la cuenta y presiona la acción deseada para extraer el código o enlace instantáneamente.
             </p>
           </div>
+
+          {/* PERFIL DEL VENDEDOR Y CAMBIAR CONTRASEÑA */}
+          <div className="flex items-center gap-3 bg-[#121826] border border-gray-800 p-2.5 px-4 rounded-2xl shadow-lg">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-bold text-white">{currentUser?.name || "Vendedor"}</div>
+              <div className="text-[10px] text-gray-400 font-mono">{currentUser?.email || "vendedor@ventas.com"}</div>
+            </div>
+            <button
+              onClick={() => {
+                setPasswordError(null);
+                setPasswordSuccess(null);
+                setCurrentPasswordInput("");
+                setNewPasswordInput("");
+                setConfirmPasswordInput("");
+                setIsPasswordModalOpen(true);
+              }}
+              className="ml-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-900/40 transition"
+              title="Cambiar mi Contraseña"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Cambiar Contraseña</span>
+            </button>
+          </div>
         </div>
 
         {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
@@ -529,6 +621,111 @@ export default function SellerLiveCodesPage() {
             )}
           </div>
         </div>
+
+        {/* MODAL CAMBIAR CONTRASEÑA */}
+        {isPasswordModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#121826] border border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+              <button
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Cambiar mi Contraseña</h3>
+                  <p className="text-xs text-gray-400">
+                    Actualiza tu clave de acceso personal para el panel de vendedor
+                  </p>
+                </div>
+              </div>
+
+              {passwordError && (
+                <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              {passwordSuccess && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{passwordSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+                {currentUser?.password && (
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Contraseña Actual</label>
+                    <input
+                      type={showPassModalText ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={currentPasswordInput}
+                      onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-medium text-gray-300">Nueva Contraseña</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassModalText(!showPassModalText)}
+                      className="text-[11px] text-gray-400 hover:text-indigo-400 flex items-center gap-1"
+                    >
+                      {showPassModalText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      <span>{showPassModalText ? "Ocultar" : "Mostrar"}</span>
+                    </button>
+                  </div>
+                  <input
+                    type={showPassModalText ? "text" : "password"}
+                    required
+                    placeholder="Mínimo 4 caracteres"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Confirmar Nueva Contraseña</label>
+                  <input
+                    type={showPassModalText ? "text" : "password"}
+                    required
+                    placeholder="Repite la nueva contraseña"
+                    value={confirmPasswordInput}
+                    onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-900/30"
+                  >
+                    Guardar Contraseña
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -44,6 +44,7 @@ import {
   getSystemUsers, 
   saveSystemUsers, 
   saveSystemUser,
+  deleteSystemUser,
   SystemUser, 
   StoredStreamingAccount 
 } from "@/lib/account-manager";
@@ -70,6 +71,7 @@ export interface Seller {
   id: string;
   name: string;
   email?: string;
+  password?: string;
   phone: string;
   activeAccountsCount: number;
   status: "active" | "suspended";
@@ -111,8 +113,9 @@ export default function OwnerDashboard() {
   const [isImporting, setIsImporting] = useState(false);
   const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
 
-  // Modal para Crear Vendedor
+  // Modal para Crear / Editar Vendedor
   const [isSellerModalOpen, setIsSellerModalOpen] = useState(false);
+  const [editingSellerId, setEditingSellerId] = useState<string | null>(null);
   const [newSellerName, setNewSellerName] = useState("");
   const [newSellerEmail, setNewSellerEmail] = useState("");
   const [newSellerPassword, setNewSellerPassword] = useState("");
@@ -135,6 +138,7 @@ export default function OwnerDashboard() {
       id: u.id,
       name: u.name,
       email: u.email,
+      password: u.password,
       phone: u.phone || "Sin teléfono",
       activeAccountsCount: rawAccounts.filter(a => a.sellerId === u.id || a.sellerId === u.email).length,
       status: u.status || "active"
@@ -501,30 +505,91 @@ export default function OwnerDashboard() {
     XLSX.writeFile(wb, "Plantilla_Cuentas_Streaming_StreamHub.xlsx");
   };
 
-  // REGISTRAR NUEVO VENDEDOR
-  const handleCreateSeller = (e: React.FormEvent) => {
+  // ABRIR MODAL CREAR VENDEDOR
+  const handleOpenCreateSeller = () => {
+    setEditingSellerId(null);
+    setNewSellerName("");
+    setNewSellerEmail("");
+    setNewSellerPassword("");
+    setNewSellerPhone("");
+    setIsSellerModalOpen(true);
+  };
+
+  // ABRIR MODAL EDITAR VENDEDOR
+  const handleOpenEditSeller = (s: Seller) => {
+    setEditingSellerId(s.id);
+    setNewSellerName(s.name);
+    setNewSellerEmail(s.email || "");
+    setNewSellerPassword(s.password || "");
+    setNewSellerPhone(s.phone === "Sin teléfono" ? "" : s.phone);
+    setIsSellerModalOpen(true);
+  };
+
+  // GUARDAR (CREAR O EDITAR) VENDEDOR
+  const handleSaveSeller = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSellerName.trim() || !newSellerEmail.trim()) return;
 
-    const newSellerUser: SystemUser = {
-      id: `s-${Date.now().toString().slice(-4)}`,
-      name: newSellerName.trim(),
-      email: newSellerEmail.trim().toLowerCase(),
-      password: newSellerPassword.trim() || "Ventas2026*",
-      phone: newSellerPhone.trim() || "Sin teléfono",
-      role: "seller",
-      activeAccountsCount: 0,
-      status: "active"
-    };
+    if (editingSellerId) {
+      // Editar vendedor existente
+      const updatedUser: SystemUser = {
+        id: editingSellerId,
+        name: newSellerName.trim(),
+        email: newSellerEmail.trim().toLowerCase(),
+        password: newSellerPassword.trim() || "Ventas2026*",
+        phone: newSellerPhone.trim() || "Sin teléfono",
+        role: "seller",
+        status: "active"
+      };
+      saveSystemUser(updatedUser);
+    } else {
+      // Crear nuevo vendedor
+      const newSellerUser: SystemUser = {
+        id: `s-${Date.now().toString().slice(-4)}`,
+        name: newSellerName.trim(),
+        email: newSellerEmail.trim().toLowerCase(),
+        password: newSellerPassword.trim() || "Ventas2026*",
+        phone: newSellerPhone.trim() || "Sin teléfono",
+        role: "seller",
+        activeAccountsCount: 0,
+        status: "active"
+      };
+      saveSystemUser(newSellerUser);
+    }
 
-    saveSystemUser(newSellerUser);
     reloadData();
-
+    setEditingSellerId(null);
     setNewSellerName("");
     setNewSellerEmail("");
     setNewSellerPassword("");
     setNewSellerPhone("");
     setIsSellerModalOpen(false);
+  };
+
+  // ELIMINAR VENDEDOR
+  const handleDeleteSeller = (sellerId: string, sellerName: string) => {
+    if (!confirm(`¿Estás seguro de eliminar al vendedor "${sellerName}"? Sus cuentas asignadas volverán a quedar sin asignar.`)) {
+      return;
+    }
+
+    // 1. Eliminar de usuarios
+    deleteSystemUser(sellerId);
+
+    // 2. Desasignar cuentas vinculadas a este vendedor
+    const updatedAccounts = accounts.map((acc) => {
+      if (acc.sellerId === sellerId || acc.seller === sellerName) {
+        return {
+          ...acc,
+          seller: "Sin Asignar (En Stock)",
+          sellerId: undefined,
+          status: "available" as const
+        };
+      }
+      return acc;
+    });
+    persistAccounts(updatedAccounts);
+
+    reloadData();
   };
 
   // PROBAR CÓDIGO DIRECTO DESDE PANEL OWNER (BYPASS TOTAL)
@@ -880,7 +945,7 @@ export default function OwnerDashboard() {
               </p>
             </div>
             <button
-              onClick={() => setIsSellerModalOpen(true)}
+              onClick={handleOpenCreateSeller}
               className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-purple-900/30 transition w-fit"
             >
               <UserPlus className="w-4 h-4" />
@@ -892,7 +957,7 @@ export default function OwnerDashboard() {
             {sellers.map((s) => {
               const assignedCount = accounts.filter(a => a.sellerId === s.id || a.sellerId === s.email || a.seller === s.name).length;
               return (
-                <div key={s.id} className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800 flex flex-col justify-between">
+                <div key={s.id} className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800 flex flex-col justify-between hover:border-gray-700 transition">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="font-bold text-sm text-white">{s.name}</div>
@@ -905,10 +970,31 @@ export default function OwnerDashboard() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-gray-800/60 flex items-center justify-between text-xs">
-                    <span className="text-gray-400">Cuentas Asignadas:</span>
-                    <span className="font-extrabold text-white bg-gray-800 px-2.5 py-0.5 rounded-lg text-xs text-indigo-300">
-                      {assignedCount}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-400">Cuentas:</span>
+                      <span className="font-extrabold text-white bg-gray-800 px-2 py-0.5 rounded-lg text-xs text-indigo-300">
+                        {assignedCount}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEditSeller(s)}
+                        className="px-2.5 py-1 text-xs text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 rounded-lg flex items-center gap-1 transition"
+                        title="Editar Vendedor"
+                      >
+                        <Edit className="w-3 h-3" />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSeller(s.id, s.name)}
+                        className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
+                        title="Eliminar Vendedor"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1436,17 +1522,21 @@ export default function OwnerDashboard() {
 
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center">
-                  <UserPlus className="w-6 h-6" />
+                  {editingSellerId ? <Edit className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Registrar Nuevo Vendedor</h3>
+                  <h3 className="text-lg font-bold text-white">
+                    {editingSellerId ? "Editar Vendedor" : "Registrar Nuevo Vendedor"}
+                  </h3>
                   <p className="text-xs text-gray-400">
-                    Crea un vendedor para que pueda iniciar sesión y recibir cuentas
+                    {editingSellerId 
+                      ? "Modifica los datos de acceso y contacto del vendedor" 
+                      : "Crea un vendedor para que pueda iniciar sesión y recibir cuentas"}
                   </p>
                 </div>
               </div>
 
-              <form onSubmit={handleCreateSeller} className="space-y-4 text-xs">
+              <form onSubmit={handleSaveSeller} className="space-y-4 text-xs">
                 <div>
                   <label className="block font-medium text-gray-300 mb-1">Nombre Completo del Vendedor</label>
                   <input
@@ -1497,7 +1587,10 @@ export default function OwnerDashboard() {
                 <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsSellerModalOpen(false)}
+                    onClick={() => {
+                      setIsSellerModalOpen(false);
+                      setEditingSellerId(null);
+                    }}
                     className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
                   >
                     Cancelar
@@ -1506,7 +1599,7 @@ export default function OwnerDashboard() {
                     type="submit"
                     className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-lg shadow-purple-900/30"
                   >
-                    Registrar Vendedor
+                    {editingSellerId ? "Guardar Cambios" : "Registrar Vendedor"}
                   </button>
                 </div>
               </form>

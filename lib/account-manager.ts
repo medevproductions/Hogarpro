@@ -100,6 +100,15 @@ export function saveSystemUser(user: SystemUser) {
   }
 }
 
+export function deleteSystemUser(userId: string) {
+  const users = getSystemUsers();
+  const filtered = users.filter(u => u.id !== userId);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(filtered));
+    window.dispatchEvent(new Event("streamhub_users_updated"));
+  }
+}
+
 export function getStoredAccounts(): StoredStreamingAccount[] {
   if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
   const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
