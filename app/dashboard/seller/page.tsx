@@ -380,10 +380,6 @@ export default function SellerLiveCodesPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Gestión y Solicitud de Códigos
               </h1>
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Realtime + Polling 2s
-              </span>
             </div>
             <p className="text-sm text-gray-400 mt-1">
               Selecciona la cuenta y presiona la acción deseada para extraer el código o enlace instantáneamente.
@@ -537,9 +533,9 @@ export default function SellerLiveCodesPage() {
             {isWaiting ? (
               <div className="py-12 flex flex-col items-center justify-center">
                 <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin mb-4" />
-                <h3 className="text-xl font-bold text-white">Escuchando bandeja de entrada...</h3>
+                <h3 className="text-xl font-bold text-white">Obteniendo código...</h3>
                 <p className="text-xs text-gray-400 mt-1 max-w-sm">
-                  Google Apps Script o el Webhook enviará el código en cuanto sea emitido por el servicio de streaming.
+                  El sistema está verificando la bandeja de entrada para extraer el código o enlace en segundos.
                 </p>
               </div>
             ) : receivedCode ? (

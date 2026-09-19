@@ -167,16 +167,12 @@ export default function HomeOrSellerCatalogPage() {
     const user = getCurrentUser();
     setCurrentUserState(user);
     if (user) {
-      const allAccounts = getStoredAccounts();
-      const myAccs = allAccounts.filter(a => 
-        a.sellerId === user.id || 
-        a.sellerId === user.email || 
-        a.sellerName?.toLowerCase() === user.name?.toLowerCase()
-      );
-      setUserAccounts(myAccs);
+      // Redirigir directamente al panel de vendedor
+      router.push("/dashboard/seller");
+      return;
     }
     setLoadingSession(false);
-  }, []);
+  }, [router]);
 
   // Manejador de Login de Vendedor
   const handleSellerLogin = (e: React.FormEvent) => {
