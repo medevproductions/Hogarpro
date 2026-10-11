@@ -406,9 +406,62 @@ export default function SellerLiveCodesPage() {
   const isUrl = receivedCode && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://"));
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-gray-100 flex">
-      {/* SIDEBAR */}
-      <aside className="w-64 border-r border-gray-800 bg-[#0d121f] p-5 hidden md:flex flex-col justify-between">
+    <div className="min-h-screen bg-[#090d16] text-gray-100 flex flex-col md:flex-row">
+      {/* BARRA SUPERIOR MÓVIL STICKY (SOLO SMARTPHONES Y TABLETS PEQUEÑAS) */}
+      <div className="md:hidden sticky top-0 z-40 bg-[#0d121f]/95 backdrop-blur-md border-b border-gray-800 p-3 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md shadow-emerald-600/30">
+              <Radio className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <div className="font-extrabold text-white text-xs tracking-tight leading-none">STREAMHUB</div>
+              <div className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLogout}
+              className="px-2.5 py-1 text-[11px] text-red-400 bg-red-950/40 border border-red-500/30 rounded-lg flex items-center gap-1 font-medium"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Salir</span>
+            </button>
+            <Link href="/" className="px-2 py-1 text-[11px] text-gray-400 bg-gray-800/80 rounded-lg font-medium">
+              Tienda
+            </Link>
+          </div>
+        </div>
+
+        {/* Pestañas de Navegación Móvil */}
+        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+          <button
+            onClick={() => setActiveTab("cuentas")}
+            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+              activeTab === "cuentas"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/50"
+                : "bg-gray-800/80 text-gray-400 hover:text-white"
+            }`}
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Mis Cuentas ({assignedAccounts.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("configuracion")}
+            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+              activeTab === "configuracion"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/50"
+                : "bg-gray-800/80 text-gray-400 hover:text-white"
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span>Configuración</span>
+          </button>
+        </div>
+      </div>
+
+      {/* SIDEBAR DESKTOP */}
+      <aside className="w-64 border-r border-gray-800 bg-[#0d121f] p-5 hidden md:flex flex-col justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-600/30">
@@ -463,7 +516,7 @@ export default function SellerLiveCodesPage() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-3.5 sm:p-6 md:p-8 overflow-y-auto">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>

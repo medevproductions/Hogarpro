@@ -46,16 +46,36 @@ export interface CatalogPlatform {
   defaultCost: number;
   defaultIncome: number;
   price?: number;
+  retailPrice?: number; // Precio al detal (cliente final)
+  wholesalePrice?: number; // Precio al mayor (revendedor)
   category?: string;
   stock?: number;
   badge?: string;
   features?: string[];
 }
 
+export interface SaleRecord {
+  id: string;
+  date: string; // ISO string
+  type: "detal" | "mayor"; // "detal" = Venta individual / en persona, "mayor" = Lote / revendedor
+  platform: string;
+  accountId?: string;
+  accountEmail?: string;
+  customerName: string;
+  customerContact?: string;
+  paymentMethod: "efectivo" | "nequi" | "daviplata" | "transferencia" | "binance" | "otro";
+  costPrice: number; // Costo base invertido
+  salePrice: number; // Precio cobrado al cliente
+  profit: number; // Ganancia neta calculada o personalizada
+  notes?: string;
+  isPhysicalSale?: boolean; // Venta realizada en persona física
+}
+
 const STORAGE_KEY_USERS = "streamhub_registered_users";
 const STORAGE_KEY_ACCOUNTS = "streamhub_master_accounts";
 const STORAGE_KEY_CURRENT_USER = "streamhub_current_session";
 const STORAGE_KEY_CATALOG = "streamhub_catalog_platforms";
+const STORAGE_KEY_SALES = "streamhub_sales_records";
 
 export const DEFAULT_PLATFORMS: CatalogPlatform[] = [
   { 
@@ -293,6 +313,75 @@ export function deleteImportBatch(batchId: string): number {
   const deletedCount = accounts.length - toKeep.length;
   saveStoredAccounts(toKeep);
   return deletedCount;
+}
+
+export const DEFAULT_SALES: SaleRecord[] = [
+  {
+    id: "sale-101",
+    date: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    type: "detal",
+    platform: "Netflix Premium 4K",
+    accountEmail: "netflix.4k.master@streamhub.com",
+    customerName: "Carlos Gómez (WhatsApp)",
+    customerContact: "+57 300 123 4567",
+    paymentMethod: "nequi",
+    costPrice: 2.0,
+    salePrice: 4.5,
+    profit: 2.5,
+    notes: "Perfil 1 con PIN asignado",
+    isPhysicalSale: false
+  },
+  {
+    id: "sale-102",
+    date: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
+    type: "detal",
+    platform: "Disney+ Standard",
+    accountEmail: "disney.family.plus@streamhub.com",
+    customerName: "Mateo Pérez (En Persona)",
+    customerContact: "Entregado en persona",
+    paymentMethod: "efectivo",
+    costPrice: 1.5,
+    salePrice: 3.5,
+    profit: 2.0,
+    notes: "Pago en efectivo en mano",
+    isPhysicalSale: true
+  },
+  {
+    id: "sale-103",
+    date: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    type: "mayor",
+    platform: "Max (HBO Max)",
+    accountEmail: "max.hbo.latam@streamhub.com",
+    customerName: "Andrés Mayorista (Revendedor)",
+    customerContact: "+57 312 987 6543",
+    paymentMethod: "transferencia",
+    costPrice: 5.0,
+    salePrice: 10.0,
+    profit: 5.0,
+    notes: "Lote de cuentas al mayor",
+    isPhysicalSale: false
+  }
+];
+
+export function getStoredSales(): SaleRecord[] {
+  if (typeof window === "undefined") return DEFAULT_SALES;
+  const stored = localStorage.getItem(STORAGE_KEY_SALES);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY_SALES, JSON.stringify(DEFAULT_SALES));
+    return DEFAULT_SALES;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return DEFAULT_SALES;
+  }
+}
+
+export function saveStoredSales(sales: SaleRecord[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY_SALES, JSON.stringify(sales));
+    window.dispatchEvent(new Event("streamhub_sales_updated"));
+  }
 }
 
 export function getCurrentUser(): SystemUser | null {
