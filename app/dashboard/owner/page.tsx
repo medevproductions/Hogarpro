@@ -36,7 +36,8 @@ import {
   ShieldCheck,
   Lock,
   ExternalLink,
-  Copy
+  Copy,
+  Globe
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { 
@@ -49,6 +50,8 @@ import {
   getCurrentUser,
   getCatalogPlatforms,
   saveCatalogPlatforms,
+  deleteImportBatch,
+  ImportBatchRecord,
   CatalogPlatform,
   SystemUser, 
   StoredStreamingAccount 
@@ -70,6 +73,11 @@ export interface StreamingAccount {
   monthlyCost: number;
   monthlyIncome: number;
   notes?: string;
+  country?: string; // ej: Colombia, México, Global
+  isVerified?: boolean; // si la cuenta sirve o no
+  customerName?: string; // cliente o a quién se le vendió (opcional)
+  importBatchId?: string; // id del lote de importación
+  importedAt?: string; // fecha ISO de importación
 }
 
 export interface Seller {
@@ -129,6 +137,19 @@ function parseExcelDate(raw: any): string {
   return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 }
 
+// Helper para tiempo relativo transcurrido
+function getTimeAgo(dateString?: string): string {
+  if (!dateString) return "Desconocido";
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const mins = Math.floor(diffMs / (1000 * 60));
+  if (mins < 1) return "Hace un momento";
+  if (mins < 60) return `Hace ${mins} min`;
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (hours < 24) return `Hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days} d`;
+}
+
 export default function OwnerDashboard() {
   const [dateFilter, setDateFilter] = useState("this_month");
   const [searchQuery, setSearchQuery] = useState("");
@@ -143,6 +164,12 @@ export default function OwnerDashboard() {
 
   // Cuentas Maestras sincronizadas con account-manager
   const [accounts, setAccounts] = useState<StreamingAccount[]>([]);
+
+  // Selección de plataforma para la lista a subir (auto o fija)
+  const [selectedImportPlatform, setSelectedImportPlatform] = useState<string>("auto");
+
+  // Historial de lotes importados para poder revertirlos/borrarlos antes de 24h
+  const [recentBatches, setRecentBatches] = useState<ImportBatchRecord[]>([]);
 
   // Modal para Gestión / Edición de Catálogo
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
@@ -199,6 +226,14 @@ export default function OwnerDashboard() {
     const currentPlatforms = getCatalogPlatforms();
     setCatalogPlatforms(currentPlatforms);
 
+    // Cargar historial de lotes de importación
+    try {
+      const storedBatches = localStorage.getItem("streamhub_import_batches");
+      if (storedBatches) {
+        setRecentBatches(JSON.parse(storedBatches));
+      }
+    } catch {}
+
     const formattedSellers: Seller[] = rawUsers.map(u => ({
       id: u.id,
       name: u.name,
@@ -247,7 +282,12 @@ export default function OwnerDashboard() {
         status: calculatedStatus,
         monthlyCost: a.monthlyCost || platObj.defaultCost,
         monthlyIncome: a.monthlyIncome || platObj.defaultIncome,
-        notes: a.notes || ""
+        notes: a.notes || "",
+        country: a.country || "Global",
+        isVerified: a.isVerified !== undefined ? a.isVerified : true,
+        customerName: a.customerName || "",
+        importBatchId: a.importBatchId,
+        importedAt: a.importedAt
       };
     });
     setAccounts(formattedAccounts);
@@ -292,7 +332,12 @@ export default function OwnerDashboard() {
       status: a.status === "assigned" ? "assigned" : a.status === "available" ? "available" : "expired",
       monthlyCost: a.monthlyCost,
       monthlyIncome: a.monthlyIncome,
-      notes: a.notes
+      notes: a.notes,
+      country: a.country,
+      isVerified: a.isVerified,
+      customerName: a.customerName,
+      importBatchId: a.importBatchId,
+      importedAt: a.importedAt
     }));
     saveStoredAccounts(converted);
   };
@@ -312,6 +357,24 @@ export default function OwnerDashboard() {
     saveSystemUsers(converted);
   };
 
+  // Revertir y borrar todas las cuentas de un lote importado (< 24 horas)
+  const handleDeleteBatch = (batchId: string, batchPlatform: string, count: number) => {
+    if (!confirm(`¿Estás seguro de que deseas revertir y eliminar todas las ${count} cuentas de este lote (${batchPlatform})?\n\nEsta acción borrará todas las cuentas subidas en esta lista y no se puede deshacer.`)) {
+      return;
+    }
+
+    const updated = accounts.filter(a => a.importBatchId !== batchId);
+    persistAccounts(updated);
+
+    const updatedBatches = recentBatches.filter(b => b.id !== batchId);
+    setRecentBatches(updatedBatches);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("streamhub_import_batches", JSON.stringify(updatedBatches));
+    }
+
+    alert(`¡Se eliminaron exitosamente las ${count} cuentas de la lista seleccionada!`);
+  };
+
   // Estado del Formulario de Cuenta
   const [formData, setFormData] = useState({
     platform: "Netflix Premium 4K",
@@ -324,7 +387,10 @@ export default function OwnerDashboard() {
     expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     monthlyCost: 2.00,
     monthlyIncome: 14.00,
-    notes: ""
+    notes: "",
+    country: "Global",
+    isVerified: true,
+    customerName: ""
   });
 
   // FILTRADO DINÁMICO DE CUENTAS (Búsqueda + Plataforma + Estado)
@@ -435,7 +501,10 @@ export default function OwnerDashboard() {
       expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       monthlyCost: firstPlat.defaultCost,
       monthlyIncome: firstPlat.defaultIncome,
-      notes: ""
+      notes: "",
+      country: "Global",
+      isVerified: true,
+      customerName: ""
     });
     setIsAccountModalOpen(true);
   };
@@ -454,7 +523,10 @@ export default function OwnerDashboard() {
       expirationDate: acc.expirationDate,
       monthlyCost: acc.monthlyCost,
       monthlyIncome: acc.monthlyIncome,
-      notes: acc.notes || ""
+      notes: acc.notes || "",
+      country: acc.country || "Global",
+      isVerified: acc.isVerified !== undefined ? acc.isVerified : true,
+      customerName: acc.customerName || ""
     });
     setIsAccountModalOpen(true);
   };
@@ -576,10 +648,15 @@ export default function OwnerDashboard() {
 
     try {
       const importedAccounts: StreamingAccount[] = [];
+      const batchId = `batch_${Date.now()}`;
+      const importTime = new Date().toISOString();
 
       excelPreviewData.forEach((row: any, idx) => {
-        // Encontrar plataforma mapeada
-        const rawPlatform = row["Plataforma"] || row["Servicio"] || row["Platform"] || "Netflix Premium 4K";
+        // Plataforma destino: la seleccionada en el modal o la de la fila del Excel
+        let rawPlatform = selectedImportPlatform !== "auto" 
+          ? selectedImportPlatform 
+          : (row["Plataforma"] || row["Servicio"] || row["Platform"] || "Netflix Premium 4K");
+
         const platObj = catalogPlatforms.find(p => p.name.toLowerCase().includes(String(rawPlatform).toLowerCase())) || catalogPlatforms[0] || {
           name: String(rawPlatform),
           color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30",
@@ -591,23 +668,46 @@ export default function OwnerDashboard() {
         const email = String(row["Correo"] || row["Email"] || row["Usuario"] || "").trim();
         if (!email) return;
 
-        const password = String(row["Contraseña"] || row["Password"] || row["Clave"] || "Password2026*").trim();
-        const maxProfiles = Number(row["Perfiles"] || row["Cupos"] || platObj.defaultProfiles) || platObj.defaultProfiles;
-        const occupied = Number(row["Ocupados"] || 0);
+        const password = String(row["Clave"] || row["Contraseña"] || row["Password"] || "Password2026*").trim();
+        const country = String(row["País"] || row["Pais"] || row["Country"] || "Global").trim();
 
-        // Vendedor asignado en el excel (por nombre o email)
-        const sellerCol = String(row["Vendedor"] || row["Seller"] || "").trim();
+        // Verificada: Si sirve o no (detecta sí, si, true, 1, funciona vs no, false, 0, caida)
+        const rawVerified = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || row["Estado"] || "Sí").toLowerCase().trim();
+        const isVerified = !(rawVerified.includes("no") || rawVerified === "0" || rawVerified === "false" || rawVerified.includes("falla") || rawVerified.includes("caida"));
+
+        const maxProfiles = Number(row["Perfiles"] || row["Cupos"] || platObj.defaultProfiles) || platObj.defaultProfiles;
+
+        // Vendido a / Asignado a (Vendedor o Cliente final)
+        const customerOrSellerCol = String(
+          row["Vendido a / Asignado a"] || 
+          row["Vendido a"] || 
+          row["Vendido A"] || 
+          row["Cliente"] || 
+          row["Asignado a"] || 
+          row["Asignado A"] || 
+          row["Vendedor"] || 
+          row["Seller"] || 
+          ""
+        ).trim();
+
         const matchedSeller = sellers.find(s => 
-          s.name.toLowerCase().includes(sellerCol.toLowerCase()) || 
-          (s.email && s.email.toLowerCase() === sellerCol.toLowerCase())
+          s.name.toLowerCase().includes(customerOrSellerCol.toLowerCase()) || 
+          (s.email && s.email.toLowerCase() === customerOrSellerCol.toLowerCase())
         );
 
+        const customerName = matchedSeller ? "" : customerOrSellerCol;
+        const sellerDisplayName = matchedSeller 
+          ? matchedSeller.name 
+          : (customerOrSellerCol ? customerOrSellerCol : "Sin Asignar (En Stock)");
+
+        const occupied = Number(row["Ocupados"] || (customerOrSellerCol ? 1 : 0));
+
         // Parsear fecha de vencimiento limpiamente (maneja serial number de excel y strings)
-        const rawExp = row["Vencimiento"] || row["Fecha Vencimiento"] || row["Expiration"] || row["Fecha"] || "";
+        const rawExp = row["Fecha Vencimiento"] || row["Vencimiento"] || row["Expiration"] || row["Fecha"] || "";
         const expDate = parseExcelDate(rawExp);
 
         // Calcular estado si está por vencer o vencido
-        let calculatedStatus: "assigned" | "available" | "expiring" = matchedSeller ? "assigned" : "available";
+        let calculatedStatus: "assigned" | "available" | "expiring" = (matchedSeller || customerOrSellerCol) ? "assigned" : "available";
         const expObj = new Date(expDate);
         const today = new Date();
         today.setHours(0,0,0,0);
@@ -622,7 +722,7 @@ export default function OwnerDashboard() {
           platformColor: platObj.color,
           email,
           password,
-          seller: matchedSeller ? matchedSeller.name : (sellerCol || "Sin Asignar (En Stock)"),
+          seller: sellerDisplayName,
           sellerId: matchedSeller ? matchedSeller.id : undefined,
           profilesOccupied: occupied,
           maxProfiles,
@@ -631,19 +731,43 @@ export default function OwnerDashboard() {
           status: calculatedStatus,
           monthlyCost: platObj.defaultCost,
           monthlyIncome: platObj.defaultIncome,
-          notes: "Importado vía Excel/CSV"
+          notes: String(row["Notas"] || row["Observaciones"] || "Importado vía Excel/CSV"),
+          country: country || "Global",
+          isVerified,
+          customerName: customerName || undefined,
+          importBatchId: batchId,
+          importedAt: importTime
         });
       });
 
       if (importedAccounts.length > 0) {
         persistAccounts([...importedAccounts, ...accounts]);
-        setImportSuccessMessage(`¡Se importaron exitosamente ${importedAccounts.length} cuentas de streaming!`);
+
+        // Registrar en historial de lotes (vigente por 24 horas)
+        const batchPlatformName = selectedImportPlatform !== "auto" 
+          ? selectedImportPlatform 
+          : "Plataformas Mixtas (Detectadas)";
+
+        const newBatch: ImportBatchRecord = {
+          id: batchId,
+          platform: batchPlatformName,
+          count: importedAccounts.length,
+          importedAt: importTime,
+          filename: excelFile?.name || "Lista_Cuentas.xlsx"
+        };
+        const updatedBatches = [newBatch, ...recentBatches];
+        setRecentBatches(updatedBatches);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("streamhub_import_batches", JSON.stringify(updatedBatches));
+        }
+
+        setImportSuccessMessage(`¡Se importaron exitosamente ${importedAccounts.length} cuentas de streaming! Puedes deshacer o borrar este lote si fue un error durante las próximas 24 horas.`);
         setTimeout(() => {
           setIsExcelModalOpen(false);
           setExcelFile(null);
           setExcelPreviewData([]);
           setImportSuccessMessage(null);
-        }, 1800);
+        }, 2500);
       } else {
         alert("No se detectaron cuentas con correo válido en el archivo.");
       }
@@ -658,31 +782,37 @@ export default function OwnerDashboard() {
   const handleDownloadTemplate = () => {
     const templateData = [
       {
+        "País": "Colombia",
         "Plataforma": "Netflix Premium 4K",
         "Correo": "ejemplo.netflix1@correo.com",
-        "Contraseña": "ClaveSegura2026*",
+        "Clave": "ClaveSegura2026*",
+        "Verificada (Sí/No)": "Sí",
+        "Fecha Vencimiento": "2026-11-15",
+        "Vendido a / Asignado a": "Carlos Vendedor",
         "Perfiles": 5,
-        "Ocupados": 0,
-        "Vencimiento": "2026-10-15",
-        "Vendedor": "Carlos Vendedor"
+        "Notas": "Perfil 1 con PIN"
       },
       {
+        "País": "México",
         "Plataforma": "Disney+ Standard",
         "Correo": "ejemplo.disney2@correo.com",
-        "Contraseña": "DisneyPass2026#",
+        "Clave": "DisneyPass2026#",
+        "Verificada (Sí/No)": "Sí",
+        "Fecha Vencimiento": "2026-11-20",
+        "Vendido a / Asignado a": "Cliente Juan Pérez",
         "Perfiles": 4,
-        "Ocupados": 1,
-        "Vencimiento": "2026-10-20",
-        "Vendedor": "Maria Ventas"
+        "Notas": "Garantía de 30 días"
       },
       {
+        "País": "Global",
         "Plataforma": "Max (HBO Max)",
         "Correo": "ejemplo.max3@correo.com",
-        "Contraseña": "MaxPassword778!",
+        "Clave": "MaxPassword778!",
+        "Verificada (Sí/No)": "No",
+        "Fecha Vencimiento": "2026-12-01",
+        "Vendido a / Asignado a": "",
         "Perfiles": 5,
-        "Ocupados": 0,
-        "Vencimiento": "2026-11-01",
-        "Vendedor": ""
+        "Notas": "En Stock sin vender"
       }
     ];
 
@@ -1131,9 +1261,10 @@ export default function OwnerDashboard() {
             <table className="w-full text-left text-xs text-gray-300">
               <thead className="bg-[#0b0f19] text-gray-400 uppercase font-semibold border-b border-gray-800">
                 <tr>
-                  <th className="py-3 px-4">Plataforma</th>
+                  <th className="py-3 px-4">Plataforma & País</th>
                   <th className="py-3 px-4">Correo & Contraseña</th>
-                  <th className="py-3 px-4">Vendedor Asignado</th>
+                  <th className="py-3 px-4 text-center">Verificada</th>
+                  <th className="py-3 px-4">Vendido a / Asignado</th>
                   <th className="py-3 px-4 text-center">Perfiles / Cupos</th>
                   <th className="py-3 px-4">Vencimiento</th>
                   <th className="py-3 px-4 text-center">Estado</th>
@@ -1143,7 +1274,7 @@ export default function OwnerDashboard() {
               <tbody className="divide-y divide-gray-800/60">
                 {filteredAccounts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-500">
+                    <td colSpan={8} className="text-center py-8 text-gray-500">
                       No se encontraron cuentas con los filtros seleccionados.
                     </td>
                   </tr>
@@ -1151,9 +1282,15 @@ export default function OwnerDashboard() {
                   filteredAccounts.map((acc) => (
                     <tr key={acc.id} className="hover:bg-gray-800/30 transition">
                       <td className="py-3.5 px-4">
-                        <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold border ${acc.platformColor}`}>
-                          {acc.platform}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold border ${acc.platformColor}`}>
+                            {acc.platform}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400/90 font-medium bg-cyan-950/40 border border-cyan-800/40 px-1.5 py-0.5 rounded">
+                            <Globe className="w-2.5 h-2.5" />
+                            <span>{acc.country || "Global"}</span>
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-mono font-medium text-white">{acc.email}</div>
@@ -1170,10 +1307,42 @@ export default function OwnerDashboard() {
                           </div>
                         )}
                       </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {acc.isVerified !== false ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-500/30">
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span>Sirve</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-950/70 text-rose-300 border border-rose-500/30">
+                            <AlertCircle className="w-3 h-3 text-rose-400" />
+                            <span>Caída</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3.5 px-4">
-                        <span className={acc.sellerId ? "text-gray-200 font-medium" : "text-amber-400/90 font-medium"}>
-                          {acc.seller}
-                        </span>
+                        {acc.customerName ? (
+                          <div>
+                            <span className="text-purple-300 font-medium flex items-center gap-1 text-xs">
+                              <span>👤</span>
+                              <span>{acc.customerName}</span>
+                            </span>
+                            {acc.sellerId && (
+                              <span className="text-[10px] text-gray-400 block mt-0.5">
+                                Revendedor: {acc.seller}
+                              </span>
+                            )}
+                          </div>
+                        ) : acc.sellerId ? (
+                          <span className="text-gray-200 font-medium flex items-center gap-1">
+                            <span>💼</span>
+                            <span>{acc.seller}</span>
+                          </span>
+                        ) : (
+                          <span className="text-amber-400/90 font-medium">
+                            Sin Asignar (Stock)
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="font-semibold text-white">{acc.profilesOccupied}</span>
@@ -1536,6 +1705,40 @@ export default function OwnerDashboard() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">País / Región</label>
+                    <input
+                      type="text"
+                      placeholder="ej: Colombia, México, Global"
+                      value={formData.country || ""}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">¿Está Verificada? (Sirve)</label>
+                    <select
+                      value={formData.isVerified !== false ? "true" : "false"}
+                      onChange={(e) => setFormData({ ...formData, isVerified: e.target.value === "true" })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="true">✅ Sí (Funciona / Comprobada)</option>
+                      <option value="false">⚠️ No (Caída / Falla)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Cliente / Vendido a (Opcional)</label>
+                    <input
+                      type="text"
+                      placeholder="ej: Juan Pérez (WhatsApp)"
+                      value={formData.customerName || ""}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block font-medium text-gray-300 mb-1">Cupo Máximo Perfiles</label>
@@ -1728,7 +1931,7 @@ export default function OwnerDashboard() {
         {/* MODAL IMPORTAR EXCEL / CSV */}
         {isExcelModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <div className="bg-[#121826] border border-gray-700 w-full max-w-4xl rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[92vh] overflow-y-auto">
               <button
                 onClick={() => setIsExcelModalOpen(false)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
@@ -1736,27 +1939,109 @@ export default function OwnerDashboard() {
                 ✕
               </button>
 
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
                   <FileSpreadsheet className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Importar Cuentas desde Excel o CSV</h3>
+                  <h3 className="text-lg font-bold text-white">Importar Lista de Cuentas desde Excel o CSV</h3>
                   <p className="text-xs text-gray-400">
-                    Sube un archivo con tus cuentas de streaming y asígnalas a tus vendedores automáticamente
+                    Sube cuentas masivas con país, verificación, fecha de vencimiento y asignación opcional
                   </p>
                 </div>
               </div>
 
-              {/* Botón Descargar Plantilla */}
-              <div className="mb-4 p-3 rounded-xl bg-[#0b0f19] border border-gray-800 flex items-center justify-between">
+              {/* Selector de Plataforma Destino */}
+              <div className="mb-4 p-4 rounded-xl bg-[#0b0f19] border border-indigo-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-xs">
+                  <span className="font-semibold text-white block mb-0.5">¿Para qué plataforma es esta lista?</span>
+                  <span className="text-[11px] text-gray-400">
+                    Puedes forzar que todas las cuentas sean de una plataforma específica o dejar que se lea de la columna del Excel.
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  <select
+                    value={selectedImportPlatform}
+                    onChange={(e) => setSelectedImportPlatform(e.target.value)}
+                    className="w-full sm:w-auto bg-[#131b2e] border border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-indigo-300 font-semibold focus:outline-none focus:border-indigo-400 shadow-sm"
+                  >
+                    <option value="auto">⚡ Detectar automáticamente (Columna "Plataforma")</option>
+                    {catalogPlatforms.map((p) => (
+                      <option key={p.id} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Lotes subidos en las últimas 24 horas (Revertir / Borrar) */}
+              {(() => {
+                const now = Date.now();
+                const validBatches = recentBatches.filter(
+                  (b) => now - new Date(b.importedAt).getTime() < 24 * 60 * 60 * 1000
+                );
+                if (validBatches.length === 0) return null;
+                return (
+                  <div className="mb-4 p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/40">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4" />
+                        <span>Listas subidas hace menos de 24 horas (Puedes revertir / borrar)</span>
+                      </div>
+                      <span className="text-[10px] text-amber-300/80 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono">
+                        Ventana activa de 24h
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-400 mb-2.5">
+                      ¿La lista era para otra plataforma o se subió por equivocación? Puedes borrar el lote completo y se eliminarán todas las cuentas que se importaron en esa carga:
+                    </p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {validBatches.map((b) => (
+                        <div
+                          key={b.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-[#0d121f] border border-gray-800 text-xs gap-2"
+                        >
+                          <div>
+                            <div className="font-semibold text-white flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 text-[11px] border border-indigo-500/30">
+                                {b.platform}
+                              </span>
+                              <span>{b.count} cuentas importadas</span>
+                            </div>
+                            <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2">
+                              <span>📄 {b.filename || "Lista"}</span>
+                              <span>•</span>
+                              <span>Subida {getTimeAgo(b.importedAt)} ({new Date(b.importedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBatch(b.id, b.platform, b.count)}
+                            className="px-3 py-1.5 bg-red-950/50 hover:bg-red-900/70 text-red-300 border border-red-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 self-end sm:self-center shadow-sm"
+                            title="Borra todas las cuentas de este lote si se subió a la plataforma equivocada"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                            <span>Borrar Lote Completo ({b.count})</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Botón Descargar Plantilla Oficial */}
+              <div className="mb-4 p-3.5 rounded-xl bg-[#0b0f19] border border-gray-800 flex items-center justify-between">
                 <div className="text-xs text-gray-300">
-                  <span className="font-semibold text-white">¿No tienes el formato exacto?</span>
-                  <div className="text-[11px] text-gray-500">Descarga la plantilla con las columnas recomendadas: Plataforma, Correo, Contraseña, Perfiles, Vencimiento, Vendedor.</div>
+                  <span className="font-semibold text-white block">Formato Oficial de Excel para Cuentas</span>
+                  <div className="text-[11px] text-gray-500 mt-0.5">
+                    Incluye columnas: <span className="text-emerald-400 font-mono">País, Plataforma, Correo, Clave, Verificada (Sí/No), Fecha Vencimiento, Vendido a / Asignado a, Perfiles, Notas</span>.
+                  </div>
                 </div>
                 <button
                   onClick={handleDownloadTemplate}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-3"
+                  className="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-3 shadow-sm"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Descargar Plantilla .xlsx</span>
@@ -1782,8 +2067,8 @@ export default function OwnerDashboard() {
 
               {/* Mensaje de éxito */}
               {importSuccessMessage && (
-                <div className="mt-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
-                  <Check className="w-4 h-4" />
+                <div className="mt-4 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400" />
                   <span>{importSuccessMessage}</span>
                 </div>
               )}
@@ -1792,41 +2077,73 @@ export default function OwnerDashboard() {
               {excelPreviewData.length > 0 && !importSuccessMessage && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs font-semibold text-gray-300 mb-2">
-                    <span>Vista Previa ({excelPreviewData.length} registros detectados)</span>
-                    <span className="text-[11px] text-emerald-400">Listo para importar</span>
+                    <span className="flex items-center gap-2">
+                      <span>Vista Previa del Archivo ({excelPreviewData.length} cuentas detectadas)</span>
+                      {selectedImportPlatform !== "auto" && (
+                        <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/30 text-[10px]">
+                          Asignando a: {selectedImportPlatform}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[11px] text-emerald-400 font-medium">✓ Archivo listo para procesar</span>
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto border border-gray-800 rounded-xl bg-[#0b0f19]">
+                  <div className="max-h-56 overflow-y-auto border border-gray-800 rounded-xl bg-[#0b0f19]">
                     <table className="w-full text-left text-[11px] text-gray-300">
                       <thead className="bg-[#070a12] text-gray-400 sticky top-0 border-b border-gray-800">
                         <tr>
-                          <th className="py-2 px-3">Plataforma</th>
-                          <th className="py-2 px-3">Correo</th>
-                          <th className="py-2 px-3">Cupos</th>
-                          <th className="py-2 px-3">Vendedor</th>
-                          <th className="py-2 px-3">Vencimiento</th>
+                          <th className="py-2.5 px-3">País</th>
+                          <th className="py-2.5 px-3">Plataforma</th>
+                          <th className="py-2.5 px-3">Correo</th>
+                          <th className="py-2.5 px-3">Clave</th>
+                          <th className="py-2.5 px-3 text-center">Verificada</th>
+                          <th className="py-2.5 px-3">Vencimiento</th>
+                          <th className="py-2.5 px-3">Vendido a / Asignado</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-800/60">
-                        {excelPreviewData.slice(0, 15).map((row: any, i) => (
-                          <tr key={i} className="hover:bg-gray-800/30">
-                            <td className="py-2 px-3 font-semibold text-white">
-                              {row["Plataforma"] || row["Servicio"] || "Netflix"}
-                            </td>
-                            <td className="py-2 px-3 font-mono text-indigo-300">
-                              {row["Correo"] || row["Email"] || "-"}
-                            </td>
-                            <td className="py-2 px-3">
-                              {row["Perfiles"] || row["Cupos"] || 5}
-                            </td>
-                            <td className="py-2 px-3 text-amber-300">
-                              {row["Vendedor"] || "Sin Asignar"}
-                            </td>
-                            <td className="py-2 px-3 text-gray-400 font-mono">
-                              {String(row["Vencimiento"] || "").substring(0, 10) || "30 días"}
-                            </td>
-                          </tr>
-                        ))}
+                        {excelPreviewData.slice(0, 20).map((row: any, i) => {
+                          const rawVer = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || "Sí").toLowerCase();
+                          const isVer = !(rawVer.includes("no") || rawVer === "0" || rawVer === "false" || rawVer.includes("falla") || rawVer.includes("caida"));
+                          const platDisplay = selectedImportPlatform !== "auto" 
+                            ? selectedImportPlatform 
+                            : (row["Plataforma"] || row["Servicio"] || "Netflix");
+                          const assignedCol = row["Vendido a / Asignado a"] || row["Vendido a"] || row["Cliente"] || row["Vendedor"] || "Sin Asignar";
+
+                          return (
+                            <tr key={i} className="hover:bg-gray-800/30">
+                              <td className="py-2 px-3 font-semibold text-cyan-300">
+                                🌍 {row["País"] || row["Pais"] || row["Country"] || "Global"}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-white">
+                                {platDisplay}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-indigo-300">
+                                {row["Correo"] || row["Email"] || "-"}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-gray-400">
+                                {row["Clave"] || row["Contraseña"] || "••••••••"}
+                              </td>
+                              <td className="py-2 px-3 text-center">
+                                {isVer ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded font-semibold">
+                                    ✓ Sirve
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-rose-300 bg-rose-950/60 border border-rose-500/30 px-1.5 py-0.5 rounded font-semibold">
+                                    ✗ Falla
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-3 text-gray-400 font-mono">
+                                {String(row["Fecha Vencimiento"] || row["Vencimiento"] || "").substring(0, 10) || "30 días"}
+                              </td>
+                              <td className="py-2 px-3 text-amber-300 font-medium">
+                                {assignedCol}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

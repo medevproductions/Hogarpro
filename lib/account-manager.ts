@@ -23,6 +23,19 @@ export interface StoredStreamingAccount {
   monthlyCost?: number;
   monthlyIncome?: number;
   notes?: string;
+  country?: string; // ej: Colombia, México, Global
+  isVerified?: boolean; // si la cuenta sirve / está comprobada
+  customerName?: string; // cliente o a quién se le vendió (opcional)
+  importBatchId?: string; // identificador único del lote importado
+  importedAt?: string; // fecha ISO de cuando se importó
+}
+
+export interface ImportBatchRecord {
+  id: string;
+  platform: string;
+  count: number;
+  importedAt: string; // ISO
+  filename?: string;
 }
 
 export interface CatalogPlatform {
@@ -272,6 +285,14 @@ export function saveStoredAccounts(accounts: StoredStreamingAccount[]) {
     localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
     window.dispatchEvent(new Event("streamhub_accounts_updated"));
   }
+}
+
+export function deleteImportBatch(batchId: string): number {
+  const accounts = getStoredAccounts();
+  const toKeep = accounts.filter(a => a.importBatchId !== batchId);
+  const deletedCount = accounts.length - toKeep.length;
+  saveStoredAccounts(toKeep);
+  return deletedCount;
 }
 
 export function getCurrentUser(): SystemUser | null {
