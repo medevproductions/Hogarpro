@@ -47,6 +47,9 @@ import {
   saveSystemUser,
   deleteSystemUser,
   getCurrentUser,
+  getCatalogPlatforms,
+  saveCatalogPlatforms,
+  CatalogPlatform,
   SystemUser, 
   StoredStreamingAccount 
 } from "@/lib/account-manager";
@@ -79,14 +82,52 @@ export interface Seller {
   status: "active" | "suspended";
 }
 
-const AVAILABLE_PLATFORMS = [
-  { name: "Netflix Premium 4K", color: "text-red-500 bg-red-950/40 border-red-500/30", defaultProfiles: 5, defaultCost: 2.00, defaultIncome: 15.00 },
-  { name: "Disney+ Standard", color: "text-blue-400 bg-blue-950/40 border-blue-500/30", defaultProfiles: 4, defaultCost: 1.50, defaultIncome: 10.00 },
-  { name: "Max (HBO Max)", color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30", defaultProfiles: 5, defaultCost: 1.20, defaultIncome: 12.50 },
-  { name: "Prime Video", color: "text-sky-400 bg-sky-950/40 border-sky-500/30", defaultProfiles: 3, defaultCost: 1.00, defaultIncome: 6.00 },
-  { name: "Spotify Familiar", color: "text-emerald-400 bg-emerald-950/40 border-emerald-500/30", defaultProfiles: 6, defaultCost: 0.90, defaultIncome: 12.00 },
-  { name: "Crunchyroll Mega Fan", color: "text-amber-500 bg-amber-950/40 border-amber-500/30", defaultProfiles: 4, defaultCost: 1.10, defaultIncome: 8.00 }
-];
+
+// Helper robusto para formatear fechas de Excel (maneja serial numbers numéricos ej: 45600 y strings YYYY-MM-DD o DD/MM/YYYY)
+function parseExcelDate(raw: any): string {
+  if (!raw) {
+    return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  }
+
+  // Si es un número (formato serial de Excel)
+  if (typeof raw === "number" || (!isNaN(Number(raw)) && !String(raw).includes("-") && !String(raw).includes("/"))) {
+    const num = Number(raw);
+    if (num > 20000 && num < 70000) {
+      // Excel epoch: Dec 30 1899
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const dateObj = new Date(excelEpoch.getTime() + num * 86400000);
+      return dateObj.toISOString().split("T")[0];
+    }
+  }
+
+  const str = String(raw).trim();
+
+  // Si viene en formato DD/MM/YYYY o DD-MM-YYYY
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (dmyMatch) {
+    const day = dmyMatch[1].padStart(2, "0");
+    const month = dmyMatch[2].padStart(2, "0");
+    const year = dmyMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // Si viene en formato YYYY/MM/DD o YYYY-MM-DD
+  const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (ymdMatch) {
+    const year = ymdMatch[1];
+    const month = ymdMatch[2].padStart(2, "0");
+    const day = ymdMatch[3].padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  // Intentar parsear con Date nativo
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+
+  return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+}
 
 export default function OwnerDashboard() {
   const [dateFilter, setDateFilter] = useState("this_month");
@@ -94,11 +135,31 @@ export default function OwnerDashboard() {
   const [platformFilter, setPlatformFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Lista de Plataformas del Catálogo (Configurable por el Admin)
+  const [catalogPlatforms, setCatalogPlatforms] = useState<CatalogPlatform[]>([]);
+
   // Lista de Vendedores sincronizada con account-manager
   const [sellers, setSellers] = useState<Seller[]>([]);
 
   // Cuentas Maestras sincronizadas con account-manager
   const [accounts, setAccounts] = useState<StreamingAccount[]>([]);
+
+  // Modal para Gestión / Edición de Catálogo
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [editingPlatformId, setEditingPlatformId] = useState<string | null>(null);
+  const [platformForm, setPlatformForm] = useState<CatalogPlatform>({
+    id: "",
+    name: "",
+    color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30",
+    defaultProfiles: 5,
+    defaultCost: 2.0,
+    defaultIncome: 14.0,
+    price: 3.5,
+    category: "Full HD • 1 Pantalla",
+    stock: 10,
+    badge: "",
+    features: ["Calidad HD/4K", "Perfil con PIN", "Soporte 24/7"]
+  });
 
   // Estados para Modales
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -131,10 +192,12 @@ export default function OwnerDashboard() {
   const [isTestingCode, setIsTestingCode] = useState(false);
   const [copiedTestCode, setCopiedTestCode] = useState(false);
 
-  // Función para refrescar vendedores y cuentas
+  // Función para refrescar vendedores, cuentas y catálogo
   const reloadData = () => {
     const rawUsers = getSystemUsers();
     const rawAccounts = getStoredAccounts();
+    const currentPlatforms = getCatalogPlatforms();
+    setCatalogPlatforms(currentPlatforms);
 
     const formattedSellers: Seller[] = rawUsers.map(u => ({
       id: u.id,
@@ -148,7 +211,27 @@ export default function OwnerDashboard() {
     setSellers(formattedSellers);
 
     const formattedAccounts: StreamingAccount[] = rawAccounts.map(a => {
-      const platObj = AVAILABLE_PLATFORMS.find(p => p.name.toLowerCase().includes(a.platform.toLowerCase())) || AVAILABLE_PLATFORMS[0];
+      const platObj = currentPlatforms.find(p => p.name.toLowerCase().includes(a.platform.toLowerCase())) || currentPlatforms[0] || {
+        id: "default",
+        name: a.platform || "Servicio Streaming",
+        color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30",
+        defaultProfiles: 5,
+        defaultCost: 2.0,
+        defaultIncome: 14.0
+      };
+
+      // Calcular status inteligente basado en vencimiento
+      let calculatedStatus: "assigned" | "available" | "expiring" = a.sellerId ? "assigned" : "available";
+      if (a.expirationDate) {
+        const exp = new Date(a.expirationDate);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        if (diffDays <= 5) {
+          calculatedStatus = "expiring";
+        }
+      }
+
       return {
         id: a.id,
         platform: a.platform || platObj.name,
@@ -160,8 +243,8 @@ export default function OwnerDashboard() {
         profilesOccupied: a.occupiedProfiles || 0,
         maxProfiles: a.maxProfiles || platObj.defaultProfiles,
         purchaseDate: "2026-08-01",
-        expirationDate: a.expirationDate || "2026-09-30",
-        status: (a.status as any) || (a.sellerId ? "assigned" : "available"),
+        expirationDate: a.expirationDate || "2026-10-31",
+        status: calculatedStatus,
         monthlyCost: a.monthlyCost || platObj.defaultCost,
         monthlyIncome: a.monthlyIncome || platObj.defaultIncome,
         notes: a.notes || ""
@@ -231,7 +314,7 @@ export default function OwnerDashboard() {
 
   // Estado del Formulario de Cuenta
   const [formData, setFormData] = useState({
-    platform: AVAILABLE_PLATFORMS[0].name,
+    platform: "Netflix Premium 4K",
     email: "",
     password: "",
     maxProfiles: 5,
@@ -280,26 +363,84 @@ export default function OwnerDashboard() {
     };
   }, [accounts]);
 
-  // ABRIR MODAL CREAR
+  // GESTIÓN DEL CATÁLOGO DE PLATAFORMAS (CREAR / EDITAR / ELIMINAR)
+  const handleOpenCreatePlatform = () => {
+    setEditingPlatformId(null);
+    setPlatformForm({
+      id: `plat-${Date.now()}`,
+      name: "",
+      color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30",
+      defaultProfiles: 5,
+      defaultCost: 2.0,
+      defaultIncome: 14.0,
+      price: 3.5,
+      category: "Full HD • 1 Pantalla",
+      stock: 10,
+      badge: "Nuevo",
+      features: ["Acceso Inmediato 24/7", "Garantía de Servicio", "Soporte dedicado"]
+    });
+    setIsCatalogModalOpen(true);
+  };
+
+  const handleOpenEditPlatform = (plat: CatalogPlatform) => {
+    setEditingPlatformId(plat.id);
+    setPlatformForm({
+      ...plat,
+      features: plat.features || ["Calidad Garantizada", "Soporte 24/7"]
+    });
+    setIsCatalogModalOpen(true);
+  };
+
+  const handleSavePlatform = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!platformForm.name.trim()) return;
+
+    let updated: CatalogPlatform[] = [];
+    if (editingPlatformId) {
+      updated = catalogPlatforms.map(p => p.id === editingPlatformId ? { ...platformForm } : p);
+    } else {
+      updated = [...catalogPlatforms, { ...platformForm, id: `plat-${Date.now()}` }];
+    }
+    saveCatalogPlatforms(updated);
+    setCatalogPlatforms(updated);
+    setIsCatalogModalOpen(false);
+  };
+
+  const handleDeletePlatform = (platId: string, platName: string) => {
+    if (!confirm(`¿Eliminar la plataforma "${platName}" del catálogo? Las cuentas existentes conservarán su nombre.`)) {
+      return;
+    }
+    const updated = catalogPlatforms.filter(p => p.id !== platId);
+    saveCatalogPlatforms(updated);
+    setCatalogPlatforms(updated);
+  };
+
+  // ABRIR MODAL CREAR CUENTA
   const handleOpenCreateModal = () => {
     setEditingAccountId(null);
+    const firstPlat = catalogPlatforms[0] || {
+      name: "Netflix Premium 4K",
+      defaultProfiles: 5,
+      defaultCost: 2.0,
+      defaultIncome: 15.0
+    };
     setFormData({
-      platform: AVAILABLE_PLATFORMS[0].name,
+      platform: firstPlat.name,
       email: "",
       password: "",
-      maxProfiles: AVAILABLE_PLATFORMS[0].defaultProfiles,
+      maxProfiles: firstPlat.defaultProfiles,
       profilesOccupied: 0,
       seller: "Sin Asignar (En Stock)",
       purchaseDate: new Date().toISOString().split("T")[0],
       expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      monthlyCost: AVAILABLE_PLATFORMS[0].defaultCost,
-      monthlyIncome: AVAILABLE_PLATFORMS[0].defaultIncome,
+      monthlyCost: firstPlat.defaultCost,
+      monthlyIncome: firstPlat.defaultIncome,
       notes: ""
     });
     setIsAccountModalOpen(true);
   };
 
-  // ABRIR MODAL EDITAR
+  // ABRIR MODAL EDITAR CUENTA
   const handleOpenEditModal = (acc: StreamingAccount) => {
     setEditingAccountId(acc.id);
     setFormData({
@@ -321,7 +462,10 @@ export default function OwnerDashboard() {
   // GUARDAR CUENTA (CREAR O EDITAR)
   const handleSaveAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    const platObj = AVAILABLE_PLATFORMS.find((p) => p.name === formData.platform) || AVAILABLE_PLATFORMS[0];
+    const platObj = catalogPlatforms.find((p) => p.name === formData.platform) || catalogPlatforms[0] || {
+      name: formData.platform,
+      color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30"
+    };
     const isAssigned = formData.seller !== "Sin Asignar (En Stock)";
     const matchedSeller = sellers.find(s => s.name === formData.seller);
 
@@ -332,7 +476,7 @@ export default function OwnerDashboard() {
           ? {
               ...acc,
               ...formData,
-              sellerId: matchedSeller ? matchedSeller.id : acc.sellerId,
+              sellerId: matchedSeller ? matchedSeller.id : (isAssigned ? acc.sellerId : undefined),
               platformColor: platObj.color,
               status: (isAssigned ? (acc.status === "expiring" ? "expiring" : "assigned") : "available") as any
             }
@@ -363,11 +507,11 @@ export default function OwnerDashboard() {
   // ABRIR MODAL ASIGNAR
   const handleOpenAssignModal = (acc: StreamingAccount) => {
     setAssigningAccount(acc);
-    setSelectedSellerToAssign(acc.sellerId || (sellers[0]?.id ?? ""));
+    setSelectedSellerToAssign(acc.sellerId || "");
     setIsAssignModalOpen(true);
   };
 
-  // GUARDAR ASIGNACIÓN DE VENDEDOR
+  // GUARDAR ASIGNACIÓN DE VENDEDOR (ASIGNAR / REASIGNAR / DESASIGNAR)
   const handleSaveAssignment = () => {
     if (!assigningAccount) return;
     const selectedSeller = sellers.find((s) => s.id === selectedSellerToAssign);
@@ -385,6 +529,21 @@ export default function OwnerDashboard() {
     persistAccounts(updated);
     setIsAssignModalOpen(false);
     setAssigningAccount(null);
+  };
+
+  // DESASIGNACIÓN DIRECTA RÁPIDA (DEVOLVER A STOCK LIBRE CON UN CLIC)
+  const handleQuickUnassign = (acc: StreamingAccount) => {
+    const updated = accounts.map((a) =>
+      a.id === acc.id
+        ? {
+            ...a,
+            seller: "Sin Asignar (En Stock)",
+            sellerId: undefined,
+            status: "available" as any
+          }
+        : a
+    );
+    persistAccounts(updated);
   };
 
   // MANEJO DE ARCHIVO EXCEL (.xlsx / .csv)
@@ -421,7 +580,13 @@ export default function OwnerDashboard() {
       excelPreviewData.forEach((row: any, idx) => {
         // Encontrar plataforma mapeada
         const rawPlatform = row["Plataforma"] || row["Servicio"] || row["Platform"] || "Netflix Premium 4K";
-        const platObj = AVAILABLE_PLATFORMS.find(p => p.name.toLowerCase().includes(String(rawPlatform).toLowerCase())) || AVAILABLE_PLATFORMS[0];
+        const platObj = catalogPlatforms.find(p => p.name.toLowerCase().includes(String(rawPlatform).toLowerCase())) || catalogPlatforms[0] || {
+          name: String(rawPlatform),
+          color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30",
+          defaultProfiles: 5,
+          defaultCost: 2.0,
+          defaultIncome: 14.0
+        };
         
         const email = String(row["Correo"] || row["Email"] || row["Usuario"] || "").trim();
         if (!email) return;
@@ -437,7 +602,19 @@ export default function OwnerDashboard() {
           (s.email && s.email.toLowerCase() === sellerCol.toLowerCase())
         );
 
-        const expDate = row["Vencimiento"] || row["Fecha Vencimiento"] || row["Expiration"] || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        // Parsear fecha de vencimiento limpiamente (maneja serial number de excel y strings)
+        const rawExp = row["Vencimiento"] || row["Fecha Vencimiento"] || row["Expiration"] || row["Fecha"] || "";
+        const expDate = parseExcelDate(rawExp);
+
+        // Calcular estado si está por vencer o vencido
+        let calculatedStatus: "assigned" | "available" | "expiring" = matchedSeller ? "assigned" : "available";
+        const expObj = new Date(expDate);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const diffDays = Math.ceil((expObj.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        if (diffDays <= 5) {
+          calculatedStatus = "expiring";
+        }
 
         importedAccounts.push({
           id: `acc-imp-${Date.now()}-${idx}`,
@@ -450,8 +627,8 @@ export default function OwnerDashboard() {
           profilesOccupied: occupied,
           maxProfiles,
           purchaseDate: new Date().toISOString().split("T")[0],
-          expirationDate: String(expDate).substring(0, 10),
-          status: matchedSeller ? "assigned" : "available",
+          expirationDate: expDate,
+          status: calculatedStatus,
           monthlyCost: platObj.defaultCost,
           monthlyIncome: platObj.defaultIncome,
           notes: "Importado vía Excel/CSV"
@@ -650,6 +827,10 @@ export default function OwnerDashboard() {
               <DollarSign className="w-4 h-4" />
               Finanzas & Cuentas
             </Link>
+            <a href="#catalogo" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/60 transition">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              Catálogo de Servicios ({catalogPlatforms.length})
+            </a>
             <a href="#cuentas" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/60 transition">
               <Tv className="w-4 h-4" />
               Gestión de Stock ({accounts.length})
@@ -657,6 +838,10 @@ export default function OwnerDashboard() {
             <a href="#vendedores" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/60 transition">
               <Users className="w-4 h-4" />
               Vendedores ({sellers.length})
+            </a>
+            <a href="#codigos-owner" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40 transition">
+              <KeyRound className="w-4 h-4" />
+              Extractor de Códigos
             </a>
           </nav>
         </div>
@@ -677,7 +862,7 @@ export default function OwnerDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Panel del Dueño (Owner)</h1>
-            <p className="text-sm text-gray-400 mt-1">Control financiero global, inventario y rendimiento de ventas</p>
+            <p className="text-sm text-gray-400 mt-1">Control maestro de catálogo, finanzas, inventario y vendedores</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -686,10 +871,20 @@ export default function OwnerDashboard() {
               onChange={(e) => setDateFilter(e.target.value)}
               className="bg-[#121826] border border-gray-700 text-xs text-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"
             >
-              <option value="this_month">Este Mes (Agosto 2026)</option>
+              <option value="this_month">Este Mes</option>
               <option value="last_month">Mes Anterior</option>
               <option value="this_year">Año Completo</option>
             </select>
+
+            {/* BOTÓN EDITAR CATÁLOGO */}
+            <button
+              onClick={handleOpenCreatePlatform}
+              className="px-3.5 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs font-semibold rounded-xl flex items-center gap-2 transition"
+              title="Agregar o editar servicios y plataformas del catálogo"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Nuevo Servicio</span>
+            </button>
 
             {/* BOTÓN IMPORTAR EXCEL */}
             <button
@@ -786,6 +981,102 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
+        {/* SECCIÓN CATÁLOGO DE SERVICIOS */}
+        <section id="catalogo" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider mb-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Control Maestro de Productos</span>
+              </div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                Catálogo de Plataformas y Servicios ({catalogPlatforms.length})
+              </h2>
+              <p className="text-xs text-gray-400">
+                Edita nombres, precios de venta, costos base, cupos por defecto y beneficios que se muestran en la tienda pública
+              </p>
+            </div>
+            <button
+              onClick={handleOpenCreatePlatform}
+              className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-amber-950/40 transition w-fit"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Crear Plataforma</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {catalogPlatforms.map((plat) => (
+              <div 
+                key={plat.id} 
+                className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800/80 hover:border-gray-700 flex flex-col justify-between transition group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold border mb-1.5 ${plat.color}`}>
+                        {plat.name}
+                      </span>
+                      {plat.badge && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {plat.badge}
+                        </span>
+                      )}
+                      <div className="text-xs text-gray-400">{plat.category || "Servicio Streaming"}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-extrabold text-emerald-400 font-mono">
+                        ${Number(plat.price || plat.defaultIncome || 3.5).toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-gray-500">PVP Tienda</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2 py-2 px-2.5 rounded-lg bg-[#070a12] border border-gray-800/60 text-center text-[11px]">
+                    <div>
+                      <div className="text-gray-500 text-[10px]">Perfiles</div>
+                      <div className="font-bold text-white">{plat.defaultProfiles}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500 text-[10px]">Costo Base</div>
+                      <div className="font-bold text-red-400">${Number(plat.defaultCost).toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500 text-[10px]">Margen Estim.</div>
+                      <div className="font-bold text-emerald-400">
+                        ${(Number(plat.defaultIncome || 14) - Number(plat.defaultCost || 2)).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-gray-800/60 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-gray-500">
+                    {accounts.filter(a => a.platform.toLowerCase().includes(plat.name.toLowerCase())).length} cuentas registradas
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleOpenEditPlatform(plat)}
+                      className="px-2.5 py-1 text-xs text-amber-300 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 rounded-lg flex items-center gap-1 transition"
+                      title="Editar características y precios de la plataforma"
+                    >
+                      <Edit className="w-3 h-3" />
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeletePlatform(plat.id, plat.name)}
+                      className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
+                      title="Eliminar del catálogo"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* TABLA DE GESTIÓN DE CUENTAS */}
         <section id="cuentas" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
@@ -817,7 +1108,7 @@ export default function OwnerDashboard() {
                 className="bg-[#0d121f] border border-gray-700/80 text-xs text-gray-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500"
               >
                 <option value="all">Todas las Plataformas</option>
-                {AVAILABLE_PLATFORMS.map((p) => (
+                {catalogPlatforms.map((p) => (
                   <option key={p.name} value={p.name}>{p.name}</option>
                 ))}
               </select>
@@ -911,13 +1202,40 @@ export default function OwnerDashboard() {
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-right space-x-1.5">
+                      <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                        {acc.sellerId ? (
+                          <button
+                            onClick={() => handleQuickUnassign(acc)}
+                            className="px-2 py-1 text-xs text-amber-300 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 rounded-lg transition"
+                            title="Quitar vendedor y dejar en stock libre"
+                          >
+                            Quitar
+                          </button>
+                        ) : null}
                         <button
                           onClick={() => handleOpenAssignModal(acc)}
                           className="px-2.5 py-1 text-xs text-indigo-300 hover:text-white bg-indigo-950/40 border border-indigo-500/30 rounded-lg transition"
-                          title="Asignar Vendedor"
+                          title="Asignar o cambiar vendedor"
                         >
-                          Asignar
+                          {acc.sellerId ? "Cambiar" : "Asignar"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTestEmail(acc.email);
+                            const platLower = acc.platform.toLowerCase();
+                            if (platLower.includes("netflix")) setTestService("netflix");
+                            else if (platLower.includes("disney") || platLower.includes("star")) setTestService("disney");
+                            else if (platLower.includes("max") || platLower.includes("hbo")) setTestService("max");
+                            else if (platLower.includes("prime")) setTestService("prime");
+                            else if (platLower.includes("spotify")) setTestService("spotify");
+                            else if (platLower.includes("crunchy")) setTestService("crunchyroll");
+                            const codigosEl = document.getElementById("codigos-owner");
+                            codigosEl?.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="px-2 py-1 text-xs text-emerald-300 hover:text-white bg-emerald-950/40 border border-emerald-500/30 rounded-lg transition"
+                          title="Extraer códigos de esta cuenta"
+                        >
+                          <KeyRound className="w-3.5 h-3.5 inline" />
                         </button>
                         <button
                           onClick={() => handleOpenEditModal(acc)}
@@ -1053,11 +1371,13 @@ export default function OwnerDashboard() {
                 onChange={(e) => setTestService(e.target.value)}
                 className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
               >
+                <option value="all">Todas las Plataformas (Búsqueda Global)</option>
                 <option value="netflix">Netflix</option>
                 <option value="disney">Disney+</option>
                 <option value="max">Max (HBO)</option>
                 <option value="prime">Prime Video</option>
                 <option value="spotify">Spotify</option>
+                <option value="crunchyroll">Crunchyroll</option>
               </select>
             </div>
 
@@ -1174,7 +1494,7 @@ export default function OwnerDashboard() {
                   <select
                     value={formData.platform}
                     onChange={(e) => {
-                      const plat = AVAILABLE_PLATFORMS.find((p) => p.name === e.target.value);
+                      const plat = catalogPlatforms.find((p) => p.name === e.target.value);
                       setFormData({
                         ...formData,
                         platform: e.target.value,
@@ -1185,8 +1505,8 @@ export default function OwnerDashboard() {
                     }}
                     className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                   >
-                    {AVAILABLE_PLATFORMS.map((p) => (
-                      <option key={p.name} value={p.name}>{p.name}</option>
+                    {catalogPlatforms.map((p) => (
+                      <option key={p.id || p.name} value={p.name}>{p.name}</option>
                     ))}
                   </select>
                 </div>
@@ -1280,6 +1600,32 @@ export default function OwnerDashboard() {
                       step="0.1"
                       value={formData.monthlyIncome}
                       onChange={(e) => setFormData({ ...formData, monthlyIncome: Number(e.target.value) })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Vendedor Asignado</label>
+                    <select
+                      value={formData.seller}
+                      onChange={(e) => setFormData({ ...formData, seller: e.target.value })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="Sin Asignar (En Stock)">Sin Asignar (En Stock)</option>
+                      {sellers.map((s) => (
+                        <option key={s.id} value={s.name}>{s.name} ({s.email})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Notas / Observaciones</label>
+                    <input
+                      type="text"
+                      placeholder="ej: Cuenta familiar, renovar el día 30"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                       className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                     />
                   </div>
@@ -1610,6 +1956,125 @@ export default function OwnerDashboard() {
                     className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-lg shadow-purple-900/30"
                   >
                     {editingSellerId ? "Guardar Cambios" : "Registrar Vendedor"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CREAR / EDITAR PLATAFORMA EN CATÁLOGO */}
+        {isCatalogModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#121826] border border-gray-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+              <button
+                onClick={() => setIsCatalogModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-400 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {editingPlatformId ? "Editar Servicio en Catálogo" : "Nuevo Servicio de Streaming"}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    Configura el nombre, precio al público, costo base y cupos para este servicio
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSavePlatform} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Nombre de la Plataforma / Plan</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: Disney+ & Star+ Combo"
+                    value={platformForm.name}
+                    onChange={(e) => setPlatformForm({ ...platformForm, name: e.target.value })}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Precio al Público ($)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={platformForm.price || 3.5}
+                      onChange={(e) => setPlatformForm({ ...platformForm, price: Number(e.target.value), defaultIncome: Number(e.target.value) * (platformForm.defaultProfiles || 4) })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Costo Base Cuenta ($)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={platformForm.defaultCost}
+                      onChange={(e) => setPlatformForm({ ...platformForm, defaultCost: Number(e.target.value) })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Cupos / Perfiles por Defecto</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      required
+                      value={platformForm.defaultProfiles}
+                      onChange={(e) => setPlatformForm({ ...platformForm, defaultProfiles: Number(e.target.value) })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-gray-300 mb-1">Etiqueta Destacada (Opcional)</label>
+                    <input
+                      type="text"
+                      placeholder="ej: Más Vendido, 4K UHD"
+                      value={platformForm.badge || ""}
+                      onChange={(e) => setPlatformForm({ ...platformForm, badge: e.target.value })}
+                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-medium text-gray-300 mb-1">Categoría / Subtítulo</label>
+                  <input
+                    type="text"
+                    placeholder="ej: 4K HDR • 1 Pantalla Individual"
+                    value={platformForm.category || ""}
+                    onChange={(e) => setPlatformForm({ ...platformForm, category: e.target.value })}
+                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCatalogModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold shadow-lg shadow-amber-950/40"
+                  >
+                    {editingPlatformId ? "Guardar Cambios" : "Guardar en Catálogo"}
                   </button>
                 </div>
               </form>

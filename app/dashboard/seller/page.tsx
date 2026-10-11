@@ -207,7 +207,7 @@ export default function SellerLiveCodesPage() {
   };
 
   // Cargar cuentas asignadas al vendedor logueado
-  useEffect(() => {
+  const reloadSellerAccounts = () => {
     const user = getCurrentUser();
     setCurrentUserState(user);
     if (user) {
@@ -238,9 +238,24 @@ export default function SellerLiveCodesPage() {
     }));
 
     setAssignedAccounts(formatted);
-    if (formatted.length > 0 && !selectedAccount) {
+    if (formatted.length > 0 && (!selectedAccount || !formatted.some(f => f.email === selectedAccount))) {
       setSelectedAccount(formatted[0].email);
     }
+  };
+
+  useEffect(() => {
+    reloadSellerAccounts();
+
+    const handleUpdate = () => reloadSellerAccounts();
+    window.addEventListener("storage", handleUpdate);
+    window.addEventListener("streamhub_accounts_updated", handleUpdate);
+    window.addEventListener("streamhub_users_updated", handleUpdate);
+
+    return () => {
+      window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener("streamhub_accounts_updated", handleUpdate);
+      window.removeEventListener("streamhub_users_updated", handleUpdate);
+    };
   }, []);
 
   // Temporizador de espera visual
@@ -330,10 +345,20 @@ export default function SellerLiveCodesPage() {
     const generatedReqId = `req_${Date.now()}`;
     setCurrentRequestId(generatedReqId);
 
+    // Detectar servicio de la plataforma (netflix, disney, max, prime, spotify, crunchyroll)
+    const platName = (authCheck.account?.platform || "").toLowerCase();
+    let serviceKey = "all";
+    if (platName.includes("netflix")) serviceKey = "netflix";
+    else if (platName.includes("disney") || platName.includes("star")) serviceKey = "disney";
+    else if (platName.includes("max") || platName.includes("hbo")) serviceKey = "max";
+    else if (platName.includes("prime") || platName.includes("amazon")) serviceKey = "prime";
+    else if (platName.includes("spotify")) serviceKey = "spotify";
+    else if (platName.includes("crunchy")) serviceKey = "crunchyroll";
+
     // Consulta directa a Google Apps Script
     const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
     try {
-      fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
+      fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(serviceKey)}&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {

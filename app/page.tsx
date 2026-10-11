@@ -28,124 +28,17 @@ import {
   getStoredAccounts, 
   StoredStreamingAccount,
   getSystemUsers,
-  saveSystemUser
+  saveSystemUser,
+  getCatalogPlatforms,
+  CatalogPlatform
 } from "@/lib/account-manager";
 import { formatCurrency } from "@/lib/utils";
-
-interface ServiceItem {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  originalPrice: number;
-  stock: number;
-  color: string;
-  features: string[];
-  badge?: string;
-  popular?: boolean;
-}
-
-const SERVICES: ServiceItem[] = [
-  {
-    id: "netflix-4k",
-    name: "Netflix Premium Ultra HD",
-    category: "4K HDR • 1 Pantalla",
-    price: 3.50,
-    originalPrice: 7.99,
-    stock: 14,
-    color: "from-red-600 to-red-900",
-    badge: "Más Vendido",
-    popular: true,
-    features: [
-      "Calidad 4K Ultra HD + HDR",
-      "Perfil individual con PIN exclusivo",
-      "Códigos de acceso al instante 24/7",
-      "Garantía total de 30 días"
-    ]
-  },
-  {
-    id: "disney-std",
-    name: "Disney+ & Star+ Combo",
-    category: "Full HD • 1 Pantalla",
-    price: 2.50,
-    originalPrice: 5.99,
-    stock: 8,
-    color: "from-blue-600 to-indigo-900",
-    features: [
-      "Catálogo Disney, Marvel, Star & ESPN",
-      "Sin interrupciones ni caídas",
-      "Descargas offline disponibles",
-      "Soporte inmediato por WhatsApp"
-    ]
-  },
-  {
-    id: "max-plat",
-    name: "Max (HBO) Platino 4K",
-    category: "4K UHD • 3 Dispositivos",
-    price: 2.80,
-    originalPrice: 6.50,
-    stock: 12,
-    color: "from-purple-600 to-violet-950",
-    badge: "Estreno House of Dragon",
-    features: [
-      "Series HBO, Warner Bros, Discovery & DC",
-      "Perfiles simultáneos activos",
-      "Audio Dolby Atmos envolvente",
-      "Activación inmediata al pagar"
-    ]
-  },
-  {
-    id: "prime-video",
-    name: "Amazon Prime Video",
-    category: "4K HDR • 2 Pantallas",
-    price: 1.80,
-    originalPrice: 4.99,
-    stock: 20,
-    color: "from-sky-500 to-blue-900",
-    features: [
-      "Envíos Prime + Video streaming",
-      "Contenido original exclusivo Amazon",
-      "Modo niños y control parental",
-      "Acceso garantizado mes a mes"
-    ]
-  },
-  {
-    id: "spotify-prem",
-    name: "Spotify Individual Premium",
-    category: "Música Sin Límites",
-    price: 2.20,
-    originalPrice: 5.99,
-    stock: 15,
-    color: "from-emerald-600 to-green-950",
-    badge: "A tu propio correo",
-    features: [
-      "Sin anuncios, música offline",
-      "Máxima calidad de audio (320kbps)",
-      "Saltos de canción ilimitados",
-      "Renovación limpia mes a mes"
-    ]
-  },
-  {
-    id: "crunchy-mega",
-    name: "Crunchyroll Mega Fan",
-    category: "Anime HD • Sin Anuncios",
-    price: 2.00,
-    originalPrice: 3.99,
-    stock: 11,
-    color: "from-orange-500 to-amber-800",
-    features: [
-      "Simulcast estreno 1h después de Japón",
-      "Visionado sin anuncios ni restricciones",
-      "Acceso ilimitado a manga",
-      "Garantía mes completo"
-    ]
-  }
-];
 
 export default function HomeOrSellerCatalogPage() {
   const router = useRouter();
   const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
+  const [catalogPlatforms, setCatalogPlatforms] = useState<CatalogPlatform[]>([]);
 
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   
@@ -171,7 +64,20 @@ export default function HomeOrSellerCatalogPage() {
       router.push("/dashboard/seller");
       return;
     }
+
+    setCatalogPlatforms(getCatalogPlatforms());
     setLoadingSession(false);
+
+    const handleCatalogUpdate = () => {
+      setCatalogPlatforms(getCatalogPlatforms());
+    };
+    window.addEventListener("streamhub_catalog_updated", handleCatalogUpdate);
+    window.addEventListener("storage", handleCatalogUpdate);
+
+    return () => {
+      window.removeEventListener("streamhub_catalog_updated", handleCatalogUpdate);
+      window.removeEventListener("storage", handleCatalogUpdate);
+    };
   }, [router]);
 
   // Manejador de Login de Vendedor
@@ -548,7 +454,7 @@ export default function HomeOrSellerCatalogPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {SERVICES.map((s) => (
+          {catalogPlatforms.map((s) => (
             <div 
               key={s.id}
               className="bg-[#121826]/90 border border-gray-800/80 rounded-2xl p-6 hover:border-indigo-500/40 transition-all flex flex-col justify-between group shadow-xl"
@@ -556,7 +462,7 @@ export default function HomeOrSellerCatalogPage() {
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gray-800/80 text-gray-300">
-                    {s.category}
+                    {s.category || "Full HD • Streaming"}
                   </span>
                   {s.badge && (
                     <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
@@ -570,15 +476,15 @@ export default function HomeOrSellerCatalogPage() {
                 </h3>
 
                 <div className="my-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-white">{formatCurrency(s.price)}</span>
-                  <span className="text-xs text-gray-500 line-through">{formatCurrency(s.originalPrice)}</span>
+                  <span className="text-3xl font-black text-white">{formatCurrency(s.price || s.defaultIncome || 3.5)}</span>
+                  <span className="text-xs text-gray-500 line-through">{formatCurrency(Number(s.price || 3.5) * 1.8)}</span>
                   <span className="text-[11px] text-emerald-400 font-semibold ml-auto">
-                    Stock: {s.stock} disponibles
+                    Cupos: {s.defaultProfiles || 4}
                   </span>
                 </div>
 
                 <ul className="space-y-2 border-t border-gray-800/80 pt-4 mb-6">
-                  {s.features.map((f, idx) => (
+                  {(s.features || ["Calidad Garantizada", "Perfil con PIN", "Soporte WhatsApp"]).map((f, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-xs text-gray-300">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>{f}</span>
