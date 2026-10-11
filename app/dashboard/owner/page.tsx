@@ -1167,31 +1167,33 @@ export default function OwnerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-gray-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
-      {/* MOBILE STICKY HEADER & HUD BAR */}
-      <div className="md:hidden sticky top-0 z-40 bg-[#0d121f]/95 backdrop-blur-md border-b border-gray-800 px-3.5 py-2.5">
+    <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-[#E50914] selection:text-white">
+      {/* MOBILE STICKY HEADER & HUD BAR (ESTILO NETFLIX) */}
+      <div className="md:hidden sticky top-0 z-40 bg-[#141414]/95 backdrop-blur-md border-b border-[#262626] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-indigo-600/30">
-              <Shield className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-md shadow-red-600/30">
+              <Tv className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-extrabold text-sm text-white tracking-tight leading-none">STREAMHUB</div>
-              <div className="text-[9px] text-indigo-400 font-bold uppercase tracking-wider">PANEL OWNER</div>
+              <div className="font-black text-sm text-white tracking-tight leading-none">
+                STREAM<span className="text-[#E50914]">HUB</span>
+              </div>
+              <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5">PANEL OWNER</div>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => handleOpenCreateSale()}
-              className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-md shadow-emerald-950/40"
+              className="px-2.5 py-1.5 bg-[#E50914] hover:bg-[#f40612] text-white text-[11px] font-black rounded-lg flex items-center gap-1 shadow-md shadow-red-950/60 active:scale-95 transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Venta</span>
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white border border-gray-700"
+              className="p-1.5 rounded-lg bg-[#222222] text-zinc-300 hover:text-white border border-[#333333]"
               title="Abrir menú"
             >
               <Menu className="w-4 h-4" />
@@ -1199,12 +1201,14 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Carrusel de pestañas horizontal deslizable en móvil */}
+        {/* Carrusel de pestañas horizontal deslizable en móvil estilo Netflix Categories */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2 pb-0.5 text-xs font-semibold">
           <button
             onClick={() => setActiveTab("resumen")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "resumen" ? "bg-indigo-600 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "resumen" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
@@ -1213,7 +1217,9 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("ventas")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "ventas" ? "bg-emerald-600 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "ventas" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
@@ -1222,7 +1228,9 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("cuentas")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "cuentas" ? "bg-indigo-600 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "cuentas" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <Tv className="w-3.5 h-3.5" />
@@ -1231,7 +1239,9 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("vendedores")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "vendedores" ? "bg-purple-600 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "vendedores" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -1240,7 +1250,9 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("catalogo")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "catalogo" ? "bg-amber-600 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "catalogo" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -1249,7 +1261,9 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("codigos")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "codigos" ? "bg-pink-600 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "codigos" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
@@ -1258,7 +1272,9 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("todo")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "todo" ? "bg-gray-700 text-white shadow-sm" : "bg-[#131b2e] text-gray-400 border border-gray-800"
+              activeTab === "todo" 
+                ? "bg-zinc-700 text-white font-bold" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
             }`}
           >
             <span>Ver Todo</span>
@@ -1267,16 +1283,16 @@ export default function OwnerDashboard() {
 
         {/* Desplegable móvil extra si mobileMenuOpen */}
         {mobileMenuOpen && (
-          <div className="mt-2.5 pt-2.5 border-t border-gray-800 space-y-1.5 text-xs">
+          <div className="mt-2.5 pt-2.5 border-t border-[#262626] space-y-1.5 text-xs">
             <Link
               href="/dashboard/seller"
-              className="block p-2 rounded-lg bg-gray-800/80 text-indigo-300 font-medium"
+              className="block p-2 rounded-lg bg-[#222222] text-[#E50914] font-semibold hover:bg-zinc-800"
             >
               ⇄ Cambiar a Vista Vendedor
             </Link>
             <Link
               href="/"
-              className="block p-2 rounded-lg bg-gray-800/80 text-gray-400 font-medium"
+              className="block p-2 rounded-lg bg-[#222222] text-zinc-400 font-medium hover:text-white"
             >
               ← Ver Tienda Pública
             </Link>
@@ -1284,16 +1300,18 @@ export default function OwnerDashboard() {
         )}
       </div>
 
-      {/* DESKTOP SIDEBAR */}
-      <aside className="w-64 border-r border-gray-800 bg-[#0d121f] p-5 hidden md:flex flex-col justify-between shrink-0">
+      {/* DESKTOP SIDEBAR ESTILO NETFLIX DASHBOARD */}
+      <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30">
-              <Shield className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-lg shadow-red-600/30">
+              <Tv className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-black text-white tracking-tight">STREAMHUB</div>
-              <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">PANEL OWNER</div>
+              <div className="font-black text-white text-base tracking-tight leading-none">
+                STREAM<span className="text-[#E50914]">HUB</span>
+              </div>
+              <div className="text-[10px] text-[#E50914] font-black uppercase tracking-widest mt-1">PANEL OWNER</div>
             </div>
           </div>
 
@@ -1301,7 +1319,9 @@ export default function OwnerDashboard() {
             <button
               onClick={() => setActiveTab("resumen")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "resumen" ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40" : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                activeTab === "resumen" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -1313,14 +1333,16 @@ export default function OwnerDashboard() {
             <button
               onClick={() => setActiveTab("ventas")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "ventas" ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/40" : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                activeTab === "ventas" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Receipt className="w-4 h-4 text-emerald-400" />
+                <Receipt className="w-4 h-4" />
                 <span>Libro de Ventas (Sheet)</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-emerald-400 border border-emerald-500/30 font-mono font-bold">
                 {sales.length}
               </span>
             </button>
@@ -1328,14 +1350,16 @@ export default function OwnerDashboard() {
             <button
               onClick={() => setActiveTab("cuentas")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "cuentas" ? "bg-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                activeTab === "cuentas" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <div className="flex items-center gap-3">
                 <Tv className="w-4 h-4" />
                 <span>Stock de Cuentas</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-gray-800 text-gray-300">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
                 {accounts.length}
               </span>
             </button>
@@ -1343,14 +1367,16 @@ export default function OwnerDashboard() {
             <button
               onClick={() => setActiveTab("vendedores")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "vendedores" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                activeTab === "vendedores" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Users className="w-4 h-4 text-purple-400" />
+                <Users className="w-4 h-4" />
                 <span>Revendedores</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-950 text-purple-300">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
                 {sellers.length}
               </span>
             </button>
@@ -1358,14 +1384,16 @@ export default function OwnerDashboard() {
             <button
               onClick={() => setActiveTab("catalogo")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "catalogo" ? "bg-amber-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                activeTab === "catalogo" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Sparkles className="w-4 h-4" />
                 <span>Catálogo & Tarifas</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950 text-amber-300">
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
                 {catalogPlatforms.length}
               </span>
             </button>
@@ -1373,7 +1401,9 @@ export default function OwnerDashboard() {
             <button
               onClick={() => setActiveTab("codigos")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "codigos" ? "bg-pink-600 text-white shadow-md" : "text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40"
+                activeTab === "codigos" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -1386,7 +1416,7 @@ export default function OwnerDashboard() {
               <button
                 onClick={() => setActiveTab("todo")}
                 className={`w-full text-left px-3.5 py-2 rounded-xl text-xs transition ${
-                  activeTab === "todo" ? "bg-gray-800 text-white font-bold" : "text-gray-500 hover:text-gray-300"
+                  activeTab === "todo" ? "bg-zinc-800 text-white font-bold" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
                 👁️ Ver Todas las Secciones
@@ -1395,11 +1425,11 @@ export default function OwnerDashboard() {
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-gray-800 space-y-2 text-xs">
-          <Link href="/dashboard/seller" className="block text-indigo-400 hover:underline">
+        <div className="pt-4 border-t border-[#262626] space-y-2 text-xs">
+          <Link href="/dashboard/seller" className="block text-[#E50914] hover:underline font-semibold">
             ⇄ Cambiar a Vista Vendedor
           </Link>
-          <Link href="/" className="block text-gray-500 hover:text-gray-300">
+          <Link href="/" className="block text-zinc-500 hover:text-zinc-300">
             ← Ver Tienda Pública
           </Link>
         </div>
@@ -1407,14 +1437,17 @@ export default function OwnerDashboard() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-full">
-        {/* HEADER PRINCIPAL */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+        {/* HEADER PRINCIPAL CINEMATOGRÁFICO */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#262626]">
           <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm shadow-red-950/60">
+              NETFLIX STYLE MAESTRO
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               Panel Maestro del Owner
             </h1>
-            <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
-              Control de finanzas, libro de ventas (detal/mayor), inventario y revendedores
+            <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
+              Control centralizado de finanzas, ventas (detal/mayor), stock de cuentas y revendedores
             </p>
           </div>
 
@@ -1422,17 +1455,17 @@ export default function OwnerDashboard() {
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="bg-[#121826] border border-gray-700 text-xs text-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500"
+              className="bg-[#181818] border border-[#333333] text-xs text-zinc-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E50914]"
             >
               <option value="this_month">Este Mes</option>
               <option value="last_month">Mes Anterior</option>
               <option value="this_year">Año Completo</option>
             </select>
 
-            {/* BOTÓN REGISTRAR VENTA */}
+            {/* BOTÓN REGISTRAR VENTA ESTILO NETFLIX PRIMARIO */}
             <button
               onClick={() => handleOpenCreateSale()}
-              className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition transform hover:-translate-y-0.5"
+              className="px-4 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-lg shadow-red-950/60 transition-transform active:scale-95"
               title="Registrar una venta al detal, al mayor o en persona"
             >
               <Plus className="w-4 h-4" />
@@ -1442,7 +1475,7 @@ export default function OwnerDashboard() {
             {/* BOTÓN NUEVA CUENTA */}
             <button
               onClick={handleOpenCreateModal}
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition"
+              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 border border-white/10 backdrop-blur-md transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Cuenta</span>
@@ -1456,7 +1489,7 @@ export default function OwnerDashboard() {
                 setImportSuccessMessage(null);
                 setIsExcelModalOpen(true);
               }}
-              className="px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+              className="px-3.5 py-2 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
               title="Importar cuentas masivamente desde archivo Excel o CSV"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
@@ -1466,20 +1499,22 @@ export default function OwnerDashboard() {
             {/* BOTÓN NUEVO VENDEDOR */}
             <button
               onClick={() => setIsSellerModalOpen(true)}
-              className="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
             >
-              <UserPlus className="w-3.5 h-3.5 text-purple-400" />
+              <UserPlus className="w-3.5 h-3.5" />
               <span>Vendedor</span>
             </button>
           </div>
         </div>
 
-        {/* HUD DE SECCIONES (TABS BAR PARA ESCRITORIO Y TABLET) */}
-        <div className="hidden sm:flex items-center gap-2 p-1.5 rounded-2xl bg-[#0d121f] border border-gray-800 mb-6 overflow-x-auto no-scrollbar">
+        {/* HUD DE SECCIONES (TABS BAR PARA ESCRITORIO Y TABLET ESTILO NETFLIX) */}
+        <div className="hidden sm:flex items-center gap-2 p-1.5 rounded-2xl bg-[#181818] border border-[#2a2a2a] mb-6 overflow-x-auto no-scrollbar shadow-lg">
           <button
             onClick={() => setActiveTab("resumen")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "resumen" ? "bg-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
+              activeTab === "resumen" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
@@ -1487,20 +1522,24 @@ export default function OwnerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("ventas")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "ventas" ? "bg-emerald-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
+              activeTab === "ventas" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
-            <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+            <Receipt className="w-3.5 h-3.5" />
             <span>Libro de Ventas (Sheet)</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/60 text-emerald-300 border border-emerald-500/30 font-mono">
               +{formatCurrency(salesStats.totalProfit)}
             </span>
           </button>
           <button
             onClick={() => setActiveTab("cuentas")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "cuentas" ? "bg-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
+              activeTab === "cuentas" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
             <Tv className="w-3.5 h-3.5" />
@@ -1508,8 +1547,10 @@ export default function OwnerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("vendedores")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "vendedores" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
+              activeTab === "vendedores" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -1517,17 +1558,21 @@ export default function OwnerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("catalogo")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "catalogo" ? "bg-amber-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
+              activeTab === "catalogo" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <Sparkles className="w-3.5 h-3.5" />
             <span>Tarifario & Catálogo ({catalogPlatforms.length})</span>
           </button>
           <button
             onClick={() => setActiveTab("codigos")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "codigos" ? "bg-pink-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
+              activeTab === "codigos" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
+                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
@@ -1536,106 +1581,110 @@ export default function OwnerDashboard() {
           <button
             onClick={() => setActiveTab("todo")}
             className={`ml-auto px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${
-              activeTab === "todo" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"
+              activeTab === "todo" ? "bg-zinc-700 text-white font-bold" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             Mostrar Todo
           </button>
         </div>
 
-        {/* FINANCIAL KPI CARDS (RESUMEN) */}
+        {/* FINANCIAL KPI CARDS (RESUMEN ESTILO NETFLIX) */}
         {(activeTab === "resumen" || activeTab === "todo") && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8">
             {/* Ingresos */}
-            <div className="bg-[#121826] border border-gray-800/80 rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-4 sm:p-5 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] shadow-xl group">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">Ingresos Totales</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">Ingresos Totales</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
                   <TrendingUp className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white mt-2">{formatCurrency(stats.totalRevenue)}</div>
-              <div className="text-[11px] text-emerald-400 mt-1 font-medium truncate">
-                Calculado en base a ocupación
+              <div className="text-xl sm:text-2xl font-black text-white mt-2 font-mono tracking-tight">{formatCurrency(stats.totalRevenue)}</div>
+              <div className="text-[11px] text-emerald-400 mt-1 font-semibold truncate flex items-center gap-1">
+                <span>Calculado en base a ocupación</span>
               </div>
             </div>
 
             {/* Gastos */}
-            <div className="bg-[#121826] border border-gray-800/80 rounded-2xl p-4 sm:p-5">
+            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl group">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">Costos Cuentas</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">Costos Cuentas</span>
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20">
                   <TrendingDown className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white mt-2">{formatCurrency(stats.totalExpenses)}</div>
-              <div className="text-[11px] text-gray-400 mt-1 font-medium truncate">
+              <div className="text-xl sm:text-2xl font-black text-white mt-2 font-mono tracking-tight">{formatCurrency(stats.totalExpenses)}</div>
+              <div className="text-[11px] text-zinc-400 mt-1 font-medium truncate">
                 {accounts.length} cuentas en inventario
               </div>
             </div>
 
             {/* Ganancia Neta */}
-            <div className="bg-gradient-to-b from-[#18233c] to-[#121826] border border-indigo-500/40 rounded-2xl p-4 sm:p-5 shadow-lg shadow-indigo-950/40">
+            <div className="bg-gradient-to-br from-[#1c1c1c] to-[#141414] border border-[#E50914]/50 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-red-950/40 relative overflow-hidden transition-all duration-300 hover:scale-[1.02]">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#E50914]/10 rounded-full blur-2xl pointer-events-none" />
               <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-bold text-indigo-300 uppercase tracking-wider">Ganancia Neta</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
+                  <span>Ganancia Neta</span>
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-[#E50914]/20 text-[#E50914] flex items-center justify-center border border-[#E50914]/40">
                   <DollarSign className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold text-white mt-2">{formatCurrency(stats.netProfit)}</div>
-              <div className="text-[11px] text-indigo-300 mt-1 font-semibold truncate">
-                Margen de Utilidad: {stats.marginPercentage}
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-2 font-mono tracking-tight">{formatCurrency(stats.netProfit)}</div>
+              <div className="text-[11px] text-zinc-300 mt-1 font-bold truncate">
+                Margen Utilidad: <span className="text-[#E50914] font-black">{stats.marginPercentage}</span>
               </div>
             </div>
 
             {/* Vencimientos Próximos */}
-            <div className="bg-[#121826] border border-gray-800/80 rounded-2xl p-4 sm:p-5">
+            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl group">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">Vencen en 7 días</span>
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <span className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">Vencen en 7 días</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
                   <AlertCircle className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-amber-400 mt-2">{stats.expiringSoon} cuentas</div>
-              <div className="text-[11px] text-gray-400 mt-1 truncate">
+              <div className="text-xl sm:text-2xl font-black text-amber-400 mt-2 tracking-tight">{stats.expiringSoon} cuentas</div>
+              <div className="text-[11px] text-zinc-400 mt-1 truncate">
                 Requieren renovación
               </div>
             </div>
           </div>
         )}
 
-        {/* SECCIÓN LIBRO DE VENTAS & SHEET */}
+        {/* SECCIÓN LIBRO DE VENTAS & SHEET ESTILO NETFLIX CONSOLA */}
         {(activeTab === "ventas" || activeTab === "todo") && (
-          <section id="ventas-sheet" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-4 sm:p-6 mb-8 shadow-xl">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <section id="ventas-sheet" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-4 sm:p-6 mb-8 shadow-2xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-5 border-b border-[#282828]">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                  <Receipt className="w-3 h-3" />
-                  <span>Control Financiero Ejecutivo (Sheet)</span>
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Receipt className="w-5 h-5 text-[#E50914]" />
+                    <span>Libro Contable de Ventas & Sheet</span>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-black/60 text-emerald-400 border border-emerald-500/30">
+                      {sales.length} registros
+                    </span>
+                  </h2>
                 </div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <span>Libro de Ventas & Registro de Ganancias</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-900/40 text-emerald-300 border border-emerald-500/20">
-                    {sales.length} registradas
-                  </span>
-                </h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Lleva el registro de tus ventas al detal (clientes / en persona) y al mayor (revendedores) con cálculo de ganancia en vivo
+                <p className="text-xs text-zinc-400">
+                  Control de ventas al detal (clientes directos / en persona) y al mayor (revendedores) con ganancia en vivo
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleExportSalesExcel}
-                  className="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-indigo-300 border border-indigo-500/30 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-zinc-200 border border-white/10 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition shadow-sm backdrop-blur-md"
                   title="Descargar libro de ventas en formato Excel (.xlsx)"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-3.5 h-3.5 text-zinc-300" />
                   <span>Descargar Excel</span>
                 </button>
                 <button
                   onClick={() => handleOpenCreateSale()}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition transform hover:-translate-y-0.5"
+                  className="px-4 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-lg shadow-red-950/60 transition-transform active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Registrar Venta</span>
@@ -1644,109 +1693,109 @@ export default function OwnerDashboard() {
             </div>
 
             {saleSuccessMessage && (
-              <div className="mb-5 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+              <div className="mb-5 p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{saleSuccessMessage}</span>
+                <span className="font-semibold">{saleSuccessMessage}</span>
               </div>
             )}
 
             {/* KPIs del Libro de Ventas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {/* Ventas Detal */}
-              <div className="bg-[#0b0f19] border border-gray-800/80 rounded-xl p-3.5 sm:p-4">
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span className="font-semibold uppercase text-[10px] tracking-wider text-teal-400 flex items-center gap-1">
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-teal-400 flex items-center gap-1">
                     <Tag className="w-3 h-3" />
                     <span>Ventas al Detal</span>
                   </span>
-                  <span className="text-[11px] text-gray-500 font-mono">{salesStats.detalCount}</span>
+                  <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.detalCount}</span>
                 </div>
-                <div className="text-lg sm:text-xl font-bold text-white mt-1.5">
+                <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
                   {formatCurrency(salesStats.detalRevenue)}
                 </div>
-                <div className="text-[11px] text-emerald-400 mt-0.5 font-medium">
+                <div className="text-[11px] text-emerald-400 mt-0.5 font-semibold">
                   Ganancia: +{formatCurrency(salesStats.detalProfit)}
                 </div>
               </div>
 
               {/* Ventas Mayor */}
-              <div className="bg-[#0b0f19] border border-gray-800/80 rounded-xl p-3.5 sm:p-4">
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span className="font-semibold uppercase text-[10px] tracking-wider text-purple-400 flex items-center gap-1">
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-[#E50914] flex items-center gap-1">
                     <Package className="w-3 h-3" />
                     <span>Ventas al Mayor</span>
                   </span>
-                  <span className="text-[11px] text-gray-500 font-mono">{salesStats.mayorCount}</span>
+                  <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.mayorCount}</span>
                 </div>
-                <div className="text-lg sm:text-xl font-bold text-white mt-1.5">
+                <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
                   {formatCurrency(salesStats.mayorRevenue)}
                 </div>
-                <div className="text-[11px] text-purple-300 mt-0.5 font-medium">
+                <div className="text-[11px] text-[#ff6666] mt-0.5 font-semibold">
                   Ganancia: +{formatCurrency(salesStats.mayorProfit)}
                 </div>
               </div>
 
               {/* Ganancia Neta Total Acumulada */}
-              <div className="bg-gradient-to-br from-emerald-950/40 to-[#0b0f19] border border-emerald-500/40 rounded-xl p-3.5 sm:p-4 shadow-md shadow-emerald-950/20">
+              <div className="bg-[#141414] border border-emerald-500/40 rounded-xl p-3.5 sm:p-4 shadow-md shadow-emerald-950/20">
                 <div className="flex items-center justify-between text-xs text-emerald-300">
-                  <span className="font-bold uppercase text-[10px] tracking-wider flex items-center gap-1">
+                  <span className="font-black uppercase text-[10px] tracking-wider flex items-center gap-1">
                     <DollarSign className="w-3 h-3" />
                     <span>Ganancia Neta</span>
                   </span>
-                  <span className="text-[10px] font-mono bg-emerald-900/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                  <span className="text-[10px] font-mono bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/40 font-bold">
                     +{salesStats.margin}%
                   </span>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1.5">
+                <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1.5 font-mono">
                   +{formatCurrency(salesStats.totalProfit)}
                 </div>
-                <div className="text-[11px] text-gray-400 mt-0.5">
+                <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
                   Cobrado: {formatCurrency(salesStats.totalCollected)}
                 </div>
               </div>
 
               {/* Caja Efectivo (En Persona) vs Digital */}
-              <div className="bg-[#0b0f19] border border-gray-800/80 rounded-xl p-3.5 sm:p-4">
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span className="font-semibold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1">
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1">
                     <Banknote className="w-3 h-3" />
-                    <span>Caja / En Persona</span>
+                    <span>Caja Efectivo</span>
                   </span>
-                  <span className="text-[11px] text-gray-500 font-mono">{salesStats.physicalCount}</span>
+                  <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.physicalCount}</span>
                 </div>
-                <div className="text-lg sm:text-xl font-bold text-amber-300 mt-1.5">
+                <div className="text-lg sm:text-xl font-black text-amber-300 mt-1.5 font-mono">
                   {formatCurrency(salesStats.cashRevenue)}
                 </div>
-                <div className="text-[11px] text-gray-400 mt-0.5">
+                <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
                   Bancos/Nequi: {formatCurrency(salesStats.digitalRevenue)}
                 </div>
               </div>
             </div>
 
-            {/* Filtros del Sheet */}
+            {/* Filtros del Sheet estilo Netflix */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex rounded-xl bg-[#0b0f19] border border-gray-800 p-1">
+                <div className="inline-flex rounded-xl bg-[#141414] border border-[#2a2a2a] p-1">
                   <button
                     onClick={() => setSaleFilterType("all")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                      saleFilterType === "all" ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      saleFilterType === "all" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                     }`}
                   >
                     Todas ({sales.length})
                   </button>
                   <button
                     onClick={() => setSaleFilterType("detal")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                      saleFilterType === "detal" ? "bg-teal-600 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      saleFilterType === "detal" ? "bg-teal-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
                     }`}
                   >
                     🏷️ Detal ({sales.filter(s => s.type === "detal").length})
                   </button>
                   <button
                     onClick={() => setSaleFilterType("mayor")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                      saleFilterType === "mayor" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                      saleFilterType === "mayor" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                     }`}
                   >
                     📦 Mayor ({sales.filter(s => s.type === "mayor").length})
@@ -1756,7 +1805,7 @@ export default function OwnerDashboard() {
                 <select
                   value={saleFilterPayment}
                   onChange={(e) => setSaleFilterPayment(e.target.value)}
-                  className="bg-[#0b0f19] border border-gray-800 text-xs text-gray-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500"
+                  className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="all">Todos los Métodos</option>
                   <option value="efectivo">💵 Efectivo (En Persona)</option>
@@ -1768,21 +1817,21 @@ export default function OwnerDashboard() {
               </div>
 
               <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" />
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   placeholder="Buscar cliente, cuenta..."
                   value={saleSearchQuery}
                   onChange={(e) => setSaleSearchQuery(e.target.value)}
-                  className="w-full bg-[#0b0f19] border border-gray-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914]"
                 />
               </div>
             </div>
 
             {/* TABLA SHEET DE VENTAS */}
-            <div className="overflow-x-auto rounded-xl border border-gray-800/80 bg-[#090d16]">
-              <table className="w-full text-left text-xs text-gray-300">
-                <thead className="bg-[#0b0f19] text-gray-400 uppercase font-semibold border-b border-gray-800">
+            <div className="overflow-x-auto rounded-xl border border-[#2a2a2a] bg-[#141414]">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-[#1c1c1c] text-zinc-400 uppercase font-bold text-[11px] tracking-wider border-b border-[#2a2a2a]">
                   <tr>
                     <th className="py-3 px-3.5">Fecha</th>
                     <th className="py-3 px-3.5">Tipo</th>
@@ -1795,19 +1844,19 @@ export default function OwnerDashboard() {
                     <th className="py-3 px-3.5 text-right">Acción</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/60">
+                <tbody className="divide-y divide-[#222222]">
                   {filteredSales.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-8 text-gray-500">
+                      <td colSpan={9} className="text-center py-8 text-zinc-500">
                         No hay ventas registradas con los filtros actuales.
                       </td>
                     </tr>
                   ) : (
                     filteredSales.map((sale) => (
-                      <tr key={sale.id} className="hover:bg-gray-800/30 transition">
-                        <td className="py-3 px-3.5 whitespace-nowrap text-gray-400 font-mono text-[11px]">
+                      <tr key={sale.id} className="hover:bg-zinc-800/40 transition-colors">
+                        <td className="py-3 px-3.5 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
                           {new Date(sale.date).toLocaleDateString()}
-                          <div className="text-[10px] text-gray-500">
+                          <div className="text-[10px] text-zinc-500">
                             {new Date(sale.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </div>
                         </td>
@@ -1817,7 +1866,7 @@ export default function OwnerDashboard() {
                               <Tag className="w-2.5 h-2.5" /> Detal
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-950/60 text-purple-300 border border-purple-500/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/40">
                               <Package className="w-2.5 h-2.5" /> Mayor
                             </span>
                           )}
@@ -1830,37 +1879,37 @@ export default function OwnerDashboard() {
                         <td className="py-3 px-3.5">
                           <div className="font-semibold text-white">{sale.customerName}</div>
                           {sale.customerContact && (
-                            <div className="text-[10px] text-gray-400">{sale.customerContact}</div>
+                            <div className="text-[10px] text-zinc-400">{sale.customerContact}</div>
                           )}
                         </td>
                         <td className="py-3 px-3.5">
-                          <div className="font-semibold text-gray-200">{sale.platform}</div>
+                          <div className="font-semibold text-zinc-200">{sale.platform}</div>
                           {sale.accountEmail ? (
-                            <div className="font-mono text-[10px] text-indigo-300 truncate max-w-[180px]">
+                            <div className="font-mono text-[10px] text-zinc-400 truncate max-w-[180px]">
                               {sale.accountEmail}
                             </div>
                           ) : (
-                            <div className="text-[10px] text-gray-500 italic">Venta directa</div>
+                            <div className="text-[10px] text-zinc-500 italic">Venta directa</div>
                           )}
                         </td>
                         <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#131b2e] border border-gray-700 text-gray-300 uppercase">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#222222] border border-[#333333] text-zinc-300 uppercase">
                             {sale.paymentMethod}
                           </span>
                         </td>
                         <td className="py-3 px-3.5 text-right font-mono font-bold text-white">
                           ${Number(sale.salePrice).toFixed(2)}
                         </td>
-                        <td className="py-3 px-3.5 text-right font-mono text-gray-400 text-[11px]">
+                        <td className="py-3 px-3.5 text-right font-mono text-zinc-400 text-[11px]">
                           ${Number(sale.costPrice).toFixed(2)}
                         </td>
-                        <td className="py-3 px-3.5 text-right font-mono font-extrabold text-emerald-400">
+                        <td className="py-3 px-3.5 text-right font-mono font-black text-emerald-400">
                           +${Number(sale.profit).toFixed(2)}
                         </td>
                         <td className="py-3 px-3.5 text-right whitespace-nowrap">
                           <button
                             onClick={() => handleDeleteSale(sale.id)}
-                            className="p-1 text-gray-500 hover:text-red-400 transition rounded"
+                            className="p-1 text-zinc-500 hover:text-[#E50914] transition rounded"
                             title="Eliminar registro"
                           >
                             <Trash2 className="w-3.5 h-3.5 inline" />
@@ -1875,84 +1924,95 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN CATÁLOGO DE SERVICIOS */}
+        {/* SECCIÓN CATÁLOGO DE SERVICIOS ESTILO NETFLIX */}
         {(activeTab === "catalogo" || activeTab === "todo") && (
-          <section id="catalogo" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <section id="catalogo" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider mb-1">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Control Maestro de Productos</span>
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#E50914]" />
+                    <span>Catálogo Oficial de Servicios & Plataformas</span>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-black/60 text-[#ff6666] border border-[#E50914]/30">
+                      {catalogPlatforms.length} servicios
+                    </span>
+                  </h2>
                 </div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  Catálogo de Plataformas y Servicios ({catalogPlatforms.length})
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Edita nombres, precios de venta, costos base, cupos por defecto y beneficios que se muestran en la tienda pública
+                <p className="text-xs text-zinc-400">
+                  Configura nombres, precios de venta (detal/mayor), costos base, cupos y beneficios visibles en la tienda pública
                 </p>
               </div>
               <button
                 onClick={handleOpenCreatePlatform}
-                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-amber-950/40 transition w-fit"
+                className="px-4 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-lg shadow-red-950/60 transition-transform active:scale-95 w-fit"
               >
                 <Plus className="w-4 h-4" />
-                <span>Crear Plataforma</span>
+                <span>+ Crear Plataforma</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {catalogPlatforms.map((plat) => (
                 <div 
                   key={plat.id} 
-                  className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800/80 hover:border-gray-700 flex flex-col justify-between transition group"
+                  className="p-5 rounded-2xl bg-[#141414] border border-[#2a2a2a] hover:border-[#E50914]/60 hover:scale-[1.02] flex flex-col justify-between transition-all duration-300 shadow-xl group relative overflow-hidden"
                 >
+                  <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-white/5 to-transparent rounded-full pointer-events-none" />
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold border mb-1.5 ${plat.color}`}>
-                          {plat.name}
-                        </span>
-                        {plat.badge && (
-                          <span className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            {plat.badge}
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="inline-block px-2.5 py-1 rounded text-xs font-black uppercase tracking-wider bg-[#222222] border border-[#333333] text-white">
+                            {plat.name}
                           </span>
-                        )}
-                        <div className="text-xs text-gray-400">{plat.category || "Servicio Streaming"}</div>
+                          {plat.badge && (
+                            <span className="px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest bg-[#E50914] text-white shadow-sm">
+                              {plat.badge}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-zinc-400 font-medium">{plat.category || "Servicio Streaming Premium"}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-base font-extrabold text-emerald-400 font-mono">
-                          ${Number(plat.price || plat.defaultIncome || 3.5).toFixed(2)}
+                        <div className="text-lg font-black text-emerald-400 font-mono tracking-tight">
+                          ${Number(plat.retailPrice || plat.price || plat.defaultIncome || 3.5).toFixed(2)}
                         </div>
-                        <div className="text-[10px] text-gray-500">PVP Tienda</div>
+                        <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Detal / PVP</div>
+                        {plat.wholesalePrice && (
+                          <div className="text-[11px] font-black text-[#ff6666] font-mono mt-0.5">
+                            ${Number(plat.wholesalePrice).toFixed(2)} <span className="text-[9px] text-zinc-500 font-normal">Mayor</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-3 gap-2 py-2 px-2.5 rounded-lg bg-[#070a12] border border-gray-800/60 text-center text-[11px]">
+                    <div className="mt-4 grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-[#1c1c1c] border border-[#282828] text-center text-xs">
                       <div>
-                        <div className="text-gray-500 text-[10px]">Perfiles</div>
-                        <div className="font-bold text-white">{plat.defaultProfiles}</div>
+                        <div className="text-zinc-500 text-[10px] font-bold uppercase">Perfiles</div>
+                        <div className="font-black text-white mt-0.5">{plat.defaultProfiles}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500 text-[10px]">Costo Base</div>
-                        <div className="font-bold text-red-400">${Number(plat.defaultCost).toFixed(2)}</div>
+                        <div className="text-zinc-500 text-[10px] font-bold uppercase">Costo Base</div>
+                        <div className="font-black text-red-400 mt-0.5">${Number(plat.defaultCost).toFixed(2)}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500 text-[10px]">Margen Estim.</div>
-                        <div className="font-bold text-emerald-400">
+                        <div className="text-zinc-500 text-[10px] font-bold uppercase">Margen Est.</div>
+                        <div className="font-black text-emerald-400 mt-0.5">
                           ${(Number(plat.defaultIncome || 14) - Number(plat.defaultCost || 2)).toFixed(2)}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-gray-800/60 flex items-center justify-between text-xs">
-                    <span className="text-[11px] text-gray-500">
-                      {accounts.filter(a => a.platform.toLowerCase().includes(plat.name.toLowerCase())).length} cuentas registradas
+                  <div className="mt-4 pt-3 border-t border-[#262626] flex items-center justify-between text-xs">
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {accounts.filter(a => a.platform.toLowerCase().includes(plat.name.toLowerCase())).length} cuentas en stock
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleOpenEditPlatform(plat)}
-                        className="px-2.5 py-1 text-xs text-amber-300 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 rounded-lg flex items-center gap-1 transition"
+                        className="px-2.5 py-1 text-xs text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg flex items-center gap-1 transition"
                         title="Editar características y precios de la plataforma"
                       >
                         <Edit className="w-3 h-3" />
@@ -1960,7 +2020,7 @@ export default function OwnerDashboard() {
                       </button>
                       <button
                         onClick={() => handleDeletePlatform(plat.id, plat.name)}
-                        className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
+                        className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
                         title="Eliminar del catálogo"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -1973,28 +2033,34 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* TABLA DE GESTIÓN DE CUENTAS */}
+        {/* TABLA DE GESTIÓN DE CUENTAS ESTILO NETFLIX INVENTARIO */}
         {(activeTab === "cuentas" || activeTab === "todo") && (
-          <section id="cuentas" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <section id="cuentas" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Tv className="w-5 h-5 text-indigo-400" />
-                  Gestión de Cuentas Maestras ({filteredAccounts.length} de {accounts.length})
-                </h2>
-                <p className="text-xs text-gray-400">Control de correos, contraseñas, cupos y vendedor asignado</p>
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Tv className="w-5 h-5 text-[#E50914]" />
+                    <span>Inventario Maestro de Cuentas en Stock</span>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-black/60 text-zinc-300 border border-zinc-700">
+                      {filteredAccounts.length} de {accounts.length}
+                    </span>
+                  </h2>
+                </div>
+                <p className="text-xs text-zinc-400">Control de correos, credenciales, cupos de pantalla y vendedor o comprador asignado</p>
               </div>
 
-              {/* Barra de Búsqueda y Filtros Activos */}
-              <div className="flex flex-wrap items-center gap-3">
+              {/* Barra de Búsqueda y Filtros Activos estilo Netflix */}
+              <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative flex-1 sm:w-64">
-                  <Search className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
                   <input
                     type="text"
                     placeholder="Buscar por correo, vendedor..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#0d121f] border border-gray-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914]"
                   />
                 </div>
 
@@ -2002,7 +2068,7 @@ export default function OwnerDashboard() {
                 <select
                   value={platformFilter}
                   onChange={(e) => setPlatformFilter(e.target.value)}
-                  className="bg-[#0d121f] border border-gray-700/80 text-xs text-gray-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500"
+                  className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="all">Todas las Plataformas</option>
                   {catalogPlatforms.map((p) => (
@@ -2014,7 +2080,7 @@ export default function OwnerDashboard() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-[#0d121f] border border-gray-700/80 text-xs text-gray-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500"
+                  className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="all">Todos los Estados</option>
                   <option value="assigned">En Venta (Asignadas)</option>
@@ -2024,9 +2090,9 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-gray-300">
-                <thead className="bg-[#0b0f19] text-gray-400 uppercase font-semibold border-b border-gray-800">
+            <div className="overflow-x-auto rounded-xl border border-[#2a2a2a] bg-[#141414]">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-[#1c1c1c] text-zinc-400 uppercase font-bold text-[11px] tracking-wider border-b border-[#2a2a2a]">
                   <tr>
                     <th className="py-3 px-4">Plataforma & País</th>
                     <th className="py-3 px-4">Correo & Contraseña</th>
@@ -2038,23 +2104,23 @@ export default function OwnerDashboard() {
                     <th className="py-3 px-4 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800/60">
+                <tbody className="divide-y divide-[#222222]">
                   {filteredAccounts.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-gray-500">
+                      <td colSpan={8} className="text-center py-8 text-zinc-500">
                         No se encontraron cuentas con los filtros seleccionados.
                       </td>
                     </tr>
                   ) : (
                     filteredAccounts.map((acc) => (
-                      <tr key={acc.id} className="hover:bg-gray-800/30 transition">
+                      <tr key={acc.id} className="hover:bg-zinc-800/40 transition-colors">
                         <td className="py-3.5 px-4">
                           <div className="flex flex-col gap-1 items-start">
-                            <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold border ${acc.platformColor}`}>
+                            <span className="inline-block px-2.5 py-1 rounded text-[11px] font-black uppercase tracking-wider bg-[#222222] border border-[#333333] text-white">
                               {acc.platform}
                             </span>
-                            <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400/90 font-medium bg-cyan-950/40 border border-cyan-800/40 px-1.5 py-0.5 rounded">
-                              <Globe className="w-2.5 h-2.5" />
+                            <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400 font-mono bg-black/40 border border-zinc-800 px-1.5 py-0.5 rounded">
+                              <Globe className="w-2.5 h-2.5 text-[#E50914]" />
                               <span>{acc.country || "Global"}</span>
                             </span>
                           </div>
@@ -2062,11 +2128,11 @@ export default function OwnerDashboard() {
                         <td className="py-3.5 px-4">
                           <div className="font-mono font-medium text-white">{acc.email}</div>
                           {acc.password && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-mono mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-mono mt-0.5">
                               <span>{showPassword[acc.id] ? acc.password : "••••••••••••"}</span>
                               <button
                                 onClick={() => togglePasswordVisibility(acc.id)}
-                                className="text-gray-500 hover:text-gray-300"
+                                className="text-zinc-500 hover:text-white"
                                 title="Mostrar/Ocultar Contraseña"
                               >
                                 {showPassword[acc.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -2076,13 +2142,13 @@ export default function OwnerDashboard() {
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           {acc.isVerified !== false ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-500/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-500/30">
                               <Check className="w-3 h-3 text-emerald-400" />
                               <span>Sirve</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-950/70 text-rose-300 border border-rose-500/30">
-                              <AlertCircle className="w-3 h-3 text-rose-400" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/40">
+                              <AlertCircle className="w-3 h-3 text-[#E50914]" />
                               <span>Caída</span>
                             </span>
                           )}
@@ -2090,50 +2156,50 @@ export default function OwnerDashboard() {
                         <td className="py-3.5 px-4">
                           {acc.customerName ? (
                             <div>
-                              <span className="text-purple-300 font-medium flex items-center gap-1 text-xs">
+                              <span className="text-white font-semibold flex items-center gap-1 text-xs">
                                 <span>👤</span>
                                 <span>{acc.customerName}</span>
                               </span>
                               {acc.sellerId && (
-                                <span className="text-[10px] text-gray-400 block mt-0.5">
+                                <span className="text-[10px] text-zinc-400 block mt-0.5">
                                   Revendedor: {acc.seller}
                                 </span>
                               )}
                             </div>
                           ) : acc.sellerId ? (
-                            <span className="text-gray-200 font-medium flex items-center gap-1">
+                            <span className="text-zinc-200 font-medium flex items-center gap-1">
                               <span>💼</span>
                               <span>{acc.seller}</span>
                             </span>
                           ) : (
-                            <span className="text-amber-400/90 font-medium">
+                            <span className="text-amber-400/90 font-semibold text-[11px]">
                               Sin Asignar (Stock)
                             </span>
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-center">
-                          <span className="font-semibold text-white">{acc.profilesOccupied}</span>
-                          <span className="text-gray-500"> / {acc.maxProfiles}</span>
+                          <span className="font-black text-white">{acc.profilesOccupied}</span>
+                          <span className="text-zinc-500 font-mono"> / {acc.maxProfiles}</span>
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Clock className="w-3.5 h-3.5 text-gray-500" />
+                          <div className="flex items-center gap-1.5 font-medium text-zinc-300">
+                            <Clock className="w-3.5 h-3.5 text-zinc-500" />
                             <span>{formatDate(acc.expirationDate)}</span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           {acc.status === "assigned" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/20">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-500/20">
                               En Venta
                             </span>
                           )}
                           {acc.status === "available" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-950/60 text-blue-400 border border-blue-500/20">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950/60 text-blue-400 border border-blue-500/20">
                               En Stock
                             </span>
                           )}
                           {acc.status === "expiring" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-950/60 text-amber-400 border border-amber-500/20 animate-pulse">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/60 text-amber-400 border border-amber-500/20 animate-pulse">
                               Por Vencer
                             </span>
                           )}
@@ -2141,10 +2207,10 @@ export default function OwnerDashboard() {
                         <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
                           <button
                             onClick={() => handleOpenCreateSale(acc)}
-                            className="px-2 py-1 text-xs text-emerald-300 hover:text-white bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-500/30 rounded-lg transition inline-flex items-center gap-1 shadow-sm"
+                            className="px-2.5 py-1 text-xs text-white bg-emerald-600 hover:bg-emerald-500 font-bold rounded-lg transition inline-flex items-center gap-1 shadow-md shadow-emerald-950/40"
                             title="Registrar venta de esta cuenta al detal o mayor"
                           >
-                            <DollarSign className="w-3 h-3 text-emerald-400" />
+                            <DollarSign className="w-3 h-3" />
                             <span>Vender</span>
                           </button>
                           {acc.sellerId ? (
@@ -2158,7 +2224,7 @@ export default function OwnerDashboard() {
                           ) : null}
                           <button
                             onClick={() => handleOpenAssignModal(acc)}
-                            className="px-2.5 py-1 text-xs text-indigo-300 hover:text-white bg-indigo-950/40 border border-indigo-500/30 rounded-lg transition"
+                            className="px-2.5 py-1 text-xs text-zinc-200 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg transition"
                             title="Asignar o cambiar vendedor"
                           >
                             {acc.sellerId ? "Cambiar" : "Asignar"}
@@ -2176,21 +2242,21 @@ export default function OwnerDashboard() {
                               const codigosEl = document.getElementById("codigos-owner");
                               codigosEl?.scrollIntoView({ behavior: "smooth" });
                             }}
-                            className="px-2 py-1 text-xs text-emerald-300 hover:text-white bg-emerald-950/40 border border-emerald-500/30 rounded-lg transition"
+                            className="px-2 py-1 text-xs text-[#ff6666] hover:text-white bg-[#E50914]/20 hover:bg-[#E50914]/40 border border-[#E50914]/30 rounded-lg transition"
                             title="Extraer códigos de esta cuenta"
                           >
                             <KeyRound className="w-3.5 h-3.5 inline" />
                           </button>
                           <button
                             onClick={() => handleOpenEditModal(acc)}
-                            className="px-2.5 py-1 text-xs text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition"
+                            className="px-2 py-1 text-xs text-zinc-400 hover:text-white bg-[#222222] hover:bg-zinc-700 rounded-lg transition"
                             title="Editar Cuenta"
                           >
                             <Edit className="w-3.5 h-3.5 inline" />
                           </button>
                           <button
                             onClick={() => handleDeleteAccount(acc.id)}
-                            className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg transition"
+                            className="px-2 py-1 text-xs text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg transition"
                             title="Eliminar Cuenta"
                           >
                             <Trash2 className="w-3.5 h-3.5 inline" />
@@ -2205,48 +2271,60 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN 2: GESTIÓN DE VENDEDORES REGISTRADOS */}
+        {/* SECCIÓN 2: GESTIÓN DE VENDEDORES REGISTRADOS ESTILO NETFLIX */}
         {(activeTab === "vendedores" || activeTab === "todo") && (
-          <section id="vendedores" className="bg-[#121826] border border-gray-800/80 rounded-2xl p-6 mb-8 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <section id="vendedores" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-400" />
-                  Vendedores y Revendedores Registrados ({sellers.length})
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Usuarios que pueden iniciar sesión en el portal y gestionar sus cuentas asignadas
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#E50914]" />
+                    <span>Revendedores y Distribuidores Autorizados</span>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-black/60 text-zinc-300 border border-zinc-700">
+                      {sellers.length} activos
+                    </span>
+                  </h2>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Usuarios que inician sesión en el portal de revendedor para consultar códigos y gestionar sus cuentas
                 </p>
               </div>
               <button
                 onClick={handleOpenCreateSeller}
-                className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-purple-900/30 transition w-fit"
+                className="px-4 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-lg shadow-red-950/60 transition-transform active:scale-95 w-fit"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>Registrar Vendedor</span>
+                <span>+ Registrar Vendedor</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {sellers.map((s) => {
                 const assignedCount = accounts.filter(a => a.sellerId === s.id || a.sellerId === s.email || a.seller === s.name).length;
                 return (
-                  <div key={s.id} className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800 flex flex-col justify-between hover:border-gray-700 transition">
+                  <div key={s.id} className="p-5 rounded-2xl bg-[#141414] border border-[#2a2a2a] hover:border-[#E50914]/50 hover:scale-[1.02] flex flex-col justify-between transition-all duration-300 shadow-xl group">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="font-bold text-sm text-white">{s.name}</div>
-                        <div className="text-xs text-indigo-400 font-mono mt-0.5">{s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`}</div>
-                        <div className="text-[11px] text-gray-500 mt-1">{s.phone}</div>
+                        <div className="font-black text-base text-white tracking-tight flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#E50914]" />
+                          <span>{s.name}</span>
+                        </div>
+                        <div className="text-xs text-[#ff6666] font-mono mt-1 font-semibold">{s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`}</div>
+                        <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
+                          <span>📞</span>
+                          <span>{s.phone}</span>
+                        </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-500/20">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950/70 text-emerald-400 border border-emerald-500/30">
                         Activo
                       </span>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-800/60 flex items-center justify-between text-xs">
+                    <div className="mt-4 pt-3.5 border-t border-[#262626] flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-gray-400">Cuentas:</span>
-                        <span className="font-extrabold text-white bg-gray-800 px-2 py-0.5 rounded-lg text-xs text-indigo-300">
+                        <span className="text-zinc-400 text-xs font-medium">Asignadas:</span>
+                        <span className="font-black text-white bg-[#222222] px-2.5 py-0.5 rounded-md text-xs border border-zinc-700 font-mono">
                           {assignedCount}
                         </span>
                       </div>
@@ -2254,7 +2332,7 @@ export default function OwnerDashboard() {
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => handleOpenEditSeller(s)}
-                          className="px-2.5 py-1 text-xs text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 rounded-lg flex items-center gap-1 transition"
+                          className="px-2.5 py-1 text-xs text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg flex items-center gap-1 transition"
                           title="Editar Vendedor"
                         >
                           <Edit className="w-3 h-3" />
@@ -2262,7 +2340,7 @@ export default function OwnerDashboard() {
                         </button>
                         <button
                           onClick={() => handleDeleteSeller(s.id, s.name)}
-                          className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
+                          className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
                           title="Eliminar Vendedor"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -2277,28 +2355,33 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN 3: GESTOR Y PROBADOR MAESTRO DE CÓDIGOS (EXCLUSIVO OWNER) */}
+        {/* SECCIÓN 3: GESTOR Y PROBADOR MAESTRO DE CÓDIGOS ESTILO NETFLIX CONSOLA */}
         {(activeTab === "codigos" || activeTab === "todo") && (
-          <section id="codigos-owner" className="bg-gradient-to-br from-[#121826] to-[#0d121f] border border-indigo-500/30 rounded-2xl p-6 mb-8 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <section id="codigos-owner" className="bg-[#181818] border border-[#E50914]/40 rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#282828]">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm">
                   <Shield className="w-3 h-3" />
-                  <span>Consola Master Owner (Acceso Ilimitado)</span>
+                  <span>CONSOLA MASTER ILIMITADA</span>
                 </div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <KeyRound className="w-5 h-5 text-indigo-400" />
-                  <span>Probador y Extractor de Códigos en Vivo</span>
-                </h2>
-                <p className="text-xs text-gray-400">
-                  Como Owner, puedes consultar el código de cualquier correo directamente sin restricciones de vendedor ni expiración
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <KeyRound className="w-5 h-5 text-[#E50914]" />
+                    <span>Extractor y Probador de Códigos en Vivo</span>
+                  </h2>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Consulta directa e instantánea de cualquier correo o servicio sin restricciones de vendedor ni expiración
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
                   Correo de la Cuenta
                 </label>
                 <input
@@ -2306,20 +2389,20 @@ export default function OwnerDashboard() {
                   placeholder="ej: hogaryutu+acido@gmail.com"
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
-                  className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
                   Servicio
                 </label>
                 <select
                   value={testService}
                   onChange={(e) => setTestService(e.target.value)}
-                  className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 >
-                  <option value="all">Todas las Plataformas (Búsqueda Global)</option>
+                  <option value="all">Todas las Plataformas (Global)</option>
                   <option value="netflix">Netflix</option>
                   <option value="disney">Disney+</option>
                   <option value="max">Max (HBO)</option>
@@ -2330,13 +2413,13 @@ export default function OwnerDashboard() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1">
-                  Acción
+                <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                  Acción Requerida
                 </label>
                 <select
                   value={testAction}
                   onChange={(e) => setTestAction(e.target.value)}
-                  className="w-full bg-[#070a12] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="temporal">Temporal (4-6 dígitos)</option>
                   <option value="actualizar">Actualizar Hogar</option>
@@ -2351,7 +2434,7 @@ export default function OwnerDashboard() {
               <button
                 onClick={handleExecuteCodeTest}
                 disabled={isTestingCode || !testEmail.trim()}
-                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-950/50 transition disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-red-950/60 transition active:scale-95 disabled:opacity-50"
               >
                 {isTestingCode ? (
                   <>
@@ -2368,12 +2451,12 @@ export default function OwnerDashboard() {
 
               {/* Accesos rápidos con correos del inventario */}
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="text-gray-400 text-[11px]">Rápido:</span>
+                <span className="text-zinc-500 text-[11px] font-medium">Rápido:</span>
                 {accounts.slice(0, 3).map((a) => (
                   <button
                     key={a.id}
                     onClick={() => setTestEmail(a.email)}
-                    className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-[10px] font-mono truncate max-w-[170px]"
+                    className="px-2 py-1 bg-[#222222] hover:bg-zinc-700 text-zinc-300 rounded-lg text-[10px] font-mono truncate max-w-[170px] border border-zinc-700"
                   >
                     {a.email}
                   </button>
@@ -2383,9 +2466,9 @@ export default function OwnerDashboard() {
 
             {/* Resultado de la extracción */}
             {testResult && (
-              <div className="mt-4 p-4 rounded-xl bg-[#070a12] border border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="mt-4 p-4 rounded-xl bg-[#141414] border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Resultado Obtenido:</span>
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Resultado Obtenido:</span>
                   <div className="font-mono text-base font-black text-emerald-400 mt-0.5 break-all">
                     {testResult}
                   </div>
@@ -2407,7 +2490,7 @@ export default function OwnerDashboard() {
                       href={testResult}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition"
+                      className="px-3.5 py-1.5 bg-[#E50914] hover:bg-[#f40612] text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Abrir</span>
@@ -2421,25 +2504,28 @@ export default function OwnerDashboard() {
 
         {/* MODAL CREAR / EDITAR CUENTA MAESTRA */}
         {isAccountModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-lg rounded-2xl p-6 shadow-2xl shadow-black/90 relative animate-in fade-in zoom-in duration-200">
               <button
                 onClick={() => setIsAccountModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
                 ✕
               </button>
 
-              <h3 className="text-xl font-bold text-white mb-1">
-                {editingAccountId ? "Editar Cuenta Maestra" : "Nueva Cuenta Maestra"}
-              </h3>
-              <p className="text-xs text-gray-400 mb-6">
+              <div className="flex items-center gap-2.5 mb-1">
+                <div className="w-1.5 h-5 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                <h3 className="text-xl font-black text-white tracking-tight">
+                  {editingAccountId ? "Editar Cuenta Maestra" : "Nueva Cuenta Maestra"}
+                </h3>
+              </div>
+              <p className="text-xs text-zinc-400 mb-6 pl-4">
                 Ingresa las credenciales y la configuración de perfiles para tu catálogo
               </p>
 
               <form onSubmit={handleSaveAccount} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Plataforma</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Plataforma</label>
                   <select
                     value={formData.platform}
                     onChange={(e) => {
@@ -2452,7 +2538,7 @@ export default function OwnerDashboard() {
                         monthlyIncome: plat ? plat.defaultIncome : 14.00
                       });
                     }}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   >
                     {catalogPlatforms.map((p) => (
                       <option key={p.id || p.name} value={p.name}>{p.name}</option>
@@ -2462,139 +2548,139 @@ export default function OwnerDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Correo de la Cuenta</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Correo de la Cuenta</label>
                     <input
                       type="email"
                       required
                       placeholder="cuenta@correo.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Contraseña</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Contraseña</label>
                     <input
                       type="text"
                       required
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">País / Región</label>
+                    <label className="block font-medium text-zinc-300 mb-1">País / Región</label>
                     <input
                       type="text"
                       placeholder="ej: Colombia, México, Global"
                       value={formData.country || ""}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">¿Está Verificada? (Sirve)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">¿Está Verificada? (Sirve)</label>
                     <select
                       value={formData.isVerified !== false ? "true" : "false"}
                       onChange={(e) => setFormData({ ...formData, isVerified: e.target.value === "true" })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     >
                       <option value="true">✅ Sí (Funciona / Comprobada)</option>
                       <option value="false">⚠️ No (Caída / Falla)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Cliente / Vendido a (Opcional)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Cliente / Vendido a (Opcional)</label>
                     <input
                       type="text"
                       placeholder="ej: Juan Pérez (WhatsApp)"
                       value={formData.customerName || ""}
                       onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Cupo Máximo Perfiles</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Cupo Máximo Perfiles</label>
                     <input
                       type="number"
                       min={1}
                       max={10}
                       value={formData.maxProfiles}
                       onChange={(e) => setFormData({ ...formData, maxProfiles: Number(e.target.value) })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Perfiles Vendidos</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Perfiles Vendidos</label>
                     <input
                       type="number"
                       min={0}
                       max={formData.maxProfiles}
                       value={formData.profilesOccupied}
                       onChange={(e) => setFormData({ ...formData, profilesOccupied: Number(e.target.value) })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Fecha de Compra</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Fecha de Compra</label>
                     <input
                       type="date"
                       value={formData.purchaseDate}
                       onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Fecha de Vencimiento</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Fecha de Vencimiento</label>
                     <input
                       type="date"
                       value={formData.expirationDate}
                       onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Costo Mensual ($)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Costo Mensual ($)</label>
                     <input
                       type="number"
                       step="0.1"
                       value={formData.monthlyCost}
                       onChange={(e) => setFormData({ ...formData, monthlyCost: Number(e.target.value) })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Ingreso Esperado ($)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Ingreso Esperado ($)</label>
                     <input
                       type="number"
                       step="0.1"
                       value={formData.monthlyIncome}
                       onChange={(e) => setFormData({ ...formData, monthlyIncome: Number(e.target.value) })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Vendedor Asignado</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Vendedor Asignado</label>
                     <select
                       value={formData.seller}
                       onChange={(e) => setFormData({ ...formData, seller: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     >
                       <option value="Sin Asignar (En Stock)">Sin Asignar (En Stock)</option>
                       {sellers.map((s) => (
@@ -2603,28 +2689,28 @@ export default function OwnerDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Notas / Observaciones</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Notas / Observaciones</label>
                     <input
                       type="text"
                       placeholder="ej: Cuenta familiar, renovar el día 30"
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-800 flex justify-end gap-2">
+                <div className="mt-6 pt-4 border-t border-[#262626] flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsAccountModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30"
+                    className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
                   >
                     {editingAccountId ? "Guardar Cambios" : "Crear Cuenta"}
                   </button>
@@ -2636,20 +2722,20 @@ export default function OwnerDashboard() {
 
         {/* MODAL ASIGNAR VENDEDOR */}
         {isAssignModalOpen && assigningAccount && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-md rounded-2xl p-6 shadow-2xl shadow-black/90 animate-in fade-in zoom-in duration-200">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-                  <UserCheck className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
+                  <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Asignar Cuenta a Vendedor</h3>
-                  <p className="text-xs text-gray-400">{assigningAccount.platform} • {assigningAccount.email}</p>
+                  <h3 className="text-lg font-black text-white">Asignar Cuenta a Vendedor</h3>
+                  <p className="text-xs text-zinc-400">{assigningAccount.platform} • {assigningAccount.email}</p>
                 </div>
               </div>
 
               <div className="space-y-3 my-5">
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Selecciona el Vendedor Responsable
                 </label>
                 <div className="space-y-2">
@@ -2657,15 +2743,15 @@ export default function OwnerDashboard() {
                     onClick={() => setSelectedSellerToAssign("")}
                     className={`p-3 rounded-xl border cursor-pointer transition flex items-center justify-between ${
                       selectedSellerToAssign === ""
-                        ? "bg-indigo-950/50 border-indigo-500 text-white"
-                        : "bg-[#0d121f] border-gray-800 text-gray-400 hover:border-gray-700"
+                        ? "bg-red-950/40 border-[#E50914] text-white"
+                        : "bg-[#121212] border-[#2a2a2a] text-zinc-400 hover:border-zinc-700"
                     }`}
                   >
                     <div>
                       <div className="font-semibold text-xs text-amber-400">Sin Asignar (Dejar en Stock Libre)</div>
-                      <div className="text-[11px] text-gray-500">Disponible para la tienda general</div>
+                      <div className="text-[11px] text-zinc-500">Disponible para la tienda general</div>
                     </div>
-                    {selectedSellerToAssign === "" && <Check className="w-4 h-4 text-indigo-400" />}
+                    {selectedSellerToAssign === "" && <Check className="w-4 h-4 text-[#E50914]" />}
                   </div>
 
                   {sellers.map((s) => (
@@ -2674,32 +2760,32 @@ export default function OwnerDashboard() {
                       onClick={() => setSelectedSellerToAssign(s.id)}
                       className={`p-3 rounded-xl border cursor-pointer transition flex items-center justify-between ${
                         selectedSellerToAssign === s.id
-                          ? "bg-indigo-950/50 border-indigo-500 text-white"
-                          : "bg-[#0d121f] border-gray-800 text-gray-400 hover:border-gray-700"
+                          ? "bg-red-950/40 border-[#E50914] text-white"
+                          : "bg-[#121212] border-[#2a2a2a] text-zinc-400 hover:border-zinc-700"
                       }`}
                     >
                       <div>
                         <div className="font-semibold text-xs text-white">{s.name}</div>
-                        <div className="text-[11px] text-gray-500">{s.phone} • {s.activeAccountsCount} cuentas asignadas</div>
+                        <div className="text-[11px] text-zinc-500">{s.phone} • {s.activeAccountsCount} cuentas asignadas</div>
                       </div>
-                      {selectedSellerToAssign === s.id && <Check className="w-4 h-4 text-indigo-400" />}
+                      {selectedSellerToAssign === s.id && <Check className="w-4 h-4 text-[#E50914]" />}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-800 flex justify-end gap-2 text-xs">
+              <div className="pt-3 border-t border-[#262626] flex justify-end gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => setIsAssignModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700"
+                  className="px-4 py-2 rounded-xl bg-[#282828] text-zinc-300 hover:bg-[#383838] font-medium transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveAssignment}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30"
+                  className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
                 >
                   Confirmar Asignación
                 </button>
@@ -2710,32 +2796,35 @@ export default function OwnerDashboard() {
 
         {/* MODAL IMPORTAR EXCEL / CSV */}
         {isExcelModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-4xl rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[92vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-4xl rounded-2xl p-6 shadow-2xl shadow-black/90 relative animate-in fade-in zoom-in duration-200 max-h-[92vh] overflow-y-auto">
               <button
                 onClick={() => setIsExcelModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
                 ✕
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
-                  <FileSpreadsheet className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
+                  <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Importar Lista de Cuentas desde Excel o CSV</h3>
-                  <p className="text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h3 className="text-lg font-black text-white">Importar Lista de Cuentas desde Excel o CSV</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
                     Sube cuentas masivas con país, verificación, fecha de vencimiento y asignación opcional
                   </p>
                 </div>
               </div>
 
               {/* Selector de Plataforma Destino */}
-              <div className="mb-4 p-4 rounded-xl bg-[#0b0f19] border border-indigo-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="mb-4 p-4 rounded-xl bg-[#121212] border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="text-xs">
                   <span className="font-semibold text-white block mb-0.5">¿Para qué plataforma es esta lista?</span>
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-zinc-400">
                     Puedes forzar que todas las cuentas sean de una plataforma específica o dejar que se lea de la columna del Excel.
                   </span>
                 </div>
@@ -2743,7 +2832,7 @@ export default function OwnerDashboard() {
                   <select
                     value={selectedImportPlatform}
                     onChange={(e) => setSelectedImportPlatform(e.target.value)}
-                    className="w-full sm:w-auto bg-[#131b2e] border border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-indigo-300 font-semibold focus:outline-none focus:border-indigo-400 shadow-sm"
+                    className="w-full sm:w-auto bg-[#1c1c1c] border border-[#383838] rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#E50914] shadow-sm"
                   >
                     <option value="auto">⚡ Detectar automáticamente (Columna "Plataforma")</option>
                     {catalogPlatforms.map((p) => (
@@ -2773,23 +2862,23 @@ export default function OwnerDashboard() {
                         Ventana activa de 24h
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-400 mb-2.5">
+                    <p className="text-[11px] text-zinc-400 mb-2.5">
                       ¿La lista era para otra plataforma o se subió por equivocación? Puedes borrar el lote completo y se eliminarán todas las cuentas que se importaron en esa carga:
                     </p>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                       {validBatches.map((b) => (
                         <div
                           key={b.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-[#0d121f] border border-gray-800 text-xs gap-2"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-[#141414] border border-[#2a2a2a] text-xs gap-2"
                         >
                           <div>
                             <div className="font-semibold text-white flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 text-[11px] border border-indigo-500/30">
+                              <span className="px-2 py-0.5 rounded bg-red-950/50 text-red-300 text-[11px] border border-red-500/30">
                                 {b.platform}
                               </span>
                               <span>{b.count} cuentas importadas</span>
                             </div>
-                            <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2">
+                            <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
                               <span>📄 {b.filename || "Lista"}</span>
                               <span>•</span>
                               <span>Subida {getTimeAgo(b.importedAt)} ({new Date(b.importedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})</span>
@@ -2812,16 +2901,16 @@ export default function OwnerDashboard() {
               })()}
 
               {/* Botón Descargar Plantilla Oficial */}
-              <div className="mb-4 p-3.5 rounded-xl bg-[#0b0f19] border border-gray-800 flex items-center justify-between">
-                <div className="text-xs text-gray-300">
+              <div className="mb-4 p-3.5 rounded-xl bg-[#121212] border border-[#262626] flex items-center justify-between">
+                <div className="text-xs text-zinc-300">
                   <span className="font-semibold text-white block">Formato Oficial de Excel para Cuentas</span>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
+                  <div className="text-[11px] text-zinc-500 mt-0.5">
                     Incluye columnas: <span className="text-emerald-400 font-mono">País, Plataforma, Correo, Clave, Verificada (Sí/No), Fecha Vencimiento, Vendido a / Asignado a, Perfiles, Notas</span>.
                   </div>
                 </div>
                 <button
                   onClick={handleDownloadTemplate}
-                  className="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-3 shadow-sm"
+                  className="px-3.5 py-2 bg-[#222222] hover:bg-[#333333] text-zinc-200 border border-[#3a3a3a] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ml-3 shadow-sm"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Descargar Plantilla .xlsx</span>
@@ -2829,18 +2918,18 @@ export default function OwnerDashboard() {
               </div>
 
               {/* Zona de Drop / Input de archivo */}
-              <div className="border-2 border-dashed border-gray-700 hover:border-emerald-500/50 rounded-2xl p-6 text-center transition bg-[#090d16]/60 cursor-pointer relative">
+              <div className="border-2 border-dashed border-[#333333] hover:border-[#E50914] rounded-2xl p-6 text-center transition bg-[#121212] cursor-pointer relative group">
                 <input
                   type="file"
                   accept=".xlsx, .xls, .csv"
                   onChange={handleExcelFileUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                <Upload className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80" />
+                <Upload className="w-10 h-10 text-[#E50914] mx-auto mb-2 opacity-80 group-hover:scale-110 transition" />
                 <div className="text-sm font-semibold text-white">
                   {excelFile ? excelFile.name : "Selecciona o arrastra tu archivo Excel / CSV aquí"}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-zinc-500 mt-1">
                   Formatos soportados: .xlsx, .xls, .csv
                 </div>
               </div>
@@ -2856,11 +2945,11 @@ export default function OwnerDashboard() {
               {/* Vista Previa de Filas Parseadas */}
               {excelPreviewData.length > 0 && !importSuccessMessage && (
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-xs font-semibold text-gray-300 mb-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 mb-2">
                     <span className="flex items-center gap-2">
                       <span>Vista Previa del Archivo ({excelPreviewData.length} cuentas detectadas)</span>
                       {selectedImportPlatform !== "auto" && (
-                        <span className="px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/30 text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-red-950/50 text-red-300 border border-red-500/30 text-[10px]">
                           Asignando a: {selectedImportPlatform}
                         </span>
                       )}
@@ -2868,9 +2957,9 @@ export default function OwnerDashboard() {
                     <span className="text-[11px] text-emerald-400 font-medium">✓ Archivo listo para procesar</span>
                   </div>
 
-                  <div className="max-h-56 overflow-y-auto border border-gray-800 rounded-xl bg-[#0b0f19]">
-                    <table className="w-full text-left text-[11px] text-gray-300">
-                      <thead className="bg-[#070a12] text-gray-400 sticky top-0 border-b border-gray-800">
+                  <div className="max-h-56 overflow-y-auto border border-[#2a2a2a] rounded-xl bg-[#121212]">
+                    <table className="w-full text-left text-[11px] text-zinc-300">
+                      <thead className="bg-[#0e0e0e] text-zinc-400 sticky top-0 border-b border-[#262626]">
                         <tr>
                           <th className="py-2.5 px-3">País</th>
                           <th className="py-2.5 px-3">Plataforma</th>
@@ -2881,7 +2970,7 @@ export default function OwnerDashboard() {
                           <th className="py-2.5 px-3">Vendido a / Asignado</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-800/60">
+                      <tbody className="divide-y divide-[#262626]">
                         {excelPreviewData.slice(0, 20).map((row: any, i) => {
                           const rawVer = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || "Sí").toLowerCase();
                           const isVer = !(rawVer.includes("no") || rawVer === "0" || rawVer === "false" || rawVer.includes("falla") || rawVer.includes("caida"));
@@ -2891,17 +2980,17 @@ export default function OwnerDashboard() {
                           const assignedCol = row["Vendido a / Asignado a"] || row["Vendido a"] || row["Cliente"] || row["Vendedor"] || "Sin Asignar";
 
                           return (
-                            <tr key={i} className="hover:bg-gray-800/30">
+                            <tr key={i} className="hover:bg-[#1a1a1a]">
                               <td className="py-2 px-3 font-semibold text-cyan-300">
                                 🌍 {row["País"] || row["Pais"] || row["Country"] || "Global"}
                               </td>
                               <td className="py-2 px-3 font-semibold text-white">
                                 {platDisplay}
                               </td>
-                              <td className="py-2 px-3 font-mono text-indigo-300">
+                              <td className="py-2 px-3 font-mono text-zinc-200">
                                 {row["Correo"] || row["Email"] || "-"}
                               </td>
-                              <td className="py-2 px-3 font-mono text-gray-400">
+                              <td className="py-2 px-3 font-mono text-zinc-400">
                                 {row["Clave"] || row["Contraseña"] || "••••••••"}
                               </td>
                               <td className="py-2 px-3 text-center">
@@ -2915,7 +3004,7 @@ export default function OwnerDashboard() {
                                   </span>
                                 )}
                               </td>
-                              <td className="py-2 px-3 text-gray-400 font-mono">
+                              <td className="py-2 px-3 text-zinc-400 font-mono">
                                 {String(row["Fecha Vencimiento"] || row["Vencimiento"] || "").substring(0, 10) || "30 días"}
                               </td>
                               <td className="py-2 px-3 text-amber-300 font-medium">
@@ -2931,11 +3020,11 @@ export default function OwnerDashboard() {
               )}
 
               {/* Botones de acción */}
-              <div className="mt-6 pt-4 border-t border-gray-800 flex justify-end gap-2 text-xs">
+              <div className="mt-6 pt-4 border-t border-[#262626] flex justify-end gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => setIsExcelModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                  className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
                 >
                   Cancelar
                 </button>
@@ -2943,7 +3032,7 @@ export default function OwnerDashboard() {
                   type="button"
                   disabled={excelPreviewData.length === 0 || isImporting}
                   onClick={handleProcessExcelImport}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-900/30 flex items-center gap-1.5 transition disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 flex items-center gap-1.5 transition disabled:opacity-50"
                 >
                   {isImporting ? (
                     <>
@@ -2964,24 +3053,27 @@ export default function OwnerDashboard() {
 
         {/* MODAL CREAR NUEVO VENDEDOR */}
         {isSellerModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-md rounded-2xl p-6 shadow-2xl shadow-black/90 relative animate-in fade-in zoom-in duration-200">
               <button
                 onClick={() => setIsSellerModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
                 ✕
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center">
-                  {editingSellerId ? <Edit className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
+                  {editingSellerId ? <Edit className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">
-                    {editingSellerId ? "Editar Vendedor" : "Registrar Nuevo Vendedor"}
-                  </h3>
-                  <p className="text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h3 className="text-lg font-black text-white">
+                      {editingSellerId ? "Editar Vendedor" : "Registrar Nuevo Vendedor"}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
                     {editingSellerId 
                       ? "Modifica los datos de acceso y contacto del vendedor" 
                       : "Crea un vendedor para que pueda iniciar sesión y recibir cuentas"}
@@ -2991,66 +3083,66 @@ export default function OwnerDashboard() {
 
               <form onSubmit={handleSaveSeller} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Nombre Completo del Vendedor</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Nombre Completo del Vendedor</label>
                   <input
                     type="text"
                     required
                     placeholder="ej: Andrés Ventas"
                     value={newSellerName}
                     onChange={(e) => setNewSellerName(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Correo Electrónico (Para Iniciar Sesión)</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Correo Electrónico (Para Iniciar Sesión)</label>
                   <input
                     type="email"
                     required
                     placeholder="andres@ventas.com"
                     value={newSellerEmail}
                     onChange={(e) => setNewSellerEmail(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Contraseña de Acceso para el Vendedor</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Contraseña de Acceso para el Vendedor</label>
                   <input
                     type="text"
                     required
                     placeholder="ej: ClaveVentas2026*"
                     value={newSellerPassword}
                     onChange={(e) => setNewSellerPassword(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Teléfono / WhatsApp</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp</label>
                   <input
                     type="text"
                     placeholder="+58 412 0001122"
                     value={newSellerPhone}
                     onChange={(e) => setNewSellerPhone(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   />
                 </div>
 
-                <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
+                <div className="pt-4 border-t border-[#262626] flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setIsSellerModalOpen(false);
                       setEditingSellerId(null);
                     }}
-                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-lg shadow-purple-900/30"
+                    className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
                   >
                     {editingSellerId ? "Guardar Cambios" : "Registrar Vendedor"}
                   </button>
@@ -3062,24 +3154,27 @@ export default function OwnerDashboard() {
 
         {/* MODAL CREAR / EDITAR PLATAFORMA EN CATÁLOGO */}
         {isCatalogModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-lg rounded-2xl p-6 shadow-2xl shadow-black/90 relative animate-in fade-in zoom-in duration-200">
               <button
                 onClick={() => setIsCatalogModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
                 ✕
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-400 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">
-                    {editingPlatformId ? "Editar Servicio en Catálogo" : "Nuevo Servicio de Streaming"}
-                  </h3>
-                  <p className="text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h3 className="text-lg font-black text-white">
+                      {editingPlatformId ? "Editar Servicio en Catálogo" : "Nuevo Servicio de Streaming"}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
                     Configura el nombre, precio al público, costo base y cupos para este servicio
                   </p>
                 </div>
@@ -3087,14 +3182,14 @@ export default function OwnerDashboard() {
 
               <form onSubmit={handleSavePlatform} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Nombre de la Plataforma / Plan</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Nombre de la Plataforma / Plan</label>
                   <input
                     type="text"
                     required
                     placeholder="ej: Disney+ & Star+ Combo"
                     value={platformForm.name}
                     onChange={(e) => setPlatformForm({ ...platformForm, name: e.target.value })}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500 font-medium"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] font-medium"
                   />
                 </div>
 
@@ -3115,7 +3210,7 @@ export default function OwnerDashboard() {
                           defaultIncome: val * (platformForm.defaultProfiles || 4)
                         });
                       }}
-                      className="w-full bg-[#0b0f19] border border-emerald-500/40 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                      className="w-full bg-[#121212] border border-emerald-500/40 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-semibold"
                     />
                   </div>
                   <div>
@@ -3126,25 +3221,25 @@ export default function OwnerDashboard() {
                       placeholder="ej: 2.5"
                       value={platformForm.wholesalePrice ?? ""}
                       onChange={(e) => setPlatformForm({ ...platformForm, wholesalePrice: e.target.value ? Number(e.target.value) : undefined })}
-                      className="w-full bg-[#0b0f19] border border-purple-500/40 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-semibold"
+                      className="w-full bg-[#121212] border border-purple-500/40 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-semibold"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Costo Base Invertido ($)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Costo Base Invertido ($)</label>
                     <input
                       type="number"
                       step="0.1"
                       required
                       value={platformForm.defaultCost}
                       onChange={(e) => setPlatformForm({ ...platformForm, defaultCost: Number(e.target.value) })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Cupos / Perfiles por Defecto</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Cupos / Perfiles por Defecto</label>
                     <input
                       type="number"
                       min={1}
@@ -3152,45 +3247,45 @@ export default function OwnerDashboard() {
                       required
                       value={platformForm.defaultProfiles}
                       onChange={(e) => setPlatformForm({ ...platformForm, defaultProfiles: Number(e.target.value) })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Etiqueta Destacada (Opcional)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Etiqueta Destacada (Opcional)</label>
                     <input
                       type="text"
                       placeholder="ej: Más Vendido, 4K UHD"
                       value={platformForm.badge || ""}
                       onChange={(e) => setPlatformForm({ ...platformForm, badge: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914]"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Categoría / Subtítulo</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Categoría / Subtítulo</label>
                     <input
                       type="text"
                       placeholder="ej: 4K HDR • 1 Pantalla Individual"
                       value={platformForm.category || ""}
                       onChange={(e) => setPlatformForm({ ...platformForm, category: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914]"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
+                <div className="pt-4 border-t border-[#262626] flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsCatalogModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold shadow-lg shadow-amber-950/40"
+                    className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
                   >
                     {editingPlatformId ? "Guardar Cambios" : "Guardar en Catálogo"}
                   </button>
@@ -3202,24 +3297,27 @@ export default function OwnerDashboard() {
 
         {/* MODAL REGISTRAR NUEVA VENTA (DETAL / MAYOR / EN PERSONA) */}
         {isSaleModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div className="bg-[#121826] border border-emerald-500/40 w-full max-w-xl rounded-2xl p-5 sm:p-6 shadow-2xl relative my-8 animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-xl rounded-2xl p-5 sm:p-6 shadow-2xl shadow-black/90 relative my-8 animate-in fade-in zoom-in duration-200">
               <button
                 onClick={() => setIsSaleModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800/80 flex items-center justify-center transition"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
                 ✕
               </button>
 
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-md">
                   <Receipt className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white">
-                    Registrar Venta en el Libro
-                  </h3>
-                  <p className="text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h3 className="text-lg font-black text-white">
+                      Registrar Venta en el Libro
+                    </h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
                     Venta al detal, venta al mayor o cobro en persona con ganancia personalizada
                   </p>
                 </div>
@@ -3228,7 +3326,7 @@ export default function OwnerDashboard() {
               <form onSubmit={handleSaveSale} className="space-y-4 text-xs">
                 {/* Selector Tipo de Venta: Detal vs Mayor */}
                 <div>
-                  <label className="block font-bold text-gray-300 uppercase tracking-wider text-[11px] mb-1.5">
+                  <label className="block font-bold text-zinc-300 uppercase tracking-wider text-[11px] mb-1.5">
                     Modalidad de Venta
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -3248,12 +3346,12 @@ export default function OwnerDashboard() {
                       className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                         saleForm.type === "detal"
                           ? "bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950/50"
-                          : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:border-gray-700"
+                          : "bg-[#121212] border-[#282828] text-zinc-400 hover:border-zinc-700"
                       }`}
                     >
                       <ShoppingBag className="w-4 h-4 text-emerald-400" />
                       <span className="font-bold text-xs">Venta al Detal</span>
-                      <span className="text-[10px] text-gray-400">Cliente final / 1 perfil / en mano</span>
+                      <span className="text-[10px] text-zinc-400">Cliente final / 1 perfil / en mano</span>
                     </button>
 
                     <button
@@ -3272,25 +3370,25 @@ export default function OwnerDashboard() {
                       className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                         saleForm.type === "mayor"
                           ? "bg-purple-950/60 border-purple-500 text-white shadow-md shadow-purple-950/50"
-                          : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:border-gray-700"
+                          : "bg-[#121212] border-[#282828] text-zinc-400 hover:border-zinc-700"
                       }`}
                     >
                       <Layers className="w-4 h-4 text-purple-400" />
                       <span className="font-bold text-xs">Venta al Mayor</span>
-                      <span className="text-[10px] text-gray-400">Revendedor / Lote / Descuento</span>
+                      <span className="text-[10px] text-zinc-400">Revendedor / Lote / Descuento</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Venta en persona (física) checkbox pill */}
-                <div className="p-3 rounded-xl bg-[#0b0f19] border border-gray-800 flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-[#121212] border border-[#262626] flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
                       <Banknote className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-white">¿Venta realizada en persona física?</div>
-                      <div className="text-[11px] text-gray-400">Se computará en la caja física de efectivo</div>
+                      <div className="text-[11px] text-zinc-400">Se computará en la caja física de efectivo</div>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -3304,14 +3402,14 @@ export default function OwnerDashboard() {
                       })}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                    <div className="w-9 h-5 bg-[#333333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                   </label>
                 </div>
 
                 {/* Plataforma & Cuenta Asociada */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Plataforma</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Plataforma</label>
                     <select
                       value={saleForm.platform}
                       onChange={(e) => {
@@ -3329,7 +3427,7 @@ export default function OwnerDashboard() {
                           profit: Math.max(0, defPrice - defCost)
                         });
                       }}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                     >
                       {catalogPlatforms.map(p => (
                         <option key={p.id} value={p.name}>{p.name}</option>
@@ -3338,7 +3436,7 @@ export default function OwnerDashboard() {
                   </div>
 
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Vincular Cuenta de Stock</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Vincular Cuenta de Stock</label>
                     <select
                       value={saleForm.selectedAccountId}
                       onChange={(e) => {
@@ -3366,7 +3464,7 @@ export default function OwnerDashboard() {
                           }
                         }
                       }}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono text-[11px]"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono text-[11px]"
                     >
                       <option value="manual">Cuenta Externa / Manual</option>
                       {accounts.map(a => (
@@ -3381,13 +3479,13 @@ export default function OwnerDashboard() {
                 {/* Correo si es manual */}
                 {saleForm.selectedAccountId === "manual" && (
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Correo o Identificador de Cuenta (Opcional)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Correo o Identificador de Cuenta (Opcional)</label>
                     <input
                       type="text"
                       placeholder="ej: cliente.netflix@gmail.com"
                       value={saleForm.accountEmail}
                       onChange={(e) => setSaleForm({ ...saleForm, accountEmail: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono"
                     />
                   </div>
                 )}
@@ -3395,35 +3493,35 @@ export default function OwnerDashboard() {
                 {/* Cliente & Contacto */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Nombre del Cliente / Comprador *</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Nombre del Cliente / Comprador *</label>
                     <input
                       type="text"
                       required
                       placeholder="ej: Juan Pérez (En persona)"
                       value={saleForm.customerName}
                       onChange={(e) => setSaleForm({ ...saleForm, customerName: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">WhatsApp / Contacto (Opcional)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">WhatsApp / Contacto (Opcional)</label>
                     <input
                       type="text"
                       placeholder="ej: +57 300 123 4567"
                       value={saleForm.customerContact}
                       onChange={(e) => setSaleForm({ ...saleForm, customerContact: e.target.value })}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>
 
                 {/* Método de Pago */}
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Método de Pago</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Método de Pago</label>
                   <select
                     value={saleForm.paymentMethod}
                     onChange={(e) => setSaleForm({ ...saleForm, paymentMethod: e.target.value as any })}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                   >
                     <option value="efectivo">💵 Efectivo (Dinero en Mano)</option>
                     <option value="nequi">📲 Nequi</option>
@@ -3435,15 +3533,15 @@ export default function OwnerDashboard() {
                 </div>
 
                 {/* CÁLCULO FINANCIERO Y GANANCIA PERSONALIZADA */}
-                <div className="p-3.5 rounded-xl bg-gradient-to-br from-[#0b0f19] to-[#070a12] border border-emerald-500/30">
+                <div className="p-3.5 rounded-xl bg-[#141414] border border-emerald-500/30">
                   <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2 flex items-center justify-between">
                     <span>Finanzas de la Venta (Ganancia en Tiempo Real)</span>
-                    <span className="text-gray-400 text-[10px] lowercase">editable libremente</span>
+                    <span className="text-zinc-400 text-[10px] lowercase">editable libremente</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2.5">
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1 font-medium">Costo Invertido ($)</label>
+                      <label className="block text-[10px] text-zinc-400 mb-1 font-medium">Costo Invertido ($)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -3458,12 +3556,12 @@ export default function OwnerDashboard() {
                             profit: Math.max(0, sale - cost)
                           });
                         }}
-                        className="w-full bg-[#121826] border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-[#181818] border border-[#2f2f2f] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-gray-400 mb-1 font-medium">Precio Cobrado ($)</label>
+                      <label className="block text-[10px] text-zinc-400 mb-1 font-medium">Precio Cobrado ($)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -3478,7 +3576,7 @@ export default function OwnerDashboard() {
                             profit: Math.max(0, sale - cost)
                           });
                         }}
-                        className="w-full bg-[#121826] border border-emerald-500/40 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
+                        className="w-full bg-[#181818] border border-emerald-500/40 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-bold focus:outline-none focus:border-emerald-400"
                       />
                     </div>
 
@@ -3493,28 +3591,28 @@ export default function OwnerDashboard() {
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-2">
+                  <p className="text-[10px] text-zinc-500 mt-2">
                     💡 La ganancia se calcula como (Precio Cobrado - Costo), pero puedes modificarla directamente si cobraste un recargo o ajuste.
                   </p>
                 </div>
 
                 {/* Notas */}
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Notas / Detalles del Pedido (Opcional)</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Notas / Detalles del Pedido (Opcional)</label>
                   <input
                     type="text"
                     placeholder="ej: Perfil 3, PIN 1234, entregado personalmente en oficina"
                     value={saleForm.notes}
                     onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
-                <div className="pt-3 border-t border-gray-800 flex justify-end gap-2">
+                <div className="pt-3 border-t border-[#262626] flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsSaleModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium transition"
+                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
                   >
                     Cancelar
                   </button>

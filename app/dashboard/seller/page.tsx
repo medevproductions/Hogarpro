@@ -406,28 +406,28 @@ export default function SellerLiveCodesPage() {
   const isUrl = receivedCode && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://"));
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-gray-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row selection:bg-[#E50914] selection:text-white">
       {/* BARRA SUPERIOR MÓVIL STICKY (SOLO SMARTPHONES Y TABLETS PEQUEÑAS) */}
-      <div className="md:hidden sticky top-0 z-40 bg-[#0d121f]/95 backdrop-blur-md border-b border-gray-800 p-3 flex flex-col gap-2.5">
+      <div className="md:hidden sticky top-0 z-40 bg-[#101010]/95 backdrop-blur-md border-b border-[#262626] p-3 flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md shadow-emerald-600/30">
-              <Radio className="w-4 h-4 animate-pulse" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#E50914] flex items-center justify-center font-black text-white shadow-md shadow-red-600/40">
+              N
             </div>
             <div>
-              <div className="font-extrabold text-white text-xs tracking-tight leading-none">STREAMHUB</div>
-              <div className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
+              <div className="font-black text-white text-xs tracking-wider leading-none">STREAMHUB</div>
+              <div className="text-[9px] text-[#E50914] font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleLogout}
-              className="px-2.5 py-1 text-[11px] text-red-400 bg-red-950/40 border border-red-500/30 rounded-lg flex items-center gap-1 font-medium"
+              className="px-2.5 py-1 text-[11px] text-red-400 bg-red-950/40 border border-red-500/30 rounded-lg flex items-center gap-1 font-medium transition hover:bg-red-900/40"
             >
               <LogOut className="w-3 h-3" />
               <span>Salir</span>
             </button>
-            <Link href="/" className="px-2 py-1 text-[11px] text-gray-400 bg-gray-800/80 rounded-lg font-medium">
+            <Link href="/" className="px-2.5 py-1 text-[11px] text-zinc-300 bg-[#222222] border border-[#333333] rounded-lg font-medium hover:text-white">
               Tienda
             </Link>
           </div>
@@ -439,8 +439,8 @@ export default function SellerLiveCodesPage() {
             onClick={() => setActiveTab("cuentas")}
             className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
               activeTab === "cuentas"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/50"
-                : "bg-gray-800/80 text-gray-400 hover:text-white"
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
+                : "bg-[#202020] text-zinc-400 hover:text-white"
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
@@ -450,8 +450,8 @@ export default function SellerLiveCodesPage() {
             onClick={() => setActiveTab("configuracion")}
             className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
               activeTab === "configuracion"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/50"
-                : "bg-gray-800/80 text-gray-400 hover:text-white"
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
+                : "bg-[#202020] text-zinc-400 hover:text-white"
             }`}
           >
             <Settings className="w-3.5 h-3.5" />
@@ -461,15 +461,15 @@ export default function SellerLiveCodesPage() {
       </div>
 
       {/* SIDEBAR DESKTOP */}
-      <aside className="w-64 border-r border-gray-800 bg-[#0d121f] p-5 hidden md:flex flex-col justify-between shrink-0">
+      <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-600/30">
-              <Radio className="w-5 h-5 animate-pulse" />
+            <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center font-black text-xl text-white shadow-lg shadow-red-600/40">
+              N
             </div>
             <div>
-              <div className="font-black text-white tracking-tight">STREAMHUB</div>
-              <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
+              <div className="font-black text-white tracking-wider text-base">STREAMHUB</div>
+              <div className="text-[10px] text-[#E50914] font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
             </div>
           </div>
 
@@ -479,11 +479,11 @@ export default function SellerLiveCodesPage() {
               onClick={() => setActiveTab("cuentas")}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-left ${
                 activeTab === "cuentas"
-                  ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 font-semibold"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                  ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
+                  : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
               }`}
             >
-              <KeyRound className="w-4 h-4" />
+              <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-[#E50914]" : "text-zinc-400"}`} />
               <span>Gestión de Cuentas</span>
             </button>
 
@@ -491,25 +491,25 @@ export default function SellerLiveCodesPage() {
               onClick={() => setActiveTab("configuracion")}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-left ${
                 activeTab === "configuracion"
-                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800/60"
+                  ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
+                  : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
               }`}
             >
-              <Settings className="w-4 h-4" />
+              <Settings className={`w-4 h-4 ${activeTab === "configuracion" ? "text-[#E50914]" : "text-zinc-400"}`} />
               <span>Configuración</span>
             </button>
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-gray-800 space-y-2">
+        <div className="pt-4 border-t border-[#262626] space-y-2">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 text-xs text-red-400/80 hover:text-red-300 transition py-1.5 px-2 rounded-lg hover:bg-red-950/20"
+            className="w-full flex items-center gap-2 text-xs text-red-400/90 hover:text-red-300 transition py-2 px-3 rounded-xl hover:bg-red-950/20 font-medium"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Cerrar Sesión</span>
           </button>
-          <Link href="/" className="block text-xs text-gray-500 hover:text-gray-300 px-2">
+          <Link href="/" className="block text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1 transition">
             ← Ver Tienda Pública
           </Link>
         </div>
@@ -521,33 +521,34 @@ export default function SellerLiveCodesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              <div className="w-1.5 h-7 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 {activeTab === "cuentas" ? "Gestión y Solicitud de Códigos" : "Configuración de tu Cuenta"}
               </h1>
             </div>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-400 mt-1 pl-4">
               {activeTab === "cuentas" 
-                ? "Selecciona la cuenta y presiona la acción deseada para extraer el código o enlace instantáneamente." 
-                : "Actualiza tus datos personales de revendedor y tu contraseña de acceso."}
+                ? "Selecciona tu cuenta autorizada y pulsa la acción deseada para extraer el código o enlace en segundos." 
+                : "Actualiza tus datos de revendedor y tu contraseña personal de acceso."}
             </p>
           </div>
 
           {/* PERFIL DEL VENDEDOR */}
-          <div className="flex items-center gap-3 bg-[#121826] border border-gray-800 p-2.5 px-4 rounded-2xl shadow-lg">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
+          <div className="flex items-center gap-3 bg-[#181818] border border-[#2f2f2f] p-2.5 px-4 rounded-2xl shadow-lg">
+            <div className="w-9 h-9 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center font-bold border border-red-500/30">
               <User className="w-4 h-4" />
             </div>
             <div className="text-left">
               <div className="text-xs font-bold text-white">{currentUser?.name || "Vendedor"}</div>
-              <div className="text-[10px] text-gray-400 font-mono">{currentUser?.email || "vendedor@ventas.com"}</div>
+              <div className="text-[10px] text-zinc-400 font-mono">{currentUser?.email || "vendedor@ventas.com"}</div>
             </div>
             {activeTab !== "configuracion" && (
               <button
                 onClick={() => setActiveTab("configuracion")}
-                className="ml-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-900/40 transition"
+                className="ml-2 px-3 py-1.5 bg-[#252525] hover:bg-[#333333] border border-[#383838] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
                 title="Ir a Configuración"
               >
-                <Settings className="w-3.5 h-3.5" />
+                <Settings className="w-3.5 h-3.5 text-zinc-300" />
                 <span>Configurar</span>
               </button>
             )}
@@ -560,14 +561,17 @@ export default function SellerLiveCodesPage() {
         {activeTab === "configuracion" && (
           <div className="max-w-3xl space-y-6 animate-in fade-in duration-200">
             {/* Tarjeta 1: Datos Personales */}
-            <div className="bg-[#121826] border border-gray-800/90 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-800/80">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold">
+            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#262626]">
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center font-bold border border-red-500/30">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">Datos Personales del Revendedor</h2>
-                  <p className="text-xs text-gray-400">Información de contacto asociada a tu cuenta</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h2 className="text-base font-bold text-white">Datos Personales del Revendedor</h2>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">Información de contacto asociada a tu cuenta</p>
                 </div>
               </div>
 
@@ -581,41 +585,41 @@ export default function SellerLiveCodesPage() {
               <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Nombre Completo</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Nombre Completo</label>
                     <div className="relative">
                       <input
                         type="text"
                         required
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Teléfono / WhatsApp</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp</label>
                     <div className="relative">
                       <input
                         type="text"
                         placeholder="+57 300 1234567"
                         value={profilePhone}
                         onChange={(e) => setProfilePhone(e.target.value)}
-                        className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Correo Electrónico (Solo Lectura)</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Correo Electrónico (Solo Lectura)</label>
                   <input
                     type="email"
                     disabled
                     value={currentUser?.email || ""}
-                    className="w-full bg-[#070a12] border border-gray-800 text-gray-400 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed"
+                    className="w-full bg-[#101010] border border-[#262626] text-zinc-500 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed"
                   />
-                  <span className="text-[11px] text-gray-500 mt-1 block">
+                  <span className="text-[11px] text-zinc-500 mt-1 block">
                     El correo es tu identificador único de vendedor y no se puede modificar.
                   </span>
                 </div>
@@ -623,7 +627,7 @@ export default function SellerLiveCodesPage() {
                 <div className="pt-2 flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-900/30 transition flex items-center gap-2"
+                    className="px-5 py-2.5 bg-[#E50914] hover:bg-[#b80710] text-white font-bold rounded-xl shadow-lg shadow-red-950/40 transition flex items-center gap-2"
                   >
                     <Check className="w-4 h-4" />
                     <span>Guardar Datos de la Cuenta</span>
@@ -633,14 +637,17 @@ export default function SellerLiveCodesPage() {
             </div>
 
             {/* Tarjeta 2: Cambiar Contraseña */}
-            <div className="bg-[#121826] border border-gray-800/90 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-800/80">
-                <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center font-bold">
+            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#262626]">
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center font-bold border border-red-500/30">
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white">Seguridad y Cambio de Contraseña</h2>
-                  <p className="text-xs text-gray-400">Actualiza tu clave de acceso para iniciar sesión en tu portal</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h2 className="text-base font-bold text-white">Seguridad y Cambio de Contraseña</h2>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">Actualiza tu clave de acceso para iniciar sesión en tu portal</p>
                 </div>
               </div>
 
@@ -661,13 +668,13 @@ export default function SellerLiveCodesPage() {
               <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
                 {currentUser?.password && (
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Contraseña Actual</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Contraseña Actual</label>
                     <input
                       type={showPassModalText ? "text" : "password"}
                       placeholder="••••••••"
                       value={currentPasswordInput}
                       onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 )}
@@ -675,11 +682,11 @@ export default function SellerLiveCodesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block font-medium text-gray-300">Nueva Contraseña</label>
+                      <label className="block font-medium text-zinc-300">Nueva Contraseña</label>
                       <button
                         type="button"
                         onClick={() => setShowPassModalText(!showPassModalText)}
-                        className="text-[11px] text-gray-400 hover:text-indigo-400 flex items-center gap-1"
+                        className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
                       >
                         {showPassModalText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                         <span>{showPassModalText ? "Ocultar" : "Mostrar"}</span>
@@ -691,19 +698,19 @@ export default function SellerLiveCodesPage() {
                       placeholder="Mínimo 4 caracteres"
                       value={newPasswordInput}
                       onChange={(e) => setNewPasswordInput(e.target.value)}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Confirmar Nueva Contraseña</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Confirmar Nueva Contraseña</label>
                     <input
                       type={showPassModalText ? "text" : "password"}
                       required
                       placeholder="Repite la nueva clave"
                       value={confirmPasswordInput}
                       onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 </div>
@@ -711,7 +718,7 @@ export default function SellerLiveCodesPage() {
                 <div className="pt-2 flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-purple-900/30 transition flex items-center gap-2"
+                    className="px-5 py-2.5 bg-[#E50914] hover:bg-[#b80710] text-white font-bold rounded-xl shadow-lg shadow-red-950/40 transition flex items-center gap-2"
                   >
                     <Lock className="w-4 h-4" />
                     <span>Actualizar Mi Contraseña</span>
@@ -727,232 +734,249 @@ export default function SellerLiveCodesPage() {
         {/* ========================================================================= */}
         {activeTab === "cuentas" && (
           <>
-
-        {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
-        {authError && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-950/70 border-2 border-red-500/50 text-red-200 flex items-start gap-3 shadow-xl">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-bold text-sm text-red-300">Consulta Bloqueada</div>
-              <div className="text-xs text-red-200/90 mt-0.5">{authError}</div>
-            </div>
-          </div>
-        )}
-
-        {/* SELECTOR DE CUENTA ACTIVA */}
-        <div className="bg-[#121826] border border-gray-800/80 rounded-2xl p-5 mb-8 shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-bold text-indigo-300 uppercase tracking-wider">
-              Tus Cuentas de Streaming Asignadas ({assignedAccounts.length})
-            </label>
-            {currentUser && (
-              <span className="text-[11px] text-gray-400">
-                Vendedor: <strong className="text-white">{currentUser.name}</strong>
-              </span>
-            )}
-          </div>
-
-          {assignedAccounts.length === 0 ? (
-            <div className="p-4 rounded-xl bg-[#0b0f19] border border-gray-800 text-center text-xs text-gray-500">
-              No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {assignedAccounts.map((acc) => (
-                <div
-                  key={acc.id}
-                  onClick={() => {
-                    setSelectedAccount(acc.email);
-                    setAuthError(null);
-                    setReceivedCode(null);
-                    setIsWaiting(false);
-                  }}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    selectedAccount === acc.email
-                      ? "bg-indigo-950/60 border-indigo-500 text-white shadow-md shadow-indigo-950/50"
-                      : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:border-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-indigo-400">{acc.service}</span>
-                    <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">{acc.profiles}</span>
-                  </div>
-                  <div className="font-mono text-xs text-white truncate">{acc.email}</div>
+            {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
+            {authError && (
+              <div className="mb-6 p-4 rounded-2xl bg-red-950/70 border-2 border-red-500/50 text-red-200 flex items-start gap-3 shadow-xl">
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-sm text-red-300">Consulta Bloqueada</div>
+                  <div className="text-xs text-red-200/90 mt-0.5">{authError}</div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 5 BOTONES DE ACCIONES PRINCIPALES */}
-        <div className="mb-8">
-          <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            Acciones Rápidas Disponibles
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {ACTIONS.map((action) => {
-              return (
-                <button
-                  key={action.id}
-                  onClick={() => handleTriggerAction(action.id)}
-                  disabled={isWaiting}
-                  className={`p-5 rounded-2xl bg-gradient-to-br ${action.color} border text-left shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:transform-none flex flex-col justify-between min-h-[140px]`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-9 h-9 rounded-xl bg-black/25 flex items-center justify-center text-white">
-                      {action.icon}
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-black/30 text-white/90 px-2 py-0.5 rounded-md">
-                      {action.badge}
-                    </span>
-                  </div>
-
-                  <div>
-                    <div className="font-bold text-white text-base tracking-tight leading-snug">
-                      {action.title}
-                    </div>
-                    <div className="text-[11px] text-white/80 mt-1 leading-tight">
-                      {action.subtitle}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* RESULTADO: CONTENEDOR GRANDE EN TIEMPO REAL */}
-        <div className="bg-[#0b0f19] border border-gray-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-800/80">
-            <div>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado de la Solicitud</span>
-              <div className="font-mono text-sm text-indigo-300 mt-0.5">
-                Cuenta: <strong className="text-white">{selectedAccount}</strong>
-              </div>
-            </div>
-
-            {isWaiting && (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-xs font-medium animate-pulse">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Esperando código entrante ({timerSeconds}s)...</span>
               </div>
             )}
-          </div>
 
-          {/* CONTENEDOR PRINCIPAL DEL CÓDIGO */}
-          <div className="my-8 text-center">
-            {isWaiting ? (
-              <div className="py-12 flex flex-col items-center justify-center">
-                <div className="w-16 h-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin mb-4" />
-                <h3 className="text-xl font-bold text-white">Obteniendo código...</h3>
-                <p className="text-xs text-gray-400 mt-1 max-w-sm">
-                  El sistema está verificando la bandeja de entrada para extraer el código o enlace en segundos.
-                </p>
+            {/* SECCIÓN 1: SELECTOR DE CUENTA ACTIVA */}
+            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-5 mb-8 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-[#262626]">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-5 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <label className="text-xs font-bold text-white uppercase tracking-wider">
+                    Tus Cuentas de Streaming Asignadas ({assignedAccounts.length})
+                  </label>
+                </div>
+                {currentUser && (
+                  <span className="text-[11px] text-zinc-400">
+                    Vendedor Activo: <strong className="text-white">{currentUser.name}</strong>
+                  </span>
+                )}
               </div>
-            ) : receivedCode ? (
-              <div className="py-4">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-                  ¡Código Recibido con Éxito!
-                </span>
 
-                {/* VISUALIZACIÓN DEL CÓDIGO */}
-                {isUrl ? (
-                  <div className="mt-6 max-w-2xl mx-auto p-4 rounded-2xl bg-[#141b2a] border border-gray-700 text-left">
-                    <div className="text-xs text-gray-400 font-semibold mb-1">Enlace de Confirmación / Restablecimiento:</div>
-                    <div className="font-mono text-xs text-indigo-300 break-all bg-black/40 p-3 rounded-xl border border-gray-800">
-                      {receivedCode}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <a
-                        href={receivedCode}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition"
+              {assignedAccounts.length === 0 ? (
+                <div className="p-6 rounded-xl bg-[#121212] border border-[#262626] text-center text-xs text-zinc-400">
+                  No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas desde el Catálogo Maestro.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {assignedAccounts.map((acc) => {
+                    const isSelected = selectedAccount === acc.email;
+                    return (
+                      <div
+                        key={acc.id}
+                        onClick={() => {
+                          setSelectedAccount(acc.email);
+                          setAuthError(null);
+                          setReceivedCode(null);
+                          setIsWaiting(false);
+                        }}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 transform scale-[1.02]"
+                            : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#181818]"
+                        }`}
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Abrir Enlace en Navegador
-                      </a>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`text-xs font-black ${isSelected ? "text-white" : "text-zinc-300"}`}>
+                            {acc.service}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 bg-[#282828] px-2 py-0.5 rounded font-mono">
+                            {acc.profiles}
+                          </span>
+                        </div>
+                        <div className="font-mono text-xs text-zinc-200 truncate">{acc.email}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* SECCIÓN 2: 5 BOTONES DE ACCIONES PRINCIPALES */}
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-1.5 h-5 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Acciones Rápidas Disponibles
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {ACTIONS.map((action) => {
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleTriggerAction(action.id)}
+                      disabled={isWaiting}
+                      className={`p-5 rounded-2xl bg-gradient-to-br ${action.color} border text-left shadow-lg transition-all transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex flex-col justify-between min-h-[140px]`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-9 h-9 rounded-xl bg-black/35 flex items-center justify-center text-white shadow-inner">
+                          {action.icon}
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-black/40 text-white px-2 py-0.5 rounded-md">
+                          {action.badge}
+                        </span>
+                      </div>
+
+                      <div>
+                        <div className="font-bold text-white text-base tracking-tight leading-snug">
+                          {action.title}
+                        </div>
+                        <div className="text-[11px] text-white/80 mt-1 leading-tight">
+                          {action.subtitle}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SECCIÓN 3: TERMINAL DE RESULTADO EN TIEMPO REAL */}
+            <div className="bg-[#181818] border border-[#2f2f2f] rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#262626]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">Terminal de Extracción</span>
+                  </div>
+                  <div className="font-mono text-sm text-zinc-300 mt-1 pl-3.5">
+                    Cuenta: <strong className="text-white">{selectedAccount}</strong>
+                  </div>
+                </div>
+
+                {isWaiting && (
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-xs font-medium animate-pulse">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Esperando código entrante ({timerSeconds}s)...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* CONTENEDOR PRINCIPAL DEL CÓDIGO */}
+              <div className="my-8 text-center">
+                {isWaiting ? (
+                  <div className="py-12 flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 rounded-full border-4 border-[#E50914]/20 border-t-[#E50914] animate-spin mb-4" />
+                    <h3 className="text-xl font-bold text-white">Obteniendo código en vivo...</h3>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+                      El sistema está verificando la bandeja de entrada para extraer el código o enlace en segundos.
+                    </p>
+                  </div>
+                ) : receivedCode ? (
+                  <div className="py-4">
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3.5 py-1 rounded-full">
+                      ¡Código Recibido con Éxito!
+                    </span>
+
+                    {/* VISUALIZACIÓN DEL CÓDIGO */}
+                    {isUrl ? (
+                      <div className="mt-6 max-w-2xl mx-auto p-4 rounded-2xl bg-[#121212] border border-[#2f2f2f] text-left shadow-xl">
+                        <div className="text-xs text-zinc-400 font-semibold mb-1">Enlace de Confirmación / Restablecimiento:</div>
+                        <div className="font-mono text-xs text-[#E50914] break-all bg-black/60 p-3 rounded-xl border border-[#262626]">
+                          {receivedCode}
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <a
+                            href={receivedCode}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 py-2 px-3 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-red-950/40"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Abrir Enlace en Navegador
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-6 inline-block bg-[#121212] border-2 border-[#E50914]/60 rounded-3xl px-8 py-6 shadow-2xl shadow-red-950/40">
+                        <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest text-white select-all">
+                          {receivedCode}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* BOTÓN DE COPIADO RÁPIDO */}
+                    <div className="mt-6 flex justify-center">
+                      <button
+                        onClick={handleCopy}
+                        className="py-3.5 px-8 rounded-2xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-sm shadow-xl shadow-red-950/50 flex items-center gap-2 transition transform hover:scale-105 active:scale-95"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-5 h-5 text-white" />
+                            <span>¡Copiado al Portapapeles!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-5 h-5" />
+                            <span>Copiar al Portapapeles</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-6 inline-block bg-[#141b2a] border-2 border-emerald-500/40 rounded-3xl px-8 py-6 shadow-2xl">
-                    <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
-                      {receivedCode}
-                    </span>
+                  <div className="py-12 text-zinc-500 flex flex-col items-center justify-center">
+                    <KeyRound className="w-12 h-12 text-zinc-700 mb-3" />
+                    <h3 className="text-base font-semibold text-zinc-400">Ninguna solicitud activa</h3>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Presiona cualquiera de los 5 botones superiores para solicitar el código que necesitas.
+                    </p>
                   </div>
                 )}
+              </div>
 
-                {/* BOTÓN DE COPIADO RÁPIDO */}
-                <div className="mt-6 flex justify-center">
-                  <button
-                    onClick={handleCopy}
-                    className="py-3.5 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-xl shadow-emerald-900/40 flex items-center gap-2 transition transform hover:scale-105"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-5 h-5 text-white" />
-                        <span>¡Copiado al Portapapeles!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-5 h-5" />
-                        <span>Copiar al Portapapeles</span>
-                      </>
-                    )}
-                  </button>
+              <div className="pt-4 border-t border-[#262626] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-500">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Los códigos expiran automáticamente a los 5 minutos de su emisión.</span>
                 </div>
+                {receivedCode && (
+                  <button
+                    onClick={() => setReceivedCode(null)}
+                    className="text-zinc-400 hover:text-white underline transition"
+                  >
+                    Limpiar pantalla
+                  </button>
+                )}
               </div>
-            ) : (
-              <div className="py-12 text-gray-500 flex flex-col items-center justify-center">
-                <KeyRound className="w-12 h-12 text-gray-700 mb-3" />
-                <h3 className="text-base font-semibold text-gray-400">Ninguna solicitud activa</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Presiona cualquiera de los 5 botones superiores para solicitar el código que necesitas.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Los códigos expiran automáticamente a los 5 minutos de su emisión.</span>
             </div>
-            {receivedCode && (
-              <button
-                onClick={() => setReceivedCode(null)}
-                className="text-gray-400 hover:text-white underline"
-              >
-                Limpiar pantalla
-              </button>
-            )}
-          </div>
-        </div>
-        </>
+          </>
         )}
 
         {/* MODAL CAMBIAR CONTRASEÑA */}
         {isPasswordModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#121826] border border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-md rounded-2xl p-6 shadow-2xl shadow-black/90 relative animate-in fade-in zoom-in duration-200">
               <button
                 onClick={() => setIsPasswordModalOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center"
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
                 ✕
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-                  <Lock className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
+                  <Lock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Cambiar mi Contraseña</h3>
-                  <p className="text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                    <h3 className="text-lg font-black text-white">Cambiar mi Contraseña</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
                     Actualiza tu clave de acceso personal para el panel de vendedor
                   </p>
                 </div>
@@ -975,24 +999,24 @@ export default function SellerLiveCodesPage() {
               <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
                 {currentUser?.password && (
                   <div>
-                    <label className="block font-medium text-gray-300 mb-1">Contraseña Actual</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Contraseña Actual</label>
                     <input
                       type={showPassModalText ? "text" : "password"}
                       placeholder="••••••••"
                       value={currentPasswordInput}
                       onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                      className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     />
                   </div>
                 )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block font-medium text-gray-300">Nueva Contraseña</label>
+                    <label className="block font-medium text-zinc-300">Nueva Contraseña</label>
                     <button
                       type="button"
                       onClick={() => setShowPassModalText(!showPassModalText)}
-                      className="text-[11px] text-gray-400 hover:text-indigo-400 flex items-center gap-1"
+                      className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
                     >
                       {showPassModalText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       <span>{showPassModalText ? "Ocultar" : "Mostrar"}</span>
@@ -1004,33 +1028,33 @@ export default function SellerLiveCodesPage() {
                     placeholder="Mínimo 4 caracteres"
                     value={newPasswordInput}
                     onChange={(e) => setNewPasswordInput(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium text-gray-300 mb-1">Confirmar Nueva Contraseña</label>
+                  <label className="block font-medium text-zinc-300 mb-1">Confirmar Nueva Contraseña</label>
                   <input
                     type={showPassModalText ? "text" : "password"}
                     required
                     placeholder="Repite la nueva contraseña"
                     value={confirmPasswordInput}
                     onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-gray-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                   />
                 </div>
 
-                <div className="pt-4 border-t border-gray-800 flex justify-end gap-2">
+                <div className="pt-4 border-t border-[#262626] flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsPasswordModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium"
+                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-900/30"
+                    className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
                   >
                     Guardar Contraseña
                   </button>

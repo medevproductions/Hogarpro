@@ -3,8 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --background: #090d16;
-  --foreground: #f3f4f6;
+  --background: #141414;
+  --foreground: #ffffff;
+  --netflix-red: #E50914;
+  --netflix-red-hover: #f40612;
+  --netflix-dark: #141414;
+  --netflix-card: #181818;
+  --netflix-card-hover: #232323;
+  --netflix-border: #2a2a2a;
 }
 
 body {
@@ -14,44 +20,65 @@ body {
   overflow-x: hidden;
 }
 
+/* Netflix Style Cards and Panels */
+.netflix-card {
+  background: #181818;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.netflix-card:hover {
+  background: #1f1f1f;
+  border-color: rgba(229, 9, 20, 0.4);
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.8), 0 0 20px -4px rgba(229, 9, 20, 0.25);
+}
+
+/* Netflix Red Glow Accent */
+.netflix-glow {
+  box-shadow: 0 0 30px -5px rgba(229, 9, 20, 0.45);
+}
+
+.netflix-pill {
+  background: rgba(229, 9, 20, 0.15);
+  border: 1px solid rgba(229, 9, 20, 0.4);
+  color: #ff5252;
+}
+
 /* Glassmorphism utility classes */
 .glass-panel {
-  background: rgba(18, 24, 38, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(24, 24, 24, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-card {
-  background: rgba(23, 30, 48, 0.5);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: all 0.25s ease-in-out;
 }
 
 .glass-card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(229, 9, 20, 0.5);
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(229, 9, 20, 0.2);
 }
 
-/* Neon glow */
-.glow-accent {
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
-}
-
-/* Custom scrollbars */
+/* Custom scrollbars inspired by Netflix web player */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d121f;
+  background: #141414;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f293d;
+  background: #2a2a2a;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #E50914;
 }
