@@ -28,7 +28,9 @@ import {
   Calendar,
   CalendarDays,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  CheckCircle2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -618,8 +620,9 @@ export default function SellerLiveCodesPage() {
             <LogOut className="w-3.5 h-3.5" />
             <span>Cerrar Sesión</span>
           </button>
-          <Link href="/" className="block text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1 transition">
-            ← Ver Tienda Pública
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1 transition">
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Ver Tienda Pública</span>
           </Link>
         </div>
       </aside>
@@ -995,10 +998,11 @@ export default function SellerLiveCodesPage() {
                           )}
                         </div>
 
-                        {/* Indicador en rojo de vencimiento */}
+                        {/* Indicador de vencimiento */}
                         {hasExpiring && (
-                          <div className="mt-1 bg-black/60 rounded px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black text-white tracking-tight truncate border border-white/20">
-                            🔴 {expiringAccountsToday.length} {expiringAccountsToday.length === 1 ? "vence" : "vencen"}
+                          <div className="mt-1 bg-black/60 rounded px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black text-white tracking-tight truncate border border-white/20 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                            <span>{expiringAccountsToday.length} {expiringAccountsToday.length === 1 ? "vence" : "vencen"}</span>
                           </div>
                         )}
                       </div>
@@ -1031,8 +1035,9 @@ export default function SellerLiveCodesPage() {
                     </div>
 
                     {dayAccounts.length === 0 ? (
-                      <div className="p-6 rounded-xl bg-[#101010] border border-dashed border-[#262626] text-center text-xs text-zinc-400">
-                        🎉 No tienes ninguna cuenta programada para vencer el {selectedCalendarDate}.
+                      <div className="p-6 rounded-xl bg-[#101010] border border-dashed border-[#262626] text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span>No tienes ninguna cuenta programada para vencer el {selectedCalendarDate}.</span>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1323,7 +1328,7 @@ export default function SellerLiveCodesPage() {
                 onClick={() => setIsPasswordModalOpen(false)}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3 mb-4">

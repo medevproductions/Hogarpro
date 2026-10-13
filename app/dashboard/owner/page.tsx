@@ -53,7 +53,16 @@ import {
   Bell,
   Pin,
   CalendarDays,
-  CheckCircle2
+  CheckCircle2,
+  CheckCircle,
+  User,
+  Briefcase,
+  Phone,
+  Bookmark,
+  FileText,
+  Info,
+  ArrowLeftRight,
+  ArrowLeft
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { 
@@ -730,7 +739,7 @@ export default function OwnerDashboard() {
           return {
             ...acc,
             customerName: saleForm.customerName.trim(),
-            seller: `👤 ${saleForm.customerName.trim()}`,
+            seller: saleForm.customerName.trim(),
             status: "assigned" as const,
             notes: (acc.notes ? acc.notes + " • " : "") + `Vendido el ${new Date().toLocaleDateString()}`
           };
@@ -1419,15 +1428,17 @@ export default function OwnerDashboard() {
           <div className="mt-2.5 pt-2.5 border-t border-[#262626] space-y-1.5 text-xs">
             <Link
               href="/dashboard/seller"
-              className="block p-2 rounded-lg bg-[#222222] text-[#E50914] font-semibold hover:bg-zinc-800"
+              className="flex items-center gap-1.5 p-2 rounded-lg bg-[#222222] text-[#E50914] font-semibold hover:bg-zinc-800"
             >
-              ⇄ Cambiar a Vista Vendedor
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              <span>Cambiar a Vista Vendedor</span>
             </Link>
             <Link
               href="/"
-              className="block p-2 rounded-lg bg-[#222222] text-zinc-400 font-medium hover:text-white"
+              className="flex items-center gap-1.5 p-2 rounded-lg bg-[#222222] text-zinc-400 font-medium hover:text-white"
             >
-              ← Ver Tienda Pública
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Ver Tienda Pública</span>
             </Link>
           </div>
         )}
@@ -1571,22 +1582,25 @@ export default function OwnerDashboard() {
             <div className="pt-2">
               <button
                 onClick={() => setActiveTab("todo")}
-                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs transition ${
+                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-2 ${
                   activeTab === "todo" ? "bg-zinc-800 text-white font-bold" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                👁️ Ver Todas las Secciones
+                <Eye className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Ver Todas las Secciones</span>
               </button>
             </div>
           </nav>
         </div>
 
         <div className="pt-4 border-t border-[#262626] space-y-2 text-xs">
-          <Link href="/dashboard/seller" className="block text-[#E50914] hover:underline font-semibold">
-            ⇄ Cambiar a Vista Vendedor
+          <Link href="/dashboard/seller" className="flex items-center gap-1.5 text-[#E50914] hover:underline font-semibold">
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span>Cambiar a Vista Vendedor</span>
           </Link>
-          <Link href="/" className="block text-zinc-500 hover:text-zinc-300">
-            ← Ver Tienda Pública
+          <Link href="/" className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300">
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Ver Tienda Pública</span>
           </Link>
         </div>
       </aside>
@@ -1942,19 +1956,21 @@ export default function OwnerDashboard() {
                   </button>
                   <button
                     onClick={() => setSaleFilterType("detal")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
                       saleFilterType === "detal" ? "bg-teal-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    🏷️ Detal ({sales.filter(s => s.type === "detal").length})
+                    <Tag className="w-3 h-3" />
+                    <span>Detal ({sales.filter(s => s.type === "detal").length})</span>
                   </button>
                   <button
                     onClick={() => setSaleFilterType("mayor")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
                       saleFilterType === "mayor" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    📦 Mayor ({sales.filter(s => s.type === "mayor").length})
+                    <Package className="w-3 h-3" />
+                    <span>Mayor ({sales.filter(s => s.type === "mayor").length})</span>
                   </button>
                 </div>
 
@@ -1964,11 +1980,11 @@ export default function OwnerDashboard() {
                   className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="all">Todos los Métodos</option>
-                  <option value="efectivo">💵 Efectivo (En Persona)</option>
-                  <option value="nequi">📱 Nequi</option>
-                  <option value="daviplata">📱 Daviplata</option>
-                  <option value="transferencia">🏦 Transferencia / Banco</option>
-                  <option value="binance">🪙 Binance / USDT</option>
+                  <option value="efectivo">Efectivo (En Persona)</option>
+                  <option value="nequi">Nequi</option>
+                  <option value="daviplata">Daviplata</option>
+                  <option value="transferencia">Transferencia / Banco</option>
+                  <option value="binance">Binance / USDT</option>
                 </select>
               </div>
 
@@ -2027,8 +2043,8 @@ export default function OwnerDashboard() {
                             </span>
                           )}
                           {sale.isPhysicalSale && (
-                            <span className="block mt-0.5 text-[9px] text-amber-400 font-semibold">
-                              💵 En Persona
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] text-amber-400 font-semibold">
+                              <Banknote className="w-2.5 h-2.5" /> En Persona
                             </span>
                           )}
                         </td>
@@ -2350,8 +2366,8 @@ export default function OwnerDashboard() {
                         <td className="py-3.5 px-4">
                           {acc.customerName ? (
                             <div>
-                              <span className="text-white font-semibold flex items-center gap-1 text-xs">
-                                <span>👤</span>
+                              <span className="text-white font-semibold flex items-center gap-1.5 text-xs">
+                                <User className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                                 <span>{acc.customerName}</span>
                               </span>
                               {acc.sellerId && (
@@ -2361,8 +2377,8 @@ export default function OwnerDashboard() {
                               )}
                             </div>
                           ) : acc.sellerId ? (
-                            <span className="text-zinc-200 font-medium flex items-center gap-1">
-                              <span>💼</span>
+                            <span className="text-zinc-200 font-medium flex items-center gap-1.5">
+                              <Briefcase className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                               <span>{acc.seller}</span>
                             </span>
                           ) : (
@@ -2515,8 +2531,8 @@ export default function OwnerDashboard() {
                             <span>{s.name}</span>
                           </div>
                           <div className="text-xs text-[#ff6666] font-mono mt-1 font-semibold">{s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`}</div>
-                          <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
-                            <span>📞</span>
+                          <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1.5">
+                            <Phone className="w-3 h-3 text-zinc-500 shrink-0" />
                             <span>{s.phone}</span>
                           </div>
                         </div>
@@ -3034,14 +3050,15 @@ export default function OwnerDashboard() {
                           {/* Badges de eventos */}
                           <div className="mt-1 space-y-1">
                             {expiringAccountsOnDay.length > 0 && (
-                              <div className="px-1.5 py-0.5 rounded bg-[#E50914] text-white text-[9px] sm:text-[10px] font-black tracking-tight flex items-center justify-between shadow-sm">
-                                <span className="truncate">🔴 {expiringAccountsOnDay.length} {expiringAccountsOnDay.length === 1 ? "vence" : "vencen"}</span>
+                              <div className="px-1.5 py-0.5 rounded bg-[#E50914] text-white text-[9px] sm:text-[10px] font-black tracking-tight flex items-center gap-1 shadow-sm">
+                                <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                                <span className="truncate">{expiringAccountsOnDay.length} {expiringAccountsOnDay.length === 1 ? "vence" : "vencen"}</span>
                               </div>
                             )}
 
                             {remindersOnDay.length > 0 && (
                               <div className="px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold flex items-center gap-1 truncate">
-                                <span>📌</span>
+                                <Bookmark className="w-2.5 h-2.5 text-indigo-400 shrink-0" />
                                 <span className="truncate">{remindersOnDay.length} rec.</span>
                               </div>
                             )}
@@ -3305,8 +3322,9 @@ export default function OwnerDashboard() {
                 </div>
 
                 {expiringSoonAccounts.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-zinc-400">
-                    🎉 ¡Todo al día! No hay cuentas por vencer en los próximos 7 días.
+                  <div className="p-8 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Todo al día. No hay cuentas por vencer en los próximos 7 días.</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -3436,8 +3454,9 @@ export default function OwnerDashboard() {
                                 {rem.title}
                               </div>
                               <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400 flex-wrap">
-                                <span className="font-mono text-emerald-400 bg-black/60 px-2 py-0.5 rounded border border-zinc-700">
-                                  📅 {rem.date}
+                                <span className="font-mono text-emerald-400 bg-black/60 px-2 py-0.5 rounded border border-zinc-700 flex items-center gap-1">
+                                  <Calendar className="w-2.5 h-2.5 text-zinc-400 shrink-0" />
+                                  <span>{rem.date}</span>
                                 </span>
                                 <span className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
                                   rem.priority === "urgente" ? "bg-red-950 text-red-400" : rem.priority === "alta" ? "bg-amber-950 text-amber-400" : "bg-blue-950 text-blue-400"
@@ -3633,7 +3652,7 @@ export default function OwnerDashboard() {
                 onClick={() => setIsAccountModalOpen(false)}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-2.5 mb-1">
@@ -3712,8 +3731,8 @@ export default function OwnerDashboard() {
                       onChange={(e) => setFormData({ ...formData, isVerified: e.target.value === "true" })}
                       className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     >
-                      <option value="true">✅ Sí (Funciona / Comprobada)</option>
-                      <option value="false">⚠️ No (Caída / Falla)</option>
+                      <option value="true">Sí (Funciona / Comprobada)</option>
+                      <option value="false">No (Caída / Falla)</option>
                     </select>
                   </div>
                   <div>
@@ -3925,7 +3944,7 @@ export default function OwnerDashboard() {
                 onClick={() => setIsExcelModalOpen(false)}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#262626] pr-8">
@@ -3969,7 +3988,7 @@ export default function OwnerDashboard() {
                     onChange={(e) => setSelectedImportPlatform(e.target.value)}
                     className="w-full sm:w-auto bg-[#1c1c1c] border border-[#383838] rounded-xl px-3 py-2 text-xs text-white font-semibold focus:outline-none focus:border-[#E50914] shadow-sm"
                   >
-                    <option value="auto">⚡ Detectar automáticamente (Columna "Plataforma")</option>
+                    <option value="auto">Detectar automáticamente (Columna "Plataforma")</option>
                     {catalogPlatforms.map((p) => (
                       <option key={p.id} value={p.name}>
                         {p.name}
@@ -4014,7 +4033,10 @@ export default function OwnerDashboard() {
                               <span>{b.count} cuentas importadas</span>
                             </div>
                             <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-2">
-                              <span>📄 {b.filename || "Lista"}</span>
+                              <span className="flex items-center gap-1">
+                                <FileText className="w-3 h-3 text-zinc-400 shrink-0" />
+                                <span>{b.filename || "Lista"}</span>
+                              </span>
                               <span>•</span>
                               <span>Subida {getTimeAgo(b.importedAt)} ({new Date(b.importedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})</span>
                             </div>
@@ -4089,7 +4111,10 @@ export default function OwnerDashboard() {
                         </span>
                       )}
                     </span>
-                    <span className="text-[11px] text-emerald-400 font-medium">✓ Archivo listo para procesar</span>
+                    <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Archivo listo para procesar</span>
+                    </span>
                   </div>
 
                   <div className="max-h-56 overflow-y-auto border border-[#2a2a2a] rounded-xl bg-[#121212]">
@@ -4117,7 +4142,10 @@ export default function OwnerDashboard() {
                           return (
                             <tr key={i} className="hover:bg-[#1a1a1a]">
                               <td className="py-2 px-3 font-semibold text-cyan-300">
-                                🌍 {row["País"] || row["Pais"] || row["Country"] || "Global"}
+                                <span className="inline-flex items-center gap-1">
+                                  <Globe className="w-3 h-3 text-cyan-400/80 shrink-0" />
+                                  <span>{row["País"] || row["Pais"] || row["Country"] || "Global"}</span>
+                                </span>
                               </td>
                               <td className="py-2 px-3 font-semibold text-white">
                                 {platDisplay}
@@ -4131,11 +4159,11 @@ export default function OwnerDashboard() {
                               <td className="py-2 px-3 text-center">
                                 {isVer ? (
                                   <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded font-semibold">
-                                    ✓ Sirve
+                                    <Check className="w-2.5 h-2.5" /> Funciona
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 text-[10px] text-rose-300 bg-rose-950/60 border border-rose-500/30 px-1.5 py-0.5 rounded font-semibold">
-                                    ✗ Falla
+                                    <X className="w-2.5 h-2.5" /> Falla
                                   </span>
                                 )}
                               </td>
@@ -4194,7 +4222,7 @@ export default function OwnerDashboard() {
                 onClick={() => setIsSellerModalOpen(false)}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3 mb-4">
@@ -4295,7 +4323,7 @@ export default function OwnerDashboard() {
                 onClick={() => setIsCatalogModalOpen(false)}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3 mb-4">
@@ -4438,7 +4466,7 @@ export default function OwnerDashboard() {
                 onClick={() => setIsSaleModalOpen(false)}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3 mb-5">
@@ -4658,12 +4686,12 @@ export default function OwnerDashboard() {
                     onChange={(e) => setSaleForm({ ...saleForm, paymentMethod: e.target.value as any })}
                     className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                   >
-                    <option value="efectivo">💵 Efectivo (Dinero en Mano)</option>
-                    <option value="nequi">📲 Nequi</option>
-                    <option value="daviplata">📱 Daviplata</option>
-                    <option value="transferencia">🏦 Transferencia Bancaria</option>
-                    <option value="binance">🪙 Binance / Cripto (USDT)</option>
-                    <option value="otro">💳 Otro Método</option>
+                    <option value="efectivo">Efectivo (Dinero en Mano)</option>
+                    <option value="nequi">Nequi</option>
+                    <option value="daviplata">Daviplata</option>
+                    <option value="transferencia">Transferencia Bancaria</option>
+                    <option value="binance">Binance / Cripto (USDT)</option>
+                    <option value="otro">Otro Método</option>
                   </select>
                 </div>
 
@@ -4726,8 +4754,9 @@ export default function OwnerDashboard() {
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-2">
-                    💡 La ganancia se calcula como (Precio Cobrado - Costo), pero puedes modificarla directamente si cobraste un recargo o ajuste.
+                  <p className="text-[10px] text-zinc-400 mt-2 flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                    <span>La ganancia se calcula como (Precio Cobrado - Costo), pero puedes modificarla directamente si cobraste un recargo o ajuste.</span>
                   </p>
                 </div>
 

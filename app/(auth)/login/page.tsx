@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Tv, Lock, Mail, ArrowRight, Shield, User, Sparkles } from "lucide-react";
+import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, User, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -141,8 +141,9 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-[#2a2a2a] text-center">
-            <Link href="/" className="text-xs text-gray-400 hover:text-[#E50914] transition">
-              ← Volver al Catálogo Público
+            <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#E50914] transition">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Volver al Catálogo Público</span>
             </Link>
           </div>
         </div>

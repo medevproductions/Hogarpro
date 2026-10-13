@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Tv, Lock, Mail, ArrowRight, Shield, ShieldCheck, AlertCircle } from "lucide-react";
+import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, ShieldCheck, AlertCircle } from "lucide-react";
 import { setCurrentUser, SystemUser } from "@/lib/account-manager";
 
 export default function AdminLoginPage() {
@@ -142,8 +142,9 @@ export default function AdminLoginPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <Link href="/" className="text-xs text-zinc-500 hover:text-zinc-300 transition">
-            ← Ir al Portal de Vendedores
+          <Link href="/dashboard/seller" className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Ir al Portal de Vendedores</span>
           </Link>
         </div>
       </div>

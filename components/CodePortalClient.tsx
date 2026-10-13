@@ -10,6 +10,7 @@ import {
   Check, 
   RefreshCw, 
   ArrowLeft,
+  Search,
   ShieldCheck,
   ExternalLink,
   KeyRound,
@@ -332,8 +333,9 @@ export default function CodePortalClient({
                   className="w-full bg-[#0b0f19] border border-gray-700/80 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
                 />
               </div>
-              <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
-                <span>🔍 Se buscará solo correos dirigidos a este embudo en {PLATFORMS.find(p => p.id === platform)?.name}.</span>
+              <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <span>Se buscará solo correos dirigidos a este embudo en {PLATFORMS.find(p => p.id === platform)?.name}.</span>
               </p>
             </div>
 
