@@ -71,6 +71,17 @@ export interface SaleRecord {
   isPhysicalSale?: boolean; // Venta realizada en persona física
 }
 
+export interface ExpenseRecord {
+  id: string;
+  date: string; // ISO string o YYYY-MM-DD
+  title: string;
+  category: "proveedor" | "publicidad" | "servicios" | "comision" | "operativo" | "otro";
+  amount: number;
+  paymentMethod: "efectivo" | "nequi" | "daviplata" | "transferencia" | "binance" | "otro";
+  supplier?: string;
+  notes?: string;
+}
+
 export interface CalendarReminder {
   id: string;
   date: string; // YYYY-MM-DD
@@ -86,6 +97,7 @@ const STORAGE_KEY_ACCOUNTS = "streamhub_master_accounts";
 const STORAGE_KEY_CURRENT_USER = "streamhub_current_session";
 const STORAGE_KEY_CATALOG = "streamhub_catalog_platforms";
 const STORAGE_KEY_SALES = "streamhub_sales_records";
+const STORAGE_KEY_EXPENSES = "streamhub_expense_records";
 const STORAGE_KEY_REMINDERS = "streamhub_calendar_reminders";
 
 export const DEFAULT_PLATFORMS: CatalogPlatform[] = [
@@ -392,6 +404,58 @@ export function saveStoredSales(sales: SaleRecord[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_SALES, JSON.stringify(sales));
     window.dispatchEvent(new Event("streamhub_sales_updated"));
+  }
+}
+
+export const DEFAULT_EXPENSES: ExpenseRecord[] = [
+  {
+    id: "exp-1",
+    date: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString().split("T")[0],
+    title: "Compra lote cuentas Netflix a proveedor",
+    category: "proveedor",
+    amount: 25.0,
+    paymentMethod: "binance",
+    supplier: "MegaStream Supplier",
+    notes: "Lote de 15 cuentas con garantía 30 días"
+  },
+  {
+    id: "exp-2",
+    date: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().split("T")[0],
+    title: "Campaña publicitaria en redes (Facebook / WhatsApp)",
+    category: "publicidad",
+    amount: 12.0,
+    paymentMethod: "nequi",
+    notes: "Anuncios dirigidos a venta de combos"
+  },
+  {
+    id: "exp-3",
+    date: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString().split("T")[0],
+    title: "Servidor proxy y pasarela de webhooks",
+    category: "servicios",
+    amount: 8.5,
+    paymentMethod: "transferencia",
+    notes: "Renovación mensual de infraestructura"
+  }
+];
+
+export function getStoredExpenses(): ExpenseRecord[] {
+  if (typeof window === "undefined") return DEFAULT_EXPENSES;
+  const stored = localStorage.getItem(STORAGE_KEY_EXPENSES);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY_EXPENSES, JSON.stringify(DEFAULT_EXPENSES));
+    return DEFAULT_EXPENSES;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return DEFAULT_EXPENSES;
+  }
+}
+
+export function saveStoredExpenses(expenses: ExpenseRecord[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY_EXPENSES, JSON.stringify(expenses));
+    window.dispatchEvent(new Event("streamhub_expenses_updated"));
   }
 }
 

@@ -78,6 +78,8 @@ import {
   deleteImportBatch,
   getStoredSales,
   saveStoredSales,
+  getStoredExpenses,
+  saveStoredExpenses,
   getStoredReminders,
   saveStoredReminders,
   addCalendarReminder,
@@ -85,6 +87,7 @@ import {
   toggleCalendarReminder,
   CalendarReminder,
   SaleRecord,
+  ExpenseRecord,
   ImportBatchRecord,
   CatalogPlatform,
   SystemUser, 
@@ -299,6 +302,42 @@ export default function OwnerDashboard() {
     notes: "",
     isPhysicalSale: false
   });
+  // SUB-PESTAÑA DE FINANZAS ("ventas" | "gastos" | "grafica")
+  const [financeSubTab, setFinanceSubTab] = useState<"ventas" | "gastos" | "grafica">("ventas");
+
+  // SECCIÓN DE GASTOS
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [expenseFilterCategory, setExpenseFilterCategory] = useState<string>("all");
+  const [expenseFilterPayment, setExpenseFilterPayment] = useState<string>("all");
+  const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [expenseSuccessMessage, setExpenseSuccessMessage] = useState<string | null>(null);
+  const [expenseForm, setExpenseForm] = useState<{
+    id: string;
+    date: string;
+    title: string;
+    category: "proveedor" | "publicidad" | "servicios" | "comision" | "operativo" | "otro";
+    amount: number;
+    paymentMethod: "efectivo" | "nequi" | "daviplata" | "transferencia" | "binance" | "otro";
+    supplier: string;
+    notes: string;
+  }>({
+    id: "",
+    date: new Date().toISOString().split("T")[0],
+    title: "",
+    category: "proveedor",
+    amount: 0,
+    paymentMethod: "efectivo",
+    supplier: "",
+    notes: ""
+  });
+
+  // GRÁFICA FINANCIERA (CONSULTA MENSUAL Y ANUAL)
+  const [chartPeriod, setChartPeriod] = useState<"mensual" | "anual">("mensual");
+  const [chartYear, setChartYear] = useState<number>(new Date().getFullYear());
+  const [chartMonth, setChartMonth] = useState<number>(new Date().getMonth());
+  const [chartHoveredIndex, setChartHoveredIndex] = useState<number | null>(null);
 
   // Probador de Códigos en Vivo para Owner
   const [testEmail, setTestEmail] = useState("");
@@ -318,6 +357,10 @@ export default function OwnerDashboard() {
     // Cargar Libro de Ventas
     const rawSales = getStoredSales();
     setSales(rawSales);
+
+    // Cargar Libro de Gastos
+    const rawExpenses = getStoredExpenses();
+    setExpenses(rawExpenses);
 
     // Cargar Recordatorios del Calendario
     const rawReminders = getStoredReminders();
@@ -407,11 +450,15 @@ export default function OwnerDashboard() {
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("streamhub_users_updated", handleStorageChange);
     window.addEventListener("streamhub_reminders_updated", handleStorageChange);
+    window.addEventListener("streamhub_sales_updated", handleStorageChange);
+    window.addEventListener("streamhub_expenses_updated", handleStorageChange);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("streamhub_users_updated", handleStorageChange);
       window.removeEventListener("streamhub_reminders_updated", handleStorageChange);
+      window.removeEventListener("streamhub_sales_updated", handleStorageChange);
+      window.removeEventListener("streamhub_expenses_updated", handleStorageChange);
     };
   }, [router]);
 
@@ -586,6 +633,158 @@ export default function OwnerDashboard() {
       digitalRevenue
     };
   }, [sales]);
+
+  // FILTRADO DINÁMICO DE GASTOS
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((e) => {
+      const matchCat = expenseFilterCategory === "all" || e.category === expenseFilterCategory;
+      const matchPayment = expenseFilterPayment === "all" || e.paymentMethod === expenseFilterPayment;
+      const q = expenseSearchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        e.title.toLowerCase().includes(q) ||
+        (e.supplier && e.supplier.toLowerCase().includes(q)) ||
+        (e.notes && e.notes.toLowerCase().includes(q));
+
+      return matchCat && matchPayment && matchSearch;
+    });
+  }, [expenses, expenseFilterCategory, expenseFilterPayment, expenseSearchQuery]);
+
+  // CÁLCULO DE MÉTRICAS CONSOLIDADAS (VENTAS + GASTOS)
+  const financeConsolidatedStats = useMemo(() => {
+    const totalCollected = sales.reduce((acc, s) => acc + Number(s.salePrice || 0), 0);
+    const totalAccountCosts = sales.reduce((acc, s) => acc + Number(s.costPrice || 0), 0);
+    const totalOpExpenses = expenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
+    const grandTotalExpenses = totalAccountCosts + totalOpExpenses;
+    const realNetProfit = totalCollected - grandTotalExpenses;
+    const realMargin = totalCollected > 0 ? ((realNetProfit / totalCollected) * 100).toFixed(1) : "0";
+
+    return {
+      totalCollected,
+      totalAccountCosts,
+      totalOpExpenses,
+      grandTotalExpenses,
+      realNetProfit,
+      realMargin,
+      totalSalesCount: sales.length,
+      totalExpensesCount: expenses.length
+    };
+  }, [sales, expenses]);
+
+  // DATOS PARA LA GRÁFICA FINANCIERA (MENSUAL / ANUAL)
+  const chartData = useMemo(() => {
+    const monthNames = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    if (chartPeriod === "anual") {
+      const shortMonths = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+      const items = shortMonths.map((name, idx) => {
+        const monthSales = sales.filter((s) => {
+          const d = new Date(s.date);
+          return d.getFullYear() === chartYear && d.getMonth() === idx;
+        });
+        const income = monthSales.reduce((sum, s) => sum + Number(s.salePrice || 0), 0);
+        const accountCost = monthSales.reduce((sum, s) => sum + Number(s.costPrice || 0), 0);
+
+        const monthExpenses = expenses.filter((e) => {
+          const d = new Date(e.date);
+          return d.getFullYear() === chartYear && d.getMonth() === idx;
+        });
+        const opExpense = monthExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+        const totalExpense = accountCost + opExpense;
+        const profit = income - totalExpense;
+
+        return {
+          label: name,
+          fullName: `${monthNames[idx]} ${chartYear}`,
+          income,
+          accountCost,
+          opExpense,
+          totalExpense,
+          profit,
+          salesCount: monthSales.length,
+          expensesCount: monthExpenses.length
+        };
+      });
+
+      const maxVal = Math.max(...items.map((i) => Math.max(i.income, i.totalExpense)), 10);
+      const totalYearIncome = items.reduce((s, i) => s + i.income, 0);
+      const totalYearExpense = items.reduce((s, i) => s + i.totalExpense, 0);
+      const totalYearProfit = totalYearIncome - totalYearExpense;
+
+      return {
+        type: "anual" as const,
+        year: chartYear,
+        items,
+        maxVal,
+        totalIncome: totalYearIncome,
+        totalExpense: totalYearExpense,
+        totalProfit: totalYearProfit
+      };
+    } else {
+      const weeks = [
+        { label: "Sem 1", daysLabel: "Días 1 - 7", start: 1, end: 7 },
+        { label: "Sem 2", daysLabel: "Días 8 - 14", start: 8, end: 14 },
+        { label: "Sem 3", daysLabel: "Días 15 - 21", start: 15, end: 21 },
+        { label: "Sem 4", daysLabel: "Días 22 - 28", start: 22, end: 28 },
+        { label: "Sem 5", daysLabel: "Días 29+", start: 29, end: 31 }
+      ];
+
+      const items = weeks.map((w) => {
+        const weekSales = sales.filter((s) => {
+          const d = new Date(s.date);
+          const day = d.getDate();
+          return d.getFullYear() === chartYear && d.getMonth() === chartMonth && day >= w.start && day <= w.end;
+        });
+        const income = weekSales.reduce((sum, s) => sum + Number(s.salePrice || 0), 0);
+        const accountCost = weekSales.reduce((sum, s) => sum + Number(s.costPrice || 0), 0);
+
+        const weekExpenses = expenses.filter((e) => {
+          const d = new Date(e.date);
+          const day = d.getDate();
+          return d.getFullYear() === chartYear && d.getMonth() === chartMonth && day >= w.start && day <= w.end;
+        });
+        const opExpense = weekExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+        const totalExpense = accountCost + opExpense;
+        const profit = income - totalExpense;
+
+        return {
+          label: w.label,
+          daysLabel: w.daysLabel,
+          fullName: `${w.label} (${w.daysLabel})`,
+          income,
+          accountCost,
+          opExpense,
+          totalExpense,
+          profit,
+          salesCount: weekSales.length,
+          expensesCount: weekExpenses.length
+        };
+      });
+
+      const maxVal = Math.max(...items.map((i) => Math.max(i.income, i.totalExpense)), 10);
+      const totalMonthIncome = items.reduce((s, i) => s + i.income, 0);
+      const totalMonthExpense = items.reduce((s, i) => s + i.totalExpense, 0);
+      const totalMonthProfit = totalMonthIncome - totalMonthExpense;
+
+      return {
+        type: "mensual" as const,
+        year: chartYear,
+        month: chartMonth,
+        monthName: monthNames[chartMonth],
+        items,
+        maxVal,
+        totalIncome: totalMonthIncome,
+        totalExpense: totalMonthExpense,
+        totalProfit: totalMonthProfit
+      };
+    }
+  }, [sales, expenses, chartPeriod, chartYear, chartMonth]);
 
   // CÁLCULO DE CUENTAS POR VENCER (PRÓXIMOS 7 DÍAS)
   const expiringSoonAccounts = useMemo(() => {
@@ -787,6 +986,105 @@ export default function OwnerDashboard() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Libro de Ventas");
     XLSX.writeFile(wb, `Libro_Ventas_StreamHub_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  // ABRIR MODAL PARA REGISTRAR GASTO
+  const handleOpenCreateExpense = () => {
+    setEditingExpenseId(null);
+    setExpenseForm({
+      id: `exp-${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      title: "",
+      category: "proveedor",
+      amount: 0,
+      paymentMethod: "efectivo",
+      supplier: "",
+      notes: ""
+    });
+    setIsExpenseModalOpen(true);
+  };
+
+  // ABRIR MODAL PARA EDITAR GASTO
+  const handleOpenEditExpense = (expense: ExpenseRecord) => {
+    setEditingExpenseId(expense.id);
+    setExpenseForm({
+      id: expense.id,
+      date: expense.date.split("T")[0],
+      title: expense.title,
+      category: expense.category,
+      amount: expense.amount,
+      paymentMethod: expense.paymentMethod,
+      supplier: expense.supplier || "",
+      notes: expense.notes || ""
+    });
+    setIsExpenseModalOpen(true);
+  };
+
+  // GUARDAR GASTO
+  const handleSaveExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expenseForm.title.trim() || Number(expenseForm.amount) <= 0) {
+      alert("Por favor indica el concepto del gasto y un monto mayor a cero.");
+      return;
+    }
+
+    const newExpenseRecord: ExpenseRecord = {
+      id: editingExpenseId || `exp-${Date.now()}`,
+      date: expenseForm.date || new Date().toISOString().split("T")[0],
+      title: expenseForm.title.trim(),
+      category: expenseForm.category,
+      amount: Number(expenseForm.amount) || 0,
+      paymentMethod: expenseForm.paymentMethod,
+      supplier: expenseForm.supplier.trim() || undefined,
+      notes: expenseForm.notes.trim() || undefined
+    };
+
+    let updated: ExpenseRecord[];
+    if (editingExpenseId) {
+      updated = expenses.map((item) => (item.id === editingExpenseId ? newExpenseRecord : item));
+    } else {
+      updated = [newExpenseRecord, ...expenses];
+    }
+
+    setExpenses(updated);
+    saveStoredExpenses(updated);
+    setIsExpenseModalOpen(false);
+    setExpenseSuccessMessage(
+      editingExpenseId ? "Gasto actualizado con éxito" : `¡Gasto registrado con éxito! Monto: ${formatCurrency(newExpenseRecord.amount)}`
+    );
+    setTimeout(() => setExpenseSuccessMessage(null), 3000);
+  };
+
+  // ELIMINAR GASTO
+  const handleDeleteExpense = (expenseId: string) => {
+    if (confirm("¿Estás seguro de eliminar este registro de gasto?")) {
+      const updated = expenses.filter((e) => e.id !== expenseId);
+      setExpenses(updated);
+      saveStoredExpenses(updated);
+    }
+  };
+
+  // EXPORTAR GASTOS A EXCEL
+  const handleExportExpensesExcel = () => {
+    if (filteredExpenses.length === 0) {
+      alert("No hay registros de gastos para exportar con los filtros actuales.");
+      return;
+    }
+
+    const exportData = filteredExpenses.map((e) => ({
+      "Fecha": e.date.split("T")[0],
+      "Concepto": e.title,
+      "Categoría": e.category.toUpperCase(),
+      "Proveedor / Beneficiario": e.supplier || "No especificado",
+      "Monto ($)": e.amount,
+      "Método de Pago": e.paymentMethod.toUpperCase(),
+      "Notas": e.notes || ""
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Libro de Gastos");
+    XLSX.writeFile(wb, `Libro_Gastos_StreamHub_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   // GESTIÓN DEL CATÁLOGO DE PLATAFORMAS (CREAR / EDITAR / ELIMINAR)
@@ -1823,276 +2121,944 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* SECCIÓN LIBRO DE VENTAS & SHEET ESTILO NETFLIX CONSOLA */}
+        {/* SECCIÓN LIBRO CONTABLE, GASTOS & BALANCE FINANCIERO ESTILO NETFLIX CONSOLA */}
         {(activeTab === "ventas" || activeTab === "todo") && (
           <section id="ventas-sheet" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-4 sm:p-6 mb-8 shadow-2xl">
+            {/* Cabecera Principal */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-5 border-b border-[#282828]">
               <div>
                 <div className="flex items-center gap-2.5 mb-1.5">
                   <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
                   <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
                     <Receipt className="w-5 h-5 text-[#E50914]" />
-                    <span>Libro Contable de Ventas & Sheet</span>
-                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-black/60 text-emerald-400 border border-emerald-500/30">
-                      {sales.length} registros
-                    </span>
+                    <span>Libro Contable, Gastos & Balance Financiero</span>
                   </h2>
                 </div>
                 <p className="text-xs text-zinc-400">
-                  Control de ventas al detal (clientes directos / en persona) y al mayor (revendedores) con ganancia en vivo
+                  Control contable de ventas (detal/mayor), registro de gastos operativos, balances netos y análisis gráfico mensual/anual
                 </p>
               </div>
 
+              {/* Botones de acción dinámicos según la sub-pestaña */}
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={handleExportSalesExcel}
-                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-zinc-200 border border-white/10 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition shadow-sm backdrop-blur-md"
-                  title="Descargar libro de ventas en formato Excel (.xlsx)"
-                >
-                  <Download className="w-3.5 h-3.5 text-zinc-300" />
-                  <span>Descargar Excel</span>
-                </button>
-                <button
-                  onClick={() => handleOpenCreateSale()}
-                  className="px-4 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-lg shadow-red-950/60 transition-transform active:scale-95"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>+ Registrar Venta</span>
-                </button>
+                {financeSubTab === "ventas" && (
+                  <>
+                    <button
+                      onClick={handleExportSalesExcel}
+                      className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-zinc-200 border border-white/10 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition shadow-sm backdrop-blur-md"
+                      title="Descargar libro de ventas en formato Excel (.xlsx)"
+                    >
+                      <Download className="w-3.5 h-3.5 text-zinc-300" />
+                      <span>Excel Ventas</span>
+                    </button>
+                    <button
+                      onClick={() => handleOpenCreateSale()}
+                      className="px-4 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-lg shadow-red-950/60 transition-transform active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Registrar Venta</span>
+                    </button>
+                  </>
+                )}
+
+                {financeSubTab === "gastos" && (
+                  <>
+                    <button
+                      onClick={handleExportExpensesExcel}
+                      className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-zinc-200 border border-white/10 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition shadow-sm backdrop-blur-md"
+                      title="Descargar libro de gastos en formato Excel (.xlsx)"
+                    >
+                      <Download className="w-3.5 h-3.5 text-zinc-300" />
+                      <span>Excel Gastos</span>
+                    </button>
+                    <button
+                      onClick={handleOpenCreateExpense}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-lg shadow-rose-950/60 transition-transform active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Registrar Gasto</span>
+                    </button>
+                  </>
+                )}
+
+                {financeSubTab === "grafica" && (
+                  <div className="inline-flex rounded-xl bg-[#141414] border border-[#2a2a2a] p-1">
+                    <button
+                      onClick={() => setChartPeriod("mensual")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        chartPeriod === "mensual" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Vista Mensual</span>
+                    </button>
+                    <button
+                      onClick={() => setChartPeriod("anual")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        chartPeriod === "anual" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      <span>Vista Anual</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Mensajes de feedback */}
             {saleSuccessMessage && (
               <div className="mb-5 p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold">{saleSuccessMessage}</span>
               </div>
             )}
+            {expenseSuccessMessage && (
+              <div className="mb-5 p-3.5 rounded-xl bg-rose-950/70 border border-rose-500/50 text-rose-300 text-xs flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="font-semibold">{expenseSuccessMessage}</span>
+              </div>
+            )}
 
-            {/* KPIs del Libro de Ventas */}
+            {/* 4 CARDS: CONSOLIDADO FINANCIERO GENERAL */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              {/* Ventas Detal */}
-              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+              {/* Ingresos Totales */}
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-emerald-500/40 rounded-xl p-3.5 sm:p-4 transition group">
                 <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-teal-400 flex items-center gap-1">
-                    <Tag className="w-3 h-3" />
-                    <span>Ventas al Detal</span>
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Ingresos Brutos</span>
                   </span>
-                  <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.detalCount}</span>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded">
+                    {financeConsolidatedStats.totalSalesCount} vts
+                  </span>
                 </div>
-                <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
-                  {formatCurrency(salesStats.detalRevenue)}
+                <div className="text-lg sm:text-xl font-black text-white mt-2 font-mono">
+                  {formatCurrency(financeConsolidatedStats.totalCollected)}
                 </div>
-                <div className="text-[11px] text-emerald-400 mt-0.5 font-semibold">
-                  Ganancia: +{formatCurrency(salesStats.detalProfit)}
+                <div className="text-[11px] text-zinc-400 mt-0.5">
+                  Cobros recaudados en ventas
                 </div>
               </div>
 
-              {/* Ventas Mayor */}
-              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+              {/* Costos de Cuentas */}
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-amber-500/40 rounded-xl p-3.5 sm:p-4 transition group">
                 <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-[#E50914] flex items-center gap-1">
-                    <Package className="w-3 h-3" />
-                    <span>Ventas al Mayor</span>
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Costo Cuentas</span>
                   </span>
-                  <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.mayorCount}</span>
+                  <span className="text-[10px] font-mono font-bold text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded">
+                    Inventario
+                  </span>
                 </div>
-                <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
-                  {formatCurrency(salesStats.mayorRevenue)}
+                <div className="text-lg sm:text-xl font-black text-amber-300 mt-2 font-mono">
+                  -{formatCurrency(financeConsolidatedStats.totalAccountCosts)}
                 </div>
-                <div className="text-[11px] text-[#ff6666] mt-0.5 font-semibold">
-                  Ganancia: +{formatCurrency(salesStats.mayorProfit)}
+                <div className="text-[11px] text-zinc-400 mt-0.5">
+                  Costo de adquisición de cuentas
                 </div>
               </div>
 
-              {/* Ganancia Neta Total Acumulada */}
-              <div className="bg-[#141414] border border-emerald-500/40 rounded-xl p-3.5 sm:p-4 shadow-md shadow-emerald-950/20">
-                <div className="flex items-center justify-between text-xs text-emerald-300">
-                  <span className="font-black uppercase text-[10px] tracking-wider flex items-center gap-1">
-                    <DollarSign className="w-3 h-3" />
-                    <span>Ganancia Neta</span>
+              {/* Gastos Operativos */}
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-rose-500/40 rounded-xl p-3.5 sm:p-4 transition group">
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span className="font-bold uppercase text-[10px] tracking-wider text-rose-400 flex items-center gap-1.5">
+                    <Wallet className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Gastos Operativos</span>
                   </span>
-                  <span className="text-[10px] font-mono bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/40 font-bold">
-                    +{salesStats.margin}%
+                  <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/60 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                    {financeConsolidatedStats.totalExpensesCount} reg
                   </span>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1.5 font-mono">
-                  +{formatCurrency(salesStats.totalProfit)}
+                <div className="text-lg sm:text-xl font-black text-rose-400 mt-2 font-mono">
+                  -{formatCurrency(financeConsolidatedStats.totalOpExpenses)}
+                </div>
+                <div className="text-[11px] text-zinc-400 mt-0.5">
+                  Proveedores, publicidad, servicios
+                </div>
+              </div>
+
+              {/* Ganancia Neta Real */}
+              <div className="bg-[#141414] border border-[#E50914]/40 hover:border-[#E50914] rounded-xl p-3.5 sm:p-4 shadow-lg shadow-red-950/20 transition group">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-black uppercase text-[10px] tracking-wider text-white flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Ganancia Neta Real</span>
+                  </span>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                    financeConsolidatedStats.realNetProfit >= 0 ? "bg-emerald-950 text-emerald-400 border border-emerald-500/40" : "bg-rose-950 text-rose-400 border border-rose-500/40"
+                  }`}>
+                    {financeConsolidatedStats.realMargin}% margen
+                  </span>
+                </div>
+                <div className={`text-xl sm:text-2xl font-black mt-2 font-mono ${
+                  financeConsolidatedStats.realNetProfit >= 0 ? "text-emerald-400" : "text-rose-400"
+                }`}>
+                  {financeConsolidatedStats.realNetProfit >= 0 ? "+" : ""}{formatCurrency(financeConsolidatedStats.realNetProfit)}
                 </div>
                 <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
-                  Cobrado: {formatCurrency(salesStats.totalCollected)}
-                </div>
-              </div>
-
-              {/* Caja Efectivo (En Persona) vs Digital */}
-              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
-                <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1">
-                    <Banknote className="w-3 h-3" />
-                    <span>Caja Efectivo</span>
-                  </span>
-                  <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.physicalCount}</span>
-                </div>
-                <div className="text-lg sm:text-xl font-black text-amber-300 mt-1.5 font-mono">
-                  {formatCurrency(salesStats.cashRevenue)}
-                </div>
-                <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
-                  Bancos/Nequi: {formatCurrency(salesStats.digitalRevenue)}
+                  Gastos totales: {formatCurrency(financeConsolidatedStats.grandTotalExpenses)}
                 </div>
               </div>
             </div>
 
-            {/* Filtros del Sheet estilo Netflix */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex rounded-xl bg-[#141414] border border-[#2a2a2a] p-1">
-                  <button
-                    onClick={() => setSaleFilterType("all")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                      saleFilterType === "all" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    Todas ({sales.length})
-                  </button>
-                  <button
-                    onClick={() => setSaleFilterType("detal")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                      saleFilterType === "detal" ? "bg-teal-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    <Tag className="w-3 h-3" />
-                    <span>Detal ({sales.filter(s => s.type === "detal").length})</span>
-                  </button>
-                  <button
-                    onClick={() => setSaleFilterType("mayor")}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                      saleFilterType === "mayor" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    <Package className="w-3 h-3" />
-                    <span>Mayor ({sales.filter(s => s.type === "mayor").length})</span>
-                  </button>
-                </div>
+            {/* BARRA DE NAVEGACIÓN DE SUB-PESTAÑAS */}
+            <div className="flex items-center gap-2 border-b border-[#2a2a2a] pb-3 mb-6">
+              <button
+                onClick={() => setFinanceSubTab("ventas")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  financeSubTab === "ventas"
+                    ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
+                    : "bg-[#141414] text-zinc-400 hover:text-white border border-[#2a2a2a]"
+                }`}
+              >
+                <Receipt className="w-4 h-4" />
+                <span>Libro de Ventas</span>
+                <span className="text-[10px] font-mono bg-black/40 px-1.5 py-0.5 rounded">
+                  {sales.length}
+                </span>
+              </button>
 
-                <select
-                  value={saleFilterPayment}
-                  onChange={(e) => setSaleFilterPayment(e.target.value)}
-                  className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="all">Todos los Métodos</option>
-                  <option value="efectivo">Efectivo (En Persona)</option>
-                  <option value="nequi">Nequi</option>
-                  <option value="daviplata">Daviplata</option>
-                  <option value="transferencia">Transferencia / Banco</option>
-                  <option value="binance">Binance / USDT</option>
-                </select>
-              </div>
+              <button
+                onClick={() => setFinanceSubTab("gastos")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  financeSubTab === "gastos"
+                    ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
+                    : "bg-[#141414] text-zinc-400 hover:text-white border border-[#2a2a2a]"
+                }`}
+              >
+                <Wallet className="w-4 h-4" />
+                <span>Gastos Operativos</span>
+                <span className="text-[10px] font-mono bg-black/40 px-1.5 py-0.5 rounded">
+                  {expenses.length}
+                </span>
+              </button>
 
-              <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Buscar cliente, cuenta..."
-                  value={saleSearchQuery}
-                  onChange={(e) => setSaleSearchQuery(e.target.value)}
-                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914]"
-                />
-              </div>
+              <button
+                onClick={() => setFinanceSubTab("grafica")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  financeSubTab === "grafica"
+                    ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
+                    : "bg-[#141414] text-zinc-400 hover:text-white border border-[#2a2a2a]"
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>Gráfica & Balance</span>
+                <span className="text-[10px] font-mono bg-black/40 px-1.5 py-0.5 rounded text-emerald-400">
+                  {chartPeriod === "anual" ? chartYear : "Mes a mes"}
+                </span>
+              </button>
             </div>
 
-            {/* TABLA SHEET DE VENTAS */}
-            <div className="overflow-x-auto rounded-xl border border-[#2a2a2a] bg-[#141414]">
-              <table className="w-full text-left text-xs text-zinc-300">
-                <thead className="bg-[#1c1c1c] text-zinc-400 uppercase font-bold text-[11px] tracking-wider border-b border-[#2a2a2a]">
-                  <tr>
-                    <th className="py-3 px-3.5">Fecha</th>
-                    <th className="py-3 px-3.5">Tipo</th>
-                    <th className="py-3 px-3.5">Cliente / Contacto</th>
-                    <th className="py-3 px-3.5">Plataforma / Cuenta</th>
-                    <th className="py-3 px-3.5 text-center">Pago</th>
-                    <th className="py-3 px-3.5 text-right">Cobrado</th>
-                    <th className="py-3 px-3.5 text-right">Costo</th>
-                    <th className="py-3 px-3.5 text-right">Ganancia</th>
-                    <th className="py-3 px-3.5 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#222222]">
-                  {filteredSales.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="text-center py-8 text-zinc-500">
-                        No hay ventas registradas con los filtros actuales.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredSales.map((sale) => (
-                      <tr key={sale.id} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="py-3 px-3.5 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
-                          {new Date(sale.date).toLocaleDateString()}
-                          <div className="text-[10px] text-zinc-500">
-                            {new Date(sale.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </div>
-                        </td>
-                        <td className="py-3 px-3.5 whitespace-nowrap">
-                          {sale.type === "detal" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-950/60 text-teal-300 border border-teal-500/30">
-                              <Tag className="w-2.5 h-2.5" /> Detal
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/40">
-                              <Package className="w-2.5 h-2.5" /> Mayor
-                            </span>
-                          )}
-                          {sale.isPhysicalSale && (
-                            <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] text-amber-400 font-semibold">
-                              <Banknote className="w-2.5 h-2.5" /> En Persona
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-3.5">
-                          <div className="font-semibold text-white">{sale.customerName}</div>
-                          {sale.customerContact && (
-                            <div className="text-[10px] text-zinc-400">{sale.customerContact}</div>
-                          )}
-                        </td>
-                        <td className="py-3 px-3.5">
-                          <div className="font-semibold text-zinc-200">{sale.platform}</div>
-                          {sale.accountEmail ? (
-                            <div className="font-mono text-[10px] text-zinc-400 truncate max-w-[180px]">
-                              {sale.accountEmail}
-                            </div>
-                          ) : (
-                            <div className="text-[10px] text-zinc-500 italic">Venta directa</div>
-                          )}
-                        </td>
-                        <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#222222] border border-[#333333] text-zinc-300 uppercase">
-                            {sale.paymentMethod}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3.5 text-right font-mono font-bold text-white">
-                          ${Number(sale.salePrice).toFixed(2)}
-                        </td>
-                        <td className="py-3 px-3.5 text-right font-mono text-zinc-400 text-[11px]">
-                          ${Number(sale.costPrice).toFixed(2)}
-                        </td>
-                        <td className="py-3 px-3.5 text-right font-mono font-black text-emerald-400">
-                          +${Number(sale.profit).toFixed(2)}
-                        </td>
-                        <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                          <button
-                            onClick={() => handleDeleteSale(sale.id)}
-                            className="p-1 text-zinc-500 hover:text-[#E50914] transition rounded"
-                            title="Eliminar registro"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline" />
-                          </button>
-                        </td>
+            {/* VISTA 1: LIBRO DE VENTAS */}
+            {financeSubTab === "ventas" && (
+              <div>
+                {/* Métricas específicas de Ventas */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                  {/* Ventas Detal */}
+                  <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <span className="font-bold uppercase text-[10px] tracking-wider text-teal-400 flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        <span>Ventas al Detal</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.detalCount}</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
+                      {formatCurrency(salesStats.detalRevenue)}
+                    </div>
+                    <div className="text-[11px] text-emerald-400 mt-0.5 font-semibold">
+                      Ganancia: +{formatCurrency(salesStats.detalProfit)}
+                    </div>
+                  </div>
+
+                  {/* Ventas Mayor */}
+                  <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <span className="font-bold uppercase text-[10px] tracking-wider text-[#E50914] flex items-center gap-1">
+                        <Package className="w-3 h-3" />
+                        <span>Ventas al Mayor</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.mayorCount}</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
+                      {formatCurrency(salesStats.mayorRevenue)}
+                    </div>
+                    <div className="text-[11px] text-[#ff6666] mt-0.5 font-semibold">
+                      Ganancia: +{formatCurrency(salesStats.mayorProfit)}
+                    </div>
+                  </div>
+
+                  {/* Ganancia Neta Ventas */}
+                  <div className="bg-[#141414] border border-emerald-500/40 rounded-xl p-3.5 sm:p-4 shadow-md shadow-emerald-950/20">
+                    <div className="flex items-center justify-between text-xs text-emerald-300">
+                      <span className="font-black uppercase text-[10px] tracking-wider flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" />
+                        <span>Ganancia Ventas</span>
+                      </span>
+                      <span className="text-[10px] font-mono bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/40 font-bold">
+                        +{salesStats.margin}%
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1.5 font-mono">
+                      +{formatCurrency(salesStats.totalProfit)}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                      Cobrado: {formatCurrency(salesStats.totalCollected)}
+                    </div>
+                  </div>
+
+                  {/* Caja Efectivo (En Persona) vs Digital */}
+                  <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <span className="font-bold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1">
+                        <Banknote className="w-3 h-3" />
+                        <span>Caja Efectivo</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400 font-mono font-bold">{salesStats.physicalCount}</span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-amber-300 mt-1.5 font-mono">
+                      {formatCurrency(salesStats.cashRevenue)}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                      Bancos/Nequi: {formatCurrency(salesStats.digitalRevenue)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtros del Sheet estilo Netflix */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex rounded-xl bg-[#141414] border border-[#2a2a2a] p-1">
+                      <button
+                        onClick={() => setSaleFilterType("all")}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
+                          saleFilterType === "all" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        Todas ({sales.length})
+                      </button>
+                      <button
+                        onClick={() => setSaleFilterType("detal")}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                          saleFilterType === "detal" ? "bg-teal-600 text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <Tag className="w-3 h-3" />
+                        <span>Detal ({sales.filter(s => s.type === "detal").length})</span>
+                      </button>
+                      <button
+                        onClick={() => setSaleFilterType("mayor")}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                          saleFilterType === "mayor" ? "bg-[#E50914] text-white shadow-sm" : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        <Package className="w-3 h-3" />
+                        <span>Mayor ({sales.filter(s => s.type === "mayor").length})</span>
+                      </button>
+                    </div>
+
+                    <select
+                      value={saleFilterPayment}
+                      onChange={(e) => setSaleFilterPayment(e.target.value)}
+                      className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
+                    >
+                      <option value="all">Todos los Métodos</option>
+                      <option value="efectivo">Efectivo (En Persona)</option>
+                      <option value="nequi">Nequi</option>
+                      <option value="daviplata">Daviplata</option>
+                      <option value="transferencia">Transferencia / Banco</option>
+                      <option value="binance">Binance / USDT</option>
+                    </select>
+                  </div>
+
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Buscar cliente, cuenta..."
+                      value={saleSearchQuery}
+                      onChange={(e) => setSaleSearchQuery(e.target.value)}
+                      className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914]"
+                    />
+                  </div>
+                </div>
+
+                {/* TABLA SHEET DE VENTAS */}
+                <div className="overflow-x-auto rounded-xl border border-[#2a2a2a] bg-[#141414]">
+                  <table className="w-full text-left text-xs text-zinc-300">
+                    <thead className="bg-[#1c1c1c] text-zinc-400 uppercase font-bold text-[11px] tracking-wider border-b border-[#2a2a2a]">
+                      <tr>
+                        <th className="py-3 px-3.5">Fecha</th>
+                        <th className="py-3 px-3.5">Tipo</th>
+                        <th className="py-3 px-3.5">Cliente / Contacto</th>
+                        <th className="py-3 px-3.5">Plataforma / Cuenta</th>
+                        <th className="py-3 px-3.5 text-center">Pago</th>
+                        <th className="py-3 px-3.5 text-right">Cobrado</th>
+                        <th className="py-3 px-3.5 text-right">Costo</th>
+                        <th className="py-3 px-3.5 text-right">Ganancia</th>
+                        <th className="py-3 px-3.5 text-right">Acción</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-[#222222]">
+                      {filteredSales.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="text-center py-8 text-zinc-500">
+                            No hay ventas registradas con los filtros actuales.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredSales.map((sale) => (
+                          <tr key={sale.id} className="hover:bg-zinc-800/40 transition-colors">
+                            <td className="py-3 px-3.5 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
+                              {new Date(sale.date).toLocaleDateString()}
+                              <div className="text-[10px] text-zinc-500">
+                                {new Date(sale.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3.5 whitespace-nowrap">
+                              {sale.type === "detal" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-950/60 text-teal-300 border border-teal-500/30">
+                                  <Tag className="w-2.5 h-2.5" /> Detal
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/40">
+                                  <Package className="w-2.5 h-2.5" /> Mayor
+                                </span>
+                              )}
+                              {sale.isPhysicalSale && (
+                                <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] text-amber-400 font-semibold">
+                                  <Banknote className="w-2.5 h-2.5" /> En Persona
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3.5">
+                              <div className="font-semibold text-white">{sale.customerName}</div>
+                              {sale.customerContact && (
+                                <div className="text-[10px] text-zinc-400">{sale.customerContact}</div>
+                              )}
+                            </td>
+                            <td className="py-3 px-3.5">
+                              <div className="font-semibold text-zinc-200">{sale.platform}</div>
+                              {sale.accountEmail ? (
+                                <div className="font-mono text-[10px] text-zinc-400 truncate max-w-[180px]">
+                                  {sale.accountEmail}
+                                </div>
+                              ) : (
+                                <div className="text-[10px] text-zinc-500 italic">Venta directa</div>
+                              )}
+                            </td>
+                            <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#222222] border border-[#333333] text-zinc-300 uppercase">
+                                {sale.paymentMethod}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono font-bold text-white">
+                              ${Number(sale.salePrice).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono text-zinc-400 text-[11px]">
+                              ${Number(sale.costPrice).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono font-black text-emerald-400">
+                              +${Number(sale.profit).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                              <button
+                                onClick={() => handleDeleteSale(sale.id)}
+                                className="p-1 text-zinc-500 hover:text-[#E50914] transition rounded"
+                                title="Eliminar registro"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 inline" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* VISTA 2: GASTOS OPERATIVOS */}
+            {financeSubTab === "gastos" && (
+              <div>
+                {/* Desglose de Gastos en Tarjetas */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                  {/* Proveedores */}
+                  <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <span className="font-bold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1">
+                        <Package className="w-3 h-3" />
+                        <span>Proveedores Lotes</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400 font-mono font-bold">
+                        {expenses.filter(e => e.category === "proveedor").length}
+                      </span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
+                      {formatCurrency(expenses.filter(e => e.category === "proveedor").reduce((s, e) => s + e.amount, 0))}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Compras de cuentas y pantallas
+                    </div>
+                  </div>
+
+                  {/* Publicidad */}
+                  <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <span className="font-bold uppercase text-[10px] tracking-wider text-purple-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Publicidad & Ads</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400 font-mono font-bold">
+                        {expenses.filter(e => e.category === "publicidad").length}
+                      </span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
+                      {formatCurrency(expenses.filter(e => e.category === "publicidad").reduce((s, e) => s + e.amount, 0))}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Campañas en redes y grupos
+                    </div>
+                  </div>
+
+                  {/* Servicios & Infraestructura */}
+                  <div className="bg-[#141414] border border-[#2a2a2a] hover:border-zinc-700 rounded-xl p-3.5 sm:p-4 transition">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <span className="font-bold uppercase text-[10px] tracking-wider text-blue-400 flex items-center gap-1">
+                        <Zap className="w-3 h-3" />
+                        <span>Servicios & Hosting</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400 font-mono font-bold">
+                        {expenses.filter(e => e.category === "servicios").length}
+                      </span>
+                    </div>
+                    <div className="text-lg sm:text-xl font-black text-white mt-1.5 font-mono">
+                      {formatCurrency(expenses.filter(e => e.category === "servicios").reduce((s, e) => s + e.amount, 0))}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Proxies, VPS y herramientas
+                    </div>
+                  </div>
+
+                  {/* Total Gastos Operativos */}
+                  <div className="bg-[#141414] border border-rose-500/40 rounded-xl p-3.5 sm:p-4 shadow-md shadow-rose-950/20">
+                    <div className="flex items-center justify-between text-xs text-rose-300">
+                      <span className="font-black uppercase text-[10px] tracking-wider flex items-center gap-1">
+                        <Wallet className="w-3 h-3" />
+                        <span>Total Operativos</span>
+                      </span>
+                      <span className="text-[10px] font-mono bg-rose-950 px-1.5 py-0.5 rounded border border-rose-500/40 font-bold">
+                        {expenses.length} reg
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-rose-400 mt-1.5 font-mono">
+                      -{formatCurrency(expenses.reduce((s, e) => s + e.amount, 0))}
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                      Deducibles de la ganancia
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtros de Gastos */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={expenseFilterCategory}
+                      onChange={(e) => setExpenseFilterCategory(e.target.value)}
+                      className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="all">Todas las Categorías ({expenses.length})</option>
+                      <option value="proveedor">Proveedor de Cuentas</option>
+                      <option value="publicidad">Publicidad & Marketing</option>
+                      <option value="servicios">Servicios / Hosting</option>
+                      <option value="comision">Comisiones a Vendedores</option>
+                      <option value="operativo">Operativo / Oficina</option>
+                      <option value="otro">Otro Gasto</option>
+                    </select>
+
+                    <select
+                      value={expenseFilterPayment}
+                      onChange={(e) => setExpenseFilterPayment(e.target.value)}
+                      className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="all">Todos los Métodos de Pago</option>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="nequi">Nequi</option>
+                      <option value="daviplata">Daviplata</option>
+                      <option value="transferencia">Transferencia Bancaria</option>
+                      <option value="binance">Binance / USDT</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por concepto o proveedor..."
+                      value={expenseSearchQuery}
+                      onChange={(e) => setExpenseSearchQuery(e.target.value)}
+                      className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+                </div>
+
+                {/* TABLA SHEET DE GASTOS */}
+                <div className="overflow-x-auto rounded-xl border border-[#2a2a2a] bg-[#141414]">
+                  <table className="w-full text-left text-xs text-zinc-300">
+                    <thead className="bg-[#1c1c1c] text-zinc-400 uppercase font-bold text-[11px] tracking-wider border-b border-[#2a2a2a]">
+                      <tr>
+                        <th className="py-3 px-3.5">Fecha</th>
+                        <th className="py-3 px-3.5">Concepto / Descripción</th>
+                        <th className="py-3 px-3.5">Categoría</th>
+                        <th className="py-3 px-3.5">Proveedor / Destino</th>
+                        <th className="py-3 px-3.5 text-center">Método Pago</th>
+                        <th className="py-3 px-3.5 text-right">Monto ($)</th>
+                        <th className="py-3 px-3.5">Notas</th>
+                        <th className="py-3 px-3.5 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#222222]">
+                      {filteredExpenses.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="text-center py-8 text-zinc-500">
+                            No hay gastos registrados con los filtros actuales.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredExpenses.map((expense) => {
+                          const catStyles: Record<string, { bg: string; text: string; border: string; label: string }> = {
+                            proveedor: { bg: "bg-amber-950/60", text: "text-amber-300", border: "border-amber-500/30", label: "Proveedor" },
+                            publicidad: { bg: "bg-purple-950/60", text: "text-purple-300", border: "border-purple-500/30", label: "Publicidad" },
+                            servicios: { bg: "bg-blue-950/60", text: "text-blue-300", border: "border-blue-500/30", label: "Servicios" },
+                            comision: { bg: "bg-emerald-950/60", text: "text-emerald-300", border: "border-emerald-500/30", label: "Comisión" },
+                            operativo: { bg: "bg-zinc-800", text: "text-zinc-300", border: "border-zinc-700", label: "Operativo" },
+                            otro: { bg: "bg-zinc-900", text: "text-zinc-400", border: "border-zinc-800", label: "Otro" }
+                          };
+                          const badge = catStyles[expense.category] || catStyles.otro;
+
+                          return (
+                            <tr key={expense.id} className="hover:bg-zinc-800/40 transition-colors">
+                              <td className="py-3 px-3.5 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
+                                {expense.date.split("T")[0]}
+                              </td>
+                              <td className="py-3 px-3.5 font-semibold text-white">
+                                {expense.title}
+                              </td>
+                              <td className="py-3 px-3.5 whitespace-nowrap">
+                                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
+                                  {badge.label}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3.5 text-zinc-300">
+                                {expense.supplier || <span className="text-zinc-500 italic">No especificado</span>}
+                              </td>
+                              <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-[#222222] border border-[#333333] text-zinc-300 uppercase">
+                                  {expense.paymentMethod}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3.5 text-right font-mono font-bold text-rose-400">
+                                -${Number(expense.amount).toFixed(2)}
+                              </td>
+                              <td className="py-3 px-3.5 text-zinc-400 text-[11px] max-w-[200px] truncate">
+                                {expense.notes || <span className="text-zinc-600">-</span>}
+                              </td>
+                              <td className="py-3 px-3.5 text-right whitespace-nowrap space-x-1">
+                                <button
+                                  onClick={() => handleOpenEditExpense(expense)}
+                                  className="p-1 text-zinc-400 hover:text-white transition rounded"
+                                  title="Editar gasto"
+                                >
+                                  <Edit className="w-3.5 h-3.5 inline" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                  className="p-1 text-zinc-500 hover:text-rose-500 transition rounded"
+                                  title="Eliminar gasto"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 inline" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* VISTA 3: GRÁFICA & BALANCE FINANCIERO (MENSUAL / ANUAL) */}
+            {financeSubTab === "grafica" && (
+              <div>
+                {/* Selector de Periodo y Resumen del Periodo Seleccionado */}
+                <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 sm:p-5 mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#222222]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#E50914]/20 text-[#E50914] flex items-center justify-center border border-[#E50914]/40">
+                        <BarChart3 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white text-sm">
+                          {chartPeriod === "anual" 
+                            ? `Balance Financiero Anual (${chartYear})` 
+                            : `Balance Mensual: ${(chartData as any).monthName} ${chartYear}`}
+                        </h3>
+                        <p className="text-[11px] text-zinc-400">
+                          {chartPeriod === "anual"
+                            ? "Comparativa mes a mes de ingresos, costos y gastos acumulados en el año"
+                            : "Desglose por semanas dentro del mes seleccionado"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Navegador de Fecha */}
+                    <div className="flex items-center gap-2">
+                      {chartPeriod === "mensual" && (
+                        <select
+                          value={chartMonth}
+                          onChange={(e) => setChartMonth(Number(e.target.value))}
+                          className="bg-[#1c1c1c] border border-[#333333] text-xs text-white rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
+                        >
+                          <option value={0}>Enero</option>
+                          <option value={1}>Febrero</option>
+                          <option value={2}>Marzo</option>
+                          <option value={3}>Abril</option>
+                          <option value={4}>Mayo</option>
+                          <option value={5}>Junio</option>
+                          <option value={6}>Julio</option>
+                          <option value={7}>Agosto</option>
+                          <option value={8}>Septiembre</option>
+                          <option value={9}>Octubre</option>
+                          <option value={10}>Noviembre</option>
+                          <option value={11}>Diciembre</option>
+                        </select>
+                      )}
+
+                      <div className="inline-flex items-center bg-[#1c1c1c] border border-[#333333] rounded-xl p-0.5">
+                        <button
+                          onClick={() => setChartYear(y => y - 1)}
+                          className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+                          title="Año anterior"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="font-mono font-bold text-xs px-2 text-white">{chartYear}</span>
+                        <button
+                          onClick={() => setChartYear(y => y + 1)}
+                          className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+                          title="Año siguiente"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumen numérico del periodo seleccionado */}
+                  <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4">
+                    <div className="p-3 rounded-lg bg-[#181818] border border-[#2a2a2a]">
+                      <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
+                        Ingresos Periodo
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-white font-mono mt-1">
+                        {formatCurrency(chartData.totalIncome)}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-[#181818] border border-[#2a2a2a]">
+                      <div className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">
+                        Gastos Periodo (Cuentas + Op)
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-rose-400 font-mono mt-1">
+                        -{formatCurrency(chartData.totalExpense)}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-[#181818] border border-emerald-500/30">
+                      <div className="text-[10px] uppercase font-bold text-zinc-300 tracking-wider flex items-center justify-between">
+                        <span>Balance Neto</span>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono ${
+                          chartData.totalProfit >= 0 ? "bg-emerald-950 text-emerald-300 border border-emerald-500/30" : "bg-rose-950 text-rose-300 border border-rose-500/30"
+                        }`}>
+                          {chartData.totalIncome > 0 ? `${((chartData.totalProfit / chartData.totalIncome) * 100).toFixed(1)}%` : "0%"}
+                        </span>
+                      </div>
+                      <div className={`text-base sm:text-lg font-black font-mono mt-1 ${
+                        chartData.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
+                      }`}>
+                        {chartData.totalProfit >= 0 ? "+" : ""}{formatCurrency(chartData.totalProfit)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* GRÁFICA VISUAL INTERACTIVA (BARRAS ESTILO NETFLIX) */}
+                <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 sm:p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-bold text-zinc-300">
+                      Comparativa de Barras: Ingresos (Verde) vs Gastos Totales (Rojo)
+                    </span>
+                    <div className="flex items-center gap-4 text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded bg-emerald-500" />
+                        <span className="text-zinc-300 font-medium">Ingresos</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded bg-rose-500" />
+                        <span className="text-zinc-300 font-medium">Gastos Totales</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lienzo de Barras */}
+                  <div className="h-64 sm:h-72 w-full pt-6 pb-2 px-2 flex items-end justify-between gap-1.5 sm:gap-3 border-b border-[#2e2e2e]">
+                    {chartData.items.map((item, idx) => {
+                      const incomeHeight = chartData.maxVal > 0 ? Math.max(4, Math.round((item.income / chartData.maxVal) * 100)) : 4;
+                      const expenseHeight = chartData.maxVal > 0 ? Math.max(4, Math.round((item.totalExpense / chartData.maxVal) * 100)) : 4;
+                      const isHovered = chartHoveredIndex === idx;
+
+                      return (
+                        <div
+                          key={idx}
+                          onMouseEnter={() => setChartHoveredIndex(idx)}
+                          onMouseLeave={() => setChartHoveredIndex(null)}
+                          className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer"
+                        >
+                          {/* Tooltip flotante al pasar el cursor */}
+                          {isHovered && (
+                            <div className="absolute bottom-[105%] z-30 mb-2 w-48 p-2.5 rounded-xl bg-[#1f1f1f] border border-[#3a3a3a] shadow-2xl text-[11px] pointer-events-none animate-in fade-in zoom-in-95">
+                              <div className="font-bold text-white border-b border-[#2e2e2e] pb-1 mb-1.5">
+                                {item.fullName}
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-emerald-400">
+                                  <span>Ingresos:</span>
+                                  <span className="font-mono font-bold">+{formatCurrency(item.income)}</span>
+                                </div>
+                                <div className="flex justify-between text-amber-400 text-[10px]">
+                                  <span>Costo Cuentas:</span>
+                                  <span className="font-mono">-{formatCurrency(item.accountCost)}</span>
+                                </div>
+                                <div className="flex justify-between text-rose-400 text-[10px]">
+                                  <span>Gastos Op:</span>
+                                  <span className="font-mono">-{formatCurrency(item.opExpense)}</span>
+                                </div>
+                                <div className="flex justify-between text-rose-300 pt-1 border-t border-[#2e2e2e] font-semibold">
+                                  <span>Total Gastos:</span>
+                                  <span className="font-mono">-{formatCurrency(item.totalExpense)}</span>
+                                </div>
+                                <div className="flex justify-between text-white font-bold pt-1 border-t border-[#2e2e2e]">
+                                  <span>Neto:</span>
+                                  <span className={`font-mono ${item.profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                    {item.profit >= 0 ? "+" : ""}{formatCurrency(item.profit)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Las dos barras paralelas (Ingreso vs Gasto) */}
+                          <div className="w-full flex items-end justify-center gap-1 h-full pb-1">
+                            {/* Barra Ingreso */}
+                            <div
+                              style={{ height: `${item.income > 0 ? incomeHeight : 4}%` }}
+                              className={`w-1/2 max-w-[20px] rounded-t transition-all duration-300 ${
+                                item.income > 0
+                                  ? "bg-gradient-to-t from-emerald-700 to-emerald-400 group-hover:to-emerald-300 shadow-sm shadow-emerald-950/40"
+                                  : "bg-zinc-800"
+                              }`}
+                            />
+
+                            {/* Barra Gasto */}
+                            <div
+                              style={{ height: `${item.totalExpense > 0 ? expenseHeight : 4}%` }}
+                              className={`w-1/2 max-w-[20px] rounded-t transition-all duration-300 ${
+                                item.totalExpense > 0
+                                  ? "bg-gradient-to-t from-rose-700 to-rose-400 group-hover:to-rose-300 shadow-sm shadow-rose-950/40"
+                                  : "bg-zinc-800"
+                              }`}
+                            />
+                          </div>
+
+                          {/* Etiqueta del Eje X */}
+                          <span className={`text-[10px] font-mono mt-1.5 transition ${
+                            isHovered ? "text-white font-bold" : "text-zinc-500"
+                          }`}>
+                            {item.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-2 px-1 font-mono">
+                    <span>Mín: $0</span>
+                    <span>Pasa el cursor por las barras para ver el desglose detallado de cada mes o semana</span>
+                    <span>Máx: {formatCurrency(chartData.maxVal)}</span>
+                  </div>
+                </div>
+
+                {/* TABLA COMPARATIVA DE DESGLOSE FINANCIERO */}
+                <div className="overflow-x-auto rounded-xl border border-[#2a2a2a] bg-[#141414]">
+                  <table className="w-full text-left text-xs text-zinc-300">
+                    <thead className="bg-[#1c1c1c] text-zinc-400 uppercase font-bold text-[11px] tracking-wider border-b border-[#2a2a2a]">
+                      <tr>
+                        <th className="py-3 px-3.5">Periodo</th>
+                        <th className="py-3 px-3.5 text-center">Ventas / Gastos</th>
+                        <th className="py-3 px-3.5 text-right text-emerald-400">Ingresos (+)</th>
+                        <th className="py-3 px-3.5 text-right text-amber-400">Costo Cuentas (-)</th>
+                        <th className="py-3 px-3.5 text-right text-rose-400">Gastos Op. (-)</th>
+                        <th className="py-3 px-3.5 text-right text-rose-300 font-bold">Total Gastos (-)</th>
+                        <th className="py-3 px-3.5 text-right font-black">Ganancia Neta</th>
+                        <th className="py-3 px-3.5 text-right">Margen</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#222222]">
+                      {chartData.items.map((row, idx) => {
+                        const rowMargin = row.income > 0 ? ((row.profit / row.income) * 100).toFixed(1) : "0";
+                        return (
+                          <tr key={idx} className="hover:bg-zinc-800/40 transition-colors">
+                            <td className="py-3 px-3.5 font-bold text-white whitespace-nowrap">
+                              {row.fullName}
+                            </td>
+                            <td className="py-3 px-3.5 text-center font-mono text-zinc-400 whitespace-nowrap text-[11px]">
+                              {row.salesCount} vts / {row.expensesCount} exp
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
+                              +{formatCurrency(row.income)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono text-amber-400 whitespace-nowrap text-[11px]">
+                              -{formatCurrency(row.accountCost)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono text-rose-400 whitespace-nowrap text-[11px]">
+                              -{formatCurrency(row.opExpense)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono font-semibold text-rose-300 whitespace-nowrap">
+                              -{formatCurrency(row.totalExpense)}
+                            </td>
+                            <td className={`py-3 px-3.5 text-right font-mono font-black whitespace-nowrap ${
+                              row.profit >= 0 ? "text-emerald-400" : "text-rose-400"
+                            }`}>
+                              {row.profit >= 0 ? "+" : ""}{formatCurrency(row.profit)}
+                            </td>
+                            <td className="py-3 px-3.5 text-right font-mono font-semibold text-zinc-400 whitespace-nowrap text-[11px]">
+                              {rowMargin}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -4786,6 +5752,154 @@ export default function OwnerDashboard() {
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Guardar y Sumar Ganancia</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL REGISTRAR / EDITAR GASTO OPERATIVO */}
+        {isExpenseModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-[#181818] border border-[#2e2e2e] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+              <div className="p-5 border-b border-[#282828] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base">
+                      {editingExpenseId ? "Editar Registro de Gasto" : "Registrar Nuevo Gasto Operativo"}
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Este gasto se deducirá de las ganancias netas en tus balances y gráficas
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsExpenseModalOpen(false)}
+                  className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveExpense} className="p-5 space-y-4 text-xs">
+                {/* Fecha y Categoría */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-zinc-300 mb-1">Fecha del Gasto</label>
+                    <input
+                      type="date"
+                      required
+                      value={expenseForm.date}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-zinc-300 mb-1">Categoría</label>
+                    <select
+                      value={expenseForm.category}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value as any })}
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="proveedor">Proveedor de Cuentas / Lotes</option>
+                      <option value="publicidad">Publicidad & Marketing</option>
+                      <option value="servicios">Servicios / Hosting / Proxies</option>
+                      <option value="comision">Comisiones a Vendedores</option>
+                      <option value="operativo">Operativo / Oficina</option>
+                      <option value="otro">Otro Gasto</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Concepto / Título */}
+                <div>
+                  <label className="block font-medium text-zinc-300 mb-1">Concepto o Descripción *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: Lote 10 cuentas Disney+ a proveedor mayorista"
+                    value={expenseForm.title}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                {/* Monto y Método de Pago */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-zinc-300 mb-1">Monto del Gasto ($) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      placeholder="0.00"
+                      value={expenseForm.amount || ""}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, amount: Number(e.target.value) })}
+                      className="w-full bg-[#121212] border border-rose-500/50 rounded-xl px-3 py-2 text-rose-300 font-bold focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-medium text-zinc-300 mb-1">Método de Pago</label>
+                    <select
+                      value={expenseForm.paymentMethod}
+                      onChange={(e) => setExpenseForm({ ...expenseForm, paymentMethod: e.target.value as any })}
+                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="efectivo">Efectivo</option>
+                      <option value="nequi">Nequi</option>
+                      <option value="daviplata">Daviplata</option>
+                      <option value="transferencia">Transferencia Bancaria</option>
+                      <option value="binance">Binance (USDT / Cripto)</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Proveedor / Beneficiario */}
+                <div>
+                  <label className="block font-medium text-zinc-300 mb-1">Proveedor / Beneficiario (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="ej: MegaStream Proveedor, Meta Ads, Hostinger..."
+                    value={expenseForm.supplier}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, supplier: e.target.value })}
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                {/* Notas */}
+                <div>
+                  <label className="block font-medium text-zinc-300 mb-1">Notas Adicionales (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Detalles sobre garantía, ID de transacción, etc."
+                    value={expenseForm.notes}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
+                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-[#262626] flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsExpenseModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold shadow-lg shadow-rose-950/40 flex items-center gap-1.5 transition"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{editingExpenseId ? "Actualizar Gasto" : "Guardar Gasto"}</span>
                   </button>
                 </div>
               </form>
