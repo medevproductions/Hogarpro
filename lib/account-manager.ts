@@ -71,11 +71,22 @@ export interface SaleRecord {
   isPhysicalSale?: boolean; // Venta realizada en persona física
 }
 
+export interface CalendarReminder {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  category: "renovacion" | "cobro" | "proveedor" | "general";
+  priority: "urgente" | "normal" | "alta";
+  completed: boolean;
+  createdAt: string;
+}
+
 const STORAGE_KEY_USERS = "streamhub_registered_users";
 const STORAGE_KEY_ACCOUNTS = "streamhub_master_accounts";
 const STORAGE_KEY_CURRENT_USER = "streamhub_current_session";
 const STORAGE_KEY_CATALOG = "streamhub_catalog_platforms";
 const STORAGE_KEY_SALES = "streamhub_sales_records";
+const STORAGE_KEY_REMINDERS = "streamhub_calendar_reminders";
 
 export const DEFAULT_PLATFORMS: CatalogPlatform[] = [
   { 
@@ -382,6 +393,72 @@ export function saveStoredSales(sales: SaleRecord[]) {
     localStorage.setItem(STORAGE_KEY_SALES, JSON.stringify(sales));
     window.dispatchEvent(new Event("streamhub_sales_updated"));
   }
+}
+
+export function getStoredReminders(): CalendarReminder[] {
+  if (typeof window === "undefined") return [];
+  const stored = localStorage.getItem(STORAGE_KEY_REMINDERS);
+  if (!stored) {
+    // Recordatorios de demostración / iniciales si está vacío
+    const initialReminders: CalendarReminder[] = [
+      {
+        id: "rem-1",
+        date: new Date().toISOString().split("T")[0],
+        title: "Revisar cuentas de Netflix por vencer esta semana",
+        category: "renovacion",
+        priority: "alta",
+        completed: false,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "rem-2",
+        date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+        title: "Cobrar mensualidad a revendedor de lote Disney+",
+        category: "cobro",
+        priority: "normal",
+        completed: false,
+        createdAt: new Date().toISOString()
+      }
+    ];
+    saveStoredReminders(initialReminders);
+    return initialReminders;
+  }
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredReminders(reminders: CalendarReminder[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY_REMINDERS, JSON.stringify(reminders));
+    window.dispatchEvent(new Event("streamhub_reminders_updated"));
+  }
+}
+
+export function addCalendarReminder(reminder: Omit<CalendarReminder, "id" | "createdAt">): CalendarReminder {
+  const current = getStoredReminders();
+  const newReminder: CalendarReminder = {
+    ...reminder,
+    id: `rem-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    createdAt: new Date().toISOString()
+  };
+  const updated = [newReminder, ...current];
+  saveStoredReminders(updated);
+  return newReminder;
+}
+
+export function deleteCalendarReminder(id: string) {
+  const current = getStoredReminders();
+  const updated = current.filter(r => r.id !== id);
+  saveStoredReminders(updated);
+}
+
+export function toggleCalendarReminder(id: string) {
+  const current = getStoredReminders();
+  const updated = current.map(r => r.id === id ? { ...r, completed: !r.completed } : r);
+  saveStoredReminders(updated);
 }
 
 export function getCurrentUser(): SystemUser | null {

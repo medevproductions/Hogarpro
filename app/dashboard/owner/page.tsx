@@ -49,6 +49,10 @@ import {
   Layers,
   Tag,
   ChevronRight,
+  ChevronLeft,
+  Bell,
+  Pin,
+  CalendarDays,
   CheckCircle2
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -65,6 +69,12 @@ import {
   deleteImportBatch,
   getStoredSales,
   saveStoredSales,
+  getStoredReminders,
+  saveStoredReminders,
+  addCalendarReminder,
+  deleteCalendarReminder,
+  toggleCalendarReminder,
+  CalendarReminder,
   SaleRecord,
   ImportBatchRecord,
   CatalogPlatform,
@@ -227,8 +237,22 @@ export default function OwnerDashboard() {
   const [newSellerPhone, setNewSellerPhone] = useState("");
 
   // Navegación modular por secciones (HUD)
-  const [activeTab, setActiveTab] = useState<"resumen" | "ventas" | "cuentas" | "vendedores" | "catalogo" | "codigos" | "todo">("resumen");
+  const [activeTab, setActiveTab] = useState<"resumen" | "ventas" | "cuentas" | "vendedores" | "calendario" | "catalogo" | "codigos" | "todo">("resumen");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // SELECCIÓN DE VENDEDOR PARA VER CUENTAS ASIGNADAS
+  const [selectedSellerForAccounts, setSelectedSellerForAccounts] = useState<string | null>(null);
+  const [sellerAccountSearch, setSellerAccountSearch] = useState<string>("");
+
+  // CALENDARIO DE VENCIMIENTOS Y RECORDATORIOS (EXCLUSIVO OWNER)
+  const [calendarReminders, setCalendarReminders] = useState<CalendarReminder[]>([]);
+  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date>(new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [newReminderTitle, setNewReminderTitle] = useState("");
+  const [newReminderCategory, setNewReminderCategory] = useState<"renovacion" | "cobro" | "proveedor" | "general">("renovacion");
+  const [newReminderPriority, setNewReminderPriority] = useState<"urgente" | "normal" | "alta">("normal");
+  const [reminderFilter, setReminderFilter] = useState<"all" | "pending" | "completed">("all");
+  const [calendarViewTab, setCalendarViewTab] = useState<"cuentas" | "recordatorios" | "proximos">("cuentas");
 
   // LIBRO DE VENTAS (SHEET)
   const [sales, setSales] = useState<SaleRecord[]>([]);
@@ -285,6 +309,10 @@ export default function OwnerDashboard() {
     // Cargar Libro de Ventas
     const rawSales = getStoredSales();
     setSales(rawSales);
+
+    // Cargar Recordatorios del Calendario
+    const rawReminders = getStoredReminders();
+    setCalendarReminders(rawReminders);
 
     // Cargar historial de lotes de importación
     try {
@@ -369,10 +397,12 @@ export default function OwnerDashboard() {
     const handleStorageChange = () => reloadData();
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("streamhub_users_updated", handleStorageChange);
+    window.addEventListener("streamhub_reminders_updated", handleStorageChange);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("streamhub_users_updated", handleStorageChange);
+      window.removeEventListener("streamhub_reminders_updated", handleStorageChange);
     };
   }, [router]);
 
@@ -547,6 +577,98 @@ export default function OwnerDashboard() {
       digitalRevenue
     };
   }, [sales]);
+
+  // CÁLCULO DE CUENTAS POR VENCER (PRÓXIMOS 7 DÍAS)
+  const expiringSoonAccounts = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return accounts.filter((a) => {
+      if (!a.expirationDate) return false;
+      const exp = new Date(a.expirationDate);
+      exp.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
+      return diffDays >= 0 && diffDays <= 7;
+    });
+  }, [accounts]);
+
+  // CÁLCULO DE CUENTAS YA VENCIDAS
+  const expiredAccounts = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return accounts.filter((a) => {
+      if (!a.expirationDate) return false;
+      const exp = new Date(a.expirationDate);
+      exp.setHours(0, 0, 0, 0);
+      return exp < today;
+    });
+  }, [accounts]);
+
+  // CÁLCULO DE DÍAS Y DATOS DEL MES PARA EL CALENDARIO
+  const calendarMonthData = useMemo(() => {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth(); // 0 a 11
+    const firstDay = new Date(year, month, 1).getDay(); // 0 (Dom) a 6 (Sáb)
+    const startOffset = (firstDay + 6) % 7; // Lunes = 0, Domingo = 6
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const cells: Array<{ dayNumber: number; dateStr: string } | null> = [];
+    for (let i = 0; i < startOffset; i++) {
+      cells.push(null);
+    }
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cells.push({ dayNumber: d, dateStr });
+    }
+    return { year, month, cells };
+  }, [currentCalendarDate]);
+
+  // Nombres de los meses en español
+  const monthNames = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  // NAVEGACIÓN DEL CALENDARIO
+  const handlePrevMonth = () => {
+    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1));
+  };
+
+  const handleTodayCalendar = () => {
+    const now = new Date();
+    setCurrentCalendarDate(now);
+    setSelectedCalendarDate(now.toISOString().split("T")[0]);
+  };
+
+  // AGREGAR RECORDATORIO
+  const handleAddReminder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReminderTitle.trim()) return;
+    addCalendarReminder({
+      title: newReminderTitle.trim(),
+      date: selectedCalendarDate,
+      category: newReminderCategory,
+      priority: newReminderPriority,
+      completed: false
+    });
+    setNewReminderTitle("");
+    reloadData();
+  };
+
+  // TOGGLE RECORDATORIO COMPLETADO
+  const handleToggleReminder = (id: string) => {
+    toggleCalendarReminder(id);
+    reloadData();
+  };
+
+  // ELIMINAR RECORDATORIO
+  const handleDeleteReminder = (id: string) => {
+    deleteCalendarReminder(id);
+    reloadData();
+  };
 
   // ABRIR MODAL PARA REGISTRAR VENTA
   const handleOpenCreateSale = (preselectedAccount?: StreamingAccount) => {
@@ -1248,6 +1370,17 @@ export default function OwnerDashboard() {
             <span>Vendedores ({sellers.length})</span>
           </button>
           <button
+            onClick={() => setActiveTab("calendario")}
+            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
+              activeTab === "calendario" 
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
+                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Calendario {expiringSoonAccounts.length > 0 && `(${expiringSoonAccounts.length})`}</span>
+          </button>
+          <button
             onClick={() => setActiveTab("catalogo")}
             className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
               activeTab === "catalogo" 
@@ -1379,6 +1512,29 @@ export default function OwnerDashboard() {
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
                 {sellers.length}
               </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("calendario")}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                activeTab === "calendario" 
+                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="w-4 h-4" />
+                <span>Calendario & Vencimientos</span>
+              </div>
+              {expiringSoonAccounts.length > 0 ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-mono font-bold animate-pulse">
+                  {expiringSoonAccounts.length} prox
+                </span>
+              ) : (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-400 font-mono">
+                  {accounts.length}
+                </span>
+              )}
             </button>
 
             <button
@@ -2299,59 +2455,988 @@ export default function OwnerDashboard() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
               {sellers.map((s) => {
                 const assignedCount = accounts.filter(a => a.sellerId === s.id || a.sellerId === s.email || a.seller === s.name).length;
+                const isSelected = selectedSellerForAccounts === s.id;
                 return (
-                  <div key={s.id} className="p-5 rounded-2xl bg-[#141414] border border-[#2a2a2a] hover:border-[#E50914]/50 hover:scale-[1.02] flex flex-col justify-between transition-all duration-300 shadow-xl group">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="font-black text-base text-white tracking-tight flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#E50914]" />
-                          <span>{s.name}</span>
+                  <div 
+                    key={s.id} 
+                    className={`p-5 rounded-2xl flex flex-col justify-between transition-all duration-300 shadow-xl cursor-pointer ${
+                      isSelected 
+                        ? "bg-[#1f1416] border-2 border-[#E50914] shadow-2xl shadow-red-950/70 scale-[1.02]" 
+                        : "bg-[#141414] border border-[#2a2a2a] hover:border-[#E50914]/50 hover:scale-[1.01]"
+                    }`}
+                    onClick={() => setSelectedSellerForAccounts(isSelected ? null : s.id)}
+                  >
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-black text-base text-white tracking-tight flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${isSelected ? "bg-[#E50914] animate-ping" : "bg-[#E50914]"}`} />
+                            <span>{s.name}</span>
+                          </div>
+                          <div className="text-xs text-[#ff6666] font-mono mt-1 font-semibold">{s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`}</div>
+                          <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
+                            <span>📞</span>
+                            <span>{s.phone}</span>
+                          </div>
                         </div>
-                        <div className="text-xs text-[#ff6666] font-mono mt-1 font-semibold">{s.email || `${s.name.toLowerCase().replace(/\s+/g, "")}@ventas.com`}</div>
-                        <div className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
-                          <span>📞</span>
-                          <span>{s.phone}</span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950/70 text-emerald-400 border border-emerald-500/30">
+                            Activo
+                          </span>
+                          {isSelected && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#E50914] text-white shadow-sm">
+                              Seleccionado
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950/70 text-emerald-400 border border-emerald-500/30">
-                        Activo
-                      </span>
                     </div>
 
-                    <div className="mt-4 pt-3.5 border-t border-[#262626] flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-zinc-400 text-xs font-medium">Asignadas:</span>
-                        <span className="font-black text-white bg-[#222222] px-2.5 py-0.5 rounded-md text-xs border border-zinc-700 font-mono">
-                          {assignedCount}
-                        </span>
+                    <div className="mt-4 pt-3.5 border-t border-[#262626] space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-zinc-400 text-xs font-medium">Asignadas:</span>
+                          <span className="font-black text-white bg-[#222222] px-2.5 py-0.5 rounded-md text-xs border border-zinc-700 font-mono">
+                            {assignedCount}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => handleOpenEditSeller(s)}
+                            className="px-2.5 py-1 text-xs text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg flex items-center gap-1 transition"
+                            title="Editar Vendedor"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSeller(s.id, s.name)}
+                            className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
+                            title="Eliminar Vendedor"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleOpenEditSeller(s)}
-                          className="px-2.5 py-1 text-xs text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg flex items-center gap-1 transition"
-                          title="Editar Vendedor"
-                        >
-                          <Edit className="w-3 h-3" />
-                          <span>Editar</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSeller(s.id, s.name)}
-                          className="px-2.5 py-1 text-xs text-red-400 hover:text-white bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 rounded-lg flex items-center gap-1 transition"
-                          title="Eliminar Vendedor"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Eliminar</span>
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSellerForAccounts(isSelected ? null : s.id);
+                        }}
+                        className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                          isSelected
+                            ? "bg-[#E50914] text-white shadow-lg shadow-red-950/60"
+                            : "bg-[#202020] hover:bg-[#282828] text-white border border-[#333333]"
+                        }`}
+                      >
+                        <Tv className="w-3.5 h-3.5 text-[#E50914]" />
+                        <span>{isSelected ? "Ocultar Cuentas Asignadas" : `Ver Cuentas Asignadas (${assignedCount})`}</span>
+                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* PANEL DETALLADO DE CUENTAS ASIGNADAS AL VENDEDOR SELECCIONADO */}
+            {selectedSellerForAccounts && (() => {
+              const activeSellerObj = sellers.find(s => s.id === selectedSellerForAccounts);
+              if (!activeSellerObj) return null;
+
+              const sellerAccounts = accounts.filter(a => 
+                a.sellerId === activeSellerObj.id || 
+                a.sellerId === activeSellerObj.email || 
+                a.seller === activeSellerObj.name
+              );
+
+              const filteredAccounts = sellerAccounts.filter(a =>
+                a.email.toLowerCase().includes(sellerAccountSearch.toLowerCase()) ||
+                a.platform.toLowerCase().includes(sellerAccountSearch.toLowerCase()) ||
+                (a.country && a.country.toLowerCase().includes(sellerAccountSearch.toLowerCase()))
+              );
+
+              return (
+                <div className="p-5 sm:p-6 rounded-2xl bg-[#121212] border-2 border-[#E50914]/50 shadow-2xl relative overflow-hidden animate-in fade-in duration-200">
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
+
+                  {/* Header del Panel */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#282828] mb-5">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                        <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
+                          <Users className="w-5 h-5 text-[#E50914]" />
+                          <span>Cuentas Asignadas a:</span>
+                          <span className="text-[#E50914]">{activeSellerObj.name}</span>
+                          <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/30">
+                            {sellerAccounts.length} cuentas
+                          </span>
+                        </h3>
+                      </div>
+                      <p className="text-xs text-zinc-400">
+                        {activeSellerObj.email} • Tel: {activeSellerObj.phone} — Gestiona o quita las cuentas asignadas a este vendedor
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => {
+                          const availableAcc = accounts.find(a => !a.sellerId);
+                          if (availableAcc) {
+                            setSelectedSellerToAssign(activeSellerObj.id);
+                            handleOpenAssignModal(availableAcc);
+                          } else {
+                            alert("No hay cuentas libres en stock para asignar. Crea o importa una nueva cuenta primero.");
+                          }
+                        }}
+                        className="px-3.5 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Asignar Cuenta a {activeSellerObj.name}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedSellerForAccounts(null)}
+                        className="px-3 py-2 bg-[#222222] hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold rounded-xl flex items-center gap-1 border border-[#333333] transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Cerrar Vista</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Buscador de cuentas asignadas */}
+                  {sellerAccounts.length > 0 && (
+                    <div className="mb-4">
+                      <div className="relative max-w-md">
+                        <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3.5 top-3" />
+                        <input
+                          type="text"
+                          placeholder="Buscar entre las cuentas de este vendedor (correo, plataforma, país)..."
+                          value={sellerAccountSearch}
+                          onChange={(e) => setSellerAccountSearch(e.target.value)}
+                          className="w-full bg-[#181818] border border-[#2a2a2a] rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914]"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Listado de cuentas asignadas */}
+                  {sellerAccounts.length === 0 ? (
+                    <div className="p-8 rounded-xl bg-[#181818] border border-dashed border-[#333333] text-center">
+                      <Tv className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
+                      <div className="text-sm font-bold text-white">Este vendedor no tiene ninguna cuenta asignada</div>
+                      <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
+                        Actualmente no posee cuentas de streaming en su panel. Puedes entregarle una cuenta libre desde el inventario.
+                      </p>
+                      <button
+                        onClick={() => {
+                          const availableAcc = accounts.find(a => !a.sellerId);
+                          if (availableAcc) {
+                            setSelectedSellerToAssign(activeSellerObj.id);
+                            handleOpenAssignModal(availableAcc);
+                          } else {
+                            alert("No hay cuentas libres en stock. Crea o importa una nueva cuenta primero.");
+                          }
+                        }}
+                        className="mt-4 px-4 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-bold rounded-xl inline-flex items-center gap-1.5 shadow-md shadow-red-950/60"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Asignarle Cuenta Ahora</span>
+                      </button>
+                    </div>
+                  ) : filteredAccounts.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-zinc-400">
+                      No se encontraron cuentas que coincidan con &quot;{sellerAccountSearch}&quot;.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                      {filteredAccounts.map((acc) => {
+                        const isExpiring = acc.status === "expiring";
+                        const isExpired = acc.expirationDate && new Date(acc.expirationDate) < new Date();
+
+                        return (
+                          <div 
+                            key={acc.id}
+                            className="p-4 rounded-xl bg-[#181818] border border-[#2c2c2c] hover:border-[#E50914]/40 flex flex-col justify-between transition shadow-lg group"
+                          >
+                            <div>
+                              {/* Header tarjeta */}
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border truncate max-w-[170px] ${acc.platformColor}`}>
+                                  {acc.platform}
+                                </span>
+                                {isExpired ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-950 text-red-400 border border-red-500/30">
+                                    Vencida
+                                  </span>
+                                ) : isExpiring ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/30 animate-pulse">
+                                    Por Vencer
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/30">
+                                    Activa
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Correo y Clave */}
+                              <div className="font-mono text-xs text-white font-bold break-all flex items-center justify-between gap-1 mt-1">
+                                <span>{acc.email}</span>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(acc.email)}
+                                  className="text-zinc-500 hover:text-white shrink-0"
+                                  title="Copiar Correo"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2 mt-1.5 text-xs text-zinc-400 font-mono">
+                                <span>Clave:</span>
+                                <span className="text-zinc-200">
+                                  {showPassword[acc.id] ? acc.password : "••••••••"}
+                                </span>
+                                <button
+                                  onClick={() => setShowPassword(p => ({ ...p, [acc.id]: !p[acc.id] }))}
+                                  className="text-zinc-500 hover:text-white"
+                                >
+                                  {showPassword[acc.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                </button>
+                              </div>
+
+                              {/* Datos extra */}
+                              <div className="mt-2.5 pt-2 border-t border-[#262626] grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                  <span className="text-zinc-500 block">Vencimiento:</span>
+                                  <span className="text-zinc-200 font-bold font-mono">{acc.expirationDate || "Sin fecha"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-zinc-500 block">Perfiles:</span>
+                                  <span className="text-zinc-200 font-mono">{acc.profilesOccupied}/{acc.maxProfiles}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Acciones */}
+                            <div className="mt-3 pt-3 border-t border-[#262626] flex items-center justify-between gap-1.5 flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    setTestEmail(acc.email);
+                                    const platLower = acc.platform.toLowerCase();
+                                    if (platLower.includes("netflix")) setTestService("netflix");
+                                    else if (platLower.includes("disney") || platLower.includes("star")) setTestService("disney");
+                                    else if (platLower.includes("max") || platLower.includes("hbo")) setTestService("max");
+                                    else if (platLower.includes("prime")) setTestService("prime");
+                                    else if (platLower.includes("spotify")) setTestService("spotify");
+                                    else if (platLower.includes("crunchy")) setTestService("crunchyroll");
+                                    const codigosEl = document.getElementById("codigos-owner");
+                                    codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                  }}
+                                  className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 shadow-sm transition"
+                                  title="Extraer código en vivo de esta cuenta"
+                                >
+                                  <Zap className="w-3 h-3" />
+                                  <span>Código</span>
+                                </button>
+
+                                <button
+                                  onClick={() => handleOpenCreateSale(acc)}
+                                  className="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center gap-1 shadow-sm transition"
+                                  title="Registrar venta de esta cuenta"
+                                >
+                                  <DollarSign className="w-3 h-3" />
+                                  <span>Vender</span>
+                                </button>
+
+                                <button
+                                  onClick={() => handleOpenAssignModal(acc)}
+                                  className="px-2.5 py-1 text-[11px] text-zinc-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition"
+                                  title="Reasignar a otro vendedor"
+                                >
+                                  Reasignar
+                                </button>
+                              </div>
+
+                              <button
+                                onClick={() => handleQuickUnassign(acc)}
+                                className="px-2 py-1 text-[11px] text-amber-400 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 rounded-lg transition"
+                                title="Quitar cuenta de este vendedor y devolver al stock"
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </section>
+        )}
+
+        {/* SECCIÓN CALENDARIO DE VENCIMIENTOS Y RECORDATORIOS ESTILO NETFLIX (EXCLUSIVO OWNER) */}
+        {(activeTab === "calendario" || activeTab === "todo") && (
+          <section id="calendario-owner" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Encabezado de Sección */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm">
+                  <Shield className="w-3 h-3" />
+                  <span>EXCLUSIVO ADMINISTRADOR • AGENDA OPERATIVA</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#E50914]" />
+                    <span>Calendario de Vencimientos y Recordatorios</span>
+                  </h2>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Control visual de fechas de expiración de cuentas, avisos de renovación y recordatorios para cobros a revendedores
+                </p>
+              </div>
+
+              {/* Botones de Vista */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setCalendarViewTab("cuentas")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    calendarViewTab === "cuentas"
+                      ? "bg-[#E50914] text-white shadow-md shadow-red-950/60"
+                      : "bg-[#222222] text-zinc-400 hover:text-white border border-[#333333]"
+                  }`}
+                >
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Vista Mensual</span>
+                </button>
+                <button
+                  onClick={() => setCalendarViewTab("proximos")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    calendarViewTab === "proximos"
+                      ? "bg-[#E50914] text-white shadow-md shadow-red-950/60"
+                      : "bg-[#222222] text-zinc-400 hover:text-white border border-[#333333]"
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Próximos 7 Días ({expiringSoonAccounts.length})</span>
+                </button>
+                <button
+                  onClick={() => setCalendarViewTab("recordatorios")}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    calendarViewTab === "recordatorios"
+                      ? "bg-[#E50914] text-white shadow-md shadow-red-950/60"
+                      : "bg-[#222222] text-zinc-400 hover:text-white border border-[#333333]"
+                  }`}
+                >
+                  <Pin className="w-3.5 h-3.5" />
+                  <span>Recordatorios ({calendarReminders.length})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Barra de KPIs Operativos del Calendario */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div 
+                onClick={() => setCalendarViewTab("proximos")}
+                className="p-3.5 rounded-xl bg-[#141414] border border-amber-500/30 hover:border-amber-500 cursor-pointer transition shadow-md group"
+              >
+                <div className="flex items-center justify-between text-xs text-amber-400 font-bold mb-1">
+                  <span>Por Vencer (7 Días)</span>
+                  <AlertCircle className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xl font-black text-white font-mono">{expiringSoonAccounts.length}</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">Cuentas que requieren atención</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#141414] border border-red-500/30 shadow-md">
+                <div className="flex items-center justify-between text-xs text-red-400 font-bold mb-1">
+                  <span>Ya Vencidas</span>
+                  <X className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xl font-black text-white font-mono">{expiredAccounts.length}</div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">Pendientes por reactivar</div>
+              </div>
+
+              <div 
+                onClick={() => setCalendarViewTab("recordatorios")}
+                className="p-3.5 rounded-xl bg-[#141414] border border-indigo-500/30 hover:border-indigo-500 cursor-pointer transition shadow-md"
+              >
+                <div className="flex items-center justify-between text-xs text-indigo-400 font-bold mb-1">
+                  <span>Recordatorios Activos</span>
+                  <Bell className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xl font-black text-white font-mono">
+                  {calendarReminders.filter(r => !r.completed).length}
+                </div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">Notas y tareas pendientes</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#141414] border border-[#2f2f2f] shadow-md">
+                <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1">
+                  <span>Vencimientos Mes</span>
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-xl font-black text-white font-mono">
+                  {accounts.filter(a => a.expirationDate && a.expirationDate.startsWith(`${calendarMonthData.year}-${String(calendarMonthData.month + 1).padStart(2, "0")}`)).length}
+                </div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">Total en {monthNames[calendarMonthData.month]}</div>
+              </div>
+            </div>
+
+            {/* VISTA 1: VISTA MENSUAL DEL CALENDARIO */}
+            {calendarViewTab === "cuentas" && (
+              <div>
+                {/* Controles de Navegación de Mes */}
+                <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-xl bg-[#141414] border border-[#2a2a2a]">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePrevMonth}
+                      className="p-1.5 rounded-lg bg-[#222222] hover:bg-zinc-700 text-white transition border border-[#333333]"
+                      title="Mes Anterior"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <div className="text-base font-black text-white tracking-tight flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4 text-[#E50914]" />
+                      <span>{monthNames[calendarMonthData.month]} {calendarMonthData.year}</span>
+                    </div>
+                    <button
+                      onClick={handleNextMonth}
+                      className="p-1.5 rounded-lg bg-[#222222] hover:bg-zinc-700 text-white transition border border-[#333333]"
+                      title="Mes Siguiente"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleTodayCalendar}
+                      className="px-3 py-1.5 bg-[#E50914]/20 hover:bg-[#E50914]/40 text-[#ff6666] hover:text-white border border-[#E50914]/30 rounded-lg text-xs font-bold transition"
+                    >
+                      Hoy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid del Calendario */}
+                <div className="rounded-xl border border-[#2a2a2a] bg-[#101010] overflow-hidden mb-6">
+                  {/* Días de la semana */}
+                  <div className="grid grid-cols-7 text-center py-2.5 bg-[#181818] border-b border-[#282828] text-[11px] font-black text-zinc-400 uppercase tracking-wider">
+                    <div>Lun</div>
+                    <div>Mar</div>
+                    <div>Mié</div>
+                    <div>Jue</div>
+                    <div>Vie</div>
+                    <div>Sáb</div>
+                    <div>Dom</div>
+                  </div>
+
+                  {/* Celdas de días */}
+                  <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-[#222222]">
+                    {calendarMonthData.cells.map((cell, idx) => {
+                      if (!cell) {
+                        return (
+                          <div key={`empty-${idx}`} className="min-h-[75px] sm:min-h-[90px] bg-[#0c0c0c]/40 p-1.5" />
+                        );
+                      }
+
+                      const todayStr = new Date().toISOString().split("T")[0];
+                      const isToday = cell.dateStr === todayStr;
+                      const isSelected = cell.dateStr === selectedCalendarDate;
+
+                      // Cuentas que vencen este día
+                      const expiringAccountsOnDay = accounts.filter(a => a.expirationDate === cell.dateStr);
+                      // Recordatorios para este día
+                      const remindersOnDay = calendarReminders.filter(r => r.date === cell.dateStr);
+
+                      return (
+                        <div
+                          key={cell.dateStr}
+                          onClick={() => setSelectedCalendarDate(cell.dateStr)}
+                          className={`min-h-[75px] sm:min-h-[90px] p-2 flex flex-col justify-between transition cursor-pointer select-none relative ${
+                            isSelected
+                              ? "bg-[#221214] ring-2 ring-[#E50914] z-10 shadow-lg shadow-red-950/60"
+                              : "hover:bg-[#1a1a1a]"
+                          } ${isToday ? "bg-[#161214]" : ""}`}
+                        >
+                          {/* Número del día */}
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-black font-mono ${
+                              isToday 
+                                ? "w-6 h-6 rounded-full bg-[#E50914] text-white flex items-center justify-center shadow-md shadow-red-950/60" 
+                                : isSelected 
+                                ? "text-[#E50914]" 
+                                : "text-zinc-300"
+                            }`}>
+                              {cell.dayNumber}
+                            </span>
+
+                            {isToday && (
+                              <span className="hidden sm:inline text-[9px] font-black uppercase text-[#E50914] bg-[#E50914]/15 px-1 rounded">
+                                Hoy
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Badges de eventos */}
+                          <div className="mt-1 space-y-1">
+                            {expiringAccountsOnDay.length > 0 && (
+                              <div className="px-1.5 py-0.5 rounded bg-[#E50914] text-white text-[9px] sm:text-[10px] font-black tracking-tight flex items-center justify-between shadow-sm">
+                                <span className="truncate">🔴 {expiringAccountsOnDay.length} {expiringAccountsOnDay.length === 1 ? "vence" : "vencen"}</span>
+                              </div>
+                            )}
+
+                            {remindersOnDay.length > 0 && (
+                              <div className="px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold flex items-center gap-1 truncate">
+                                <span>📌</span>
+                                <span className="truncate">{remindersOnDay.length} rec.</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* PANEL DE DETALLE PARA LA FECHA SELECCIONADA */}
+                {(() => {
+                  const dayAccounts = accounts.filter(a => a.expirationDate === selectedCalendarDate);
+                  const dayReminders = calendarReminders.filter(r => r.date === selectedCalendarDate);
+
+                  return (
+                    <div className="p-5 sm:p-6 rounded-2xl bg-[#141414] border border-[#2a2a2a] shadow-xl">
+                      {/* Header de la fecha */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#262626] mb-5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                          <div>
+                            <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-[#E50914]" />
+                              <span>Agenda del Día:</span>
+                              <span className="font-mono text-emerald-400">{selectedCalendarDate}</span>
+                            </h3>
+                            <div className="text-xs text-zinc-400 mt-0.5">
+                              {dayAccounts.length} cuentas vencen hoy • {dayReminders.length} recordatorios programados
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* COLUMNA 1: CUENTAS QUE VENCEN ESTE DÍA */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Tv className="w-3.5 h-3.5 text-[#E50914]" />
+                              <span>Cuentas por Vencer ({dayAccounts.length})</span>
+                            </span>
+                          </div>
+
+                          {dayAccounts.length === 0 ? (
+                            <div className="p-6 rounded-xl bg-[#101010] border border-dashed border-[#2a2a2a] text-center text-xs text-zinc-500">
+                              No hay cuentas de streaming programadas para vencer el {selectedCalendarDate}.
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {dayAccounts.map((acc) => (
+                                <div
+                                  key={acc.id}
+                                  className="p-3.5 rounded-xl bg-[#101010] border border-[#282828] hover:border-[#E50914]/40 transition flex flex-col justify-between"
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${acc.platformColor}`}>
+                                        {acc.platform}
+                                      </span>
+                                      <div className="font-mono text-xs font-bold text-white mt-1 break-all">
+                                        {acc.email}
+                                      </div>
+                                      <div className="text-[11px] text-zinc-400 mt-0.5">
+                                        Vendedor: <span className="text-zinc-200 font-semibold">{acc.seller}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-1.5">
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/30 animate-pulse">
+                                        Vence Hoy
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-3 pt-2.5 border-t border-[#222222] flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setTestEmail(acc.email);
+                                        const codigosEl = document.getElementById("codigos-owner");
+                                        codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                      }}
+                                      className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 transition"
+                                      title="Extraer código de esta cuenta"
+                                    >
+                                      <Zap className="w-3 h-3" />
+                                      <span>Código</span>
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenCreateSale(acc)}
+                                      className="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg flex items-center gap-1 transition"
+                                    >
+                                      <DollarSign className="w-3 h-3" />
+                                      <span>Vender</span>
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenEditModal(acc)}
+                                      className="px-2.5 py-1 text-[11px] text-zinc-300 hover:text-white bg-[#222222] hover:bg-zinc-700 rounded-lg transition"
+                                    >
+                                      <Edit className="w-3 h-3 inline" />
+                                      <span>Renovar</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* COLUMNA 2: RECORDATORIOS Y NOTAS OPERATIVAS */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Pin className="w-3.5 h-3.5 text-indigo-400" />
+                              <span>Recordatorios ({dayReminders.length})</span>
+                            </span>
+                          </div>
+
+                          {/* Lista de recordatorios del día */}
+                          <div className="space-y-2 mb-4">
+                            {dayReminders.length === 0 ? (
+                              <div className="p-4 rounded-xl bg-[#101010] border border-dashed border-[#2a2a2a] text-center text-xs text-zinc-500">
+                                Sin recordatorios para esta fecha. Usa el formulario de abajo para agregar uno.
+                              </div>
+                            ) : (
+                              dayReminders.map((rem) => {
+                                const priorityColors = {
+                                  urgente: "bg-red-950 text-red-400 border-red-500/30",
+                                  alta: "bg-amber-950 text-amber-400 border-amber-500/30",
+                                  normal: "bg-blue-950 text-blue-400 border-blue-500/30"
+                                };
+
+                                const categoryLabels = {
+                                  renovacion: "Renovación",
+                                  cobro: "Cobro",
+                                  proveedor: "Proveedor",
+                                  general: "General"
+                                };
+
+                                return (
+                                  <div
+                                    key={rem.id}
+                                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition ${
+                                      rem.completed
+                                        ? "bg-[#101010] border-[#222222] opacity-60"
+                                        : "bg-[#101010] border-[#2c2c2c] hover:border-zinc-600"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleReminder(rem.id)}
+                                        className={`w-5 h-5 rounded-md flex items-center justify-center transition shrink-0 ${
+                                          rem.completed
+                                            ? "bg-emerald-600 text-white"
+                                            : "border border-zinc-600 hover:border-emerald-500 text-transparent"
+                                        }`}
+                                      >
+                                        <Check className="w-3.5 h-3.5" />
+                                      </button>
+                                      <div className="min-w-0 flex-1">
+                                        <div className={`text-xs font-semibold text-white break-words ${rem.completed ? "line-through text-zinc-500" : ""}`}>
+                                          {rem.title}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border uppercase tracking-wider ${priorityColors[rem.priority]}`}>
+                                            {rem.priority}
+                                          </span>
+                                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#202020] text-zinc-400 border border-[#333333]">
+                                            {categoryLabels[rem.category]}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteReminder(rem.id)}
+                                      className="text-zinc-600 hover:text-red-400 p-1 rounded transition"
+                                      title="Eliminar recordatorio"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          {/* Formulario para agregar recordatorio a esta fecha */}
+                          <form onSubmit={handleAddReminder} className="p-3.5 rounded-xl bg-[#101010] border border-[#262626]">
+                            <div className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-2 flex items-center gap-1">
+                              <Plus className="w-3 h-3 text-[#E50914]" />
+                              <span>Nuevo Recordatorio para {selectedCalendarDate}</span>
+                            </div>
+
+                            <input
+                              type="text"
+                              placeholder="Ej: Cobrar mensualidad a Juan, renovar Disney con proveedor..."
+                              value={newReminderTitle}
+                              onChange={(e) => setNewReminderTitle(e.target.value)}
+                              required
+                              className="w-full bg-[#161616] border border-[#2c2c2c] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] mb-2.5"
+                            />
+
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 uppercase font-bold mb-1">Categoría</label>
+                                <select
+                                  value={newReminderCategory}
+                                  onChange={(e: any) => setNewReminderCategory(e.target.value)}
+                                  className="w-full bg-[#161616] border border-[#2c2c2c] rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#E50914]"
+                                >
+                                  <option value="renovacion">Renovación de Cuenta</option>
+                                  <option value="cobro">Cobro a Revendedor</option>
+                                  <option value="proveedor">Pago a Proveedor</option>
+                                  <option value="general">Nota General</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-zinc-400 uppercase font-bold mb-1">Prioridad</label>
+                                <select
+                                  value={newReminderPriority}
+                                  onChange={(e: any) => setNewReminderPriority(e.target.value)}
+                                  className="w-full bg-[#161616] border border-[#2c2c2c] rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#E50914]"
+                                >
+                                  <option value="normal">Normal</option>
+                                  <option value="alta">Alta</option>
+                                  <option value="urgente">Urgente</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <button
+                              type="submit"
+                              className="w-full py-2 bg-[#E50914] hover:bg-[#f40612] text-white font-bold text-xs rounded-xl shadow-md shadow-red-950/60 transition active:scale-95 flex items-center justify-center gap-1.5"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Guardar Recordatorio</span>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* VISTA 2: LISTADO DE PRÓXIMOS 7 DÍAS */}
+            {calendarViewTab === "proximos" && (
+              <div className="p-5 rounded-2xl bg-[#141414] border border-[#2a2a2a]">
+                <div className="flex items-center justify-between pb-3 border-b border-[#262626] mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-5 bg-amber-500 rounded-full" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      Cuentas que vencen en los próximos 7 días ({expiringSoonAccounts.length})
+                    </h3>
+                  </div>
+                </div>
+
+                {expiringSoonAccounts.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-zinc-400">
+                    🎉 ¡Todo al día! No hay cuentas por vencer en los próximos 7 días.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {expiringSoonAccounts.map((acc) => {
+                      const exp = new Date(acc.expirationDate);
+                      const today = new Date();
+                      today.setHours(0,0,0,0);
+                      exp.setHours(0,0,0,0);
+                      const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
+
+                      return (
+                        <div key={acc.id} className="p-4 rounded-xl bg-[#181818] border border-amber-500/30 flex flex-col justify-between shadow-lg">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${acc.platformColor}`}>
+                                {acc.platform}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-500/30">
+                                {diffDays === 0 ? "Vence Hoy" : `En ${diffDays} días`}
+                              </span>
+                            </div>
+                            <div className="font-mono text-xs font-bold text-white break-all">{acc.email}</div>
+                            <div className="text-[11px] text-zinc-400 mt-1">
+                              Vendedor: <span className="text-zinc-200">{acc.seller}</span> • Vence: <span className="text-amber-400 font-mono font-bold">{acc.expirationDate}</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-[#262626] flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setTestEmail(acc.email);
+                                const codigosEl = document.getElementById("codigos-owner");
+                                codigosEl?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 transition"
+                            >
+                              <Zap className="w-3 h-3" />
+                              <span>Código</span>
+                            </button>
+                            <button
+                              onClick={() => handleOpenCreateSale(acc)}
+                              className="px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg"
+                            >
+                              Vender
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditModal(acc)}
+                              className="px-2.5 py-1 text-[11px] text-zinc-300 hover:text-white bg-[#222222] hover:bg-zinc-700 rounded-lg"
+                            >
+                              Renovar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VISTA 3: TODOS LOS RECORDATORIOS GLOBALES */}
+            {calendarViewTab === "recordatorios" && (
+              <div className="p-5 rounded-2xl bg-[#141414] border border-[#2a2a2a]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#262626] mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-5 bg-indigo-500 rounded-full" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      Lista General de Recordatorios ({calendarReminders.length})
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <button
+                      onClick={() => setReminderFilter("all")}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition ${reminderFilter === "all" ? "bg-[#E50914] text-white" : "bg-[#222222] text-zinc-400"}`}
+                    >
+                      Todos
+                    </button>
+                    <button
+                      onClick={() => setReminderFilter("pending")}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition ${reminderFilter === "pending" ? "bg-[#E50914] text-white" : "bg-[#222222] text-zinc-400"}`}
+                    >
+                      Pendientes
+                    </button>
+                    <button
+                      onClick={() => setReminderFilter("completed")}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition ${reminderFilter === "completed" ? "bg-[#E50914] text-white" : "bg-[#222222] text-zinc-400"}`}
+                    >
+                      Completados
+                    </button>
+                  </div>
+                </div>
+
+                {calendarReminders.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-zinc-400">
+                    No tienes ningún recordatorio registrado. Selecciona una fecha en el calendario para crear uno.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {calendarReminders
+                      .filter(r => {
+                        if (reminderFilter === "pending") return !r.completed;
+                        if (reminderFilter === "completed") return r.completed;
+                        return true;
+                      })
+                      .sort((a, b) => a.date.localeCompare(b.date))
+                      .map((rem) => (
+                        <div
+                          key={rem.id}
+                          className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 transition ${
+                            rem.completed ? "bg-[#101010] border-[#222222] opacity-60" : "bg-[#181818] border-[#2c2c2c]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleReminder(rem.id)}
+                              className={`w-5 h-5 rounded-md flex items-center justify-center transition shrink-0 ${
+                                rem.completed ? "bg-emerald-600 text-white" : "border border-zinc-600 hover:border-emerald-500 text-transparent"
+                              }`}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+
+                            <div className="min-w-0 flex-1">
+                              <div className={`text-xs font-bold text-white break-words ${rem.completed ? "line-through text-zinc-500" : ""}`}>
+                                {rem.title}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400 flex-wrap">
+                                <span className="font-mono text-emerald-400 bg-black/60 px-2 py-0.5 rounded border border-zinc-700">
+                                  📅 {rem.date}
+                                </span>
+                                <span className={`px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                                  rem.priority === "urgente" ? "bg-red-950 text-red-400" : rem.priority === "alta" ? "bg-amber-950 text-amber-400" : "bg-blue-950 text-blue-400"
+                                }`}>
+                                  {rem.priority}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-[#202020] text-zinc-300">
+                                  {rem.category}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedCalendarDate(rem.date);
+                                setCalendarViewTab("cuentas");
+                              }}
+                              className="px-2.5 py-1 text-[11px] font-bold text-zinc-300 hover:text-white bg-[#222222] hover:bg-zinc-700 rounded-lg transition"
+                            >
+                              Ver Día
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReminder(rem.id)}
+                              className="p-1.5 text-zinc-500 hover:text-red-400 transition"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 
