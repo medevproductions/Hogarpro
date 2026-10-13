@@ -24,7 +24,11 @@ import {
   Settings,
   Phone,
   Mail,
-  LogOut
+  LogOut,
+  Calendar,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -110,11 +114,16 @@ export default function SellerLiveCodesPage() {
   const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string }>>([]);
+  const [rawSellerAccounts, setRawSellerAccounts] = useState<StoredStreamingAccount[]>([]);
 
   const router = useRouter();
 
-  // Navegación de pestañas: "cuentas" | "configuracion"
-  const [activeTab, setActiveTab] = useState<"cuentas" | "configuracion">("cuentas");
+  // Navegación de pestañas: "cuentas" | "calendario" | "configuracion"
+  const [activeTab, setActiveTab] = useState<"cuentas" | "calendario" | "configuracion">("cuentas");
+
+  // Estados del Calendario para Vendedor
+  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date>(new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   // Estados para Cambiar Contraseña del Vendedor
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -129,6 +138,70 @@ export default function SellerLiveCodesPage() {
   const [profileName, setProfileName] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  // CÁLCULO DE CUENTAS POR VENCER PARA EL VENDEDOR (PRÓXIMOS 7 DÍAS)
+  const expiringSoonAccounts = React.useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return rawSellerAccounts.filter((a) => {
+      if (!a.expirationDate) return false;
+      const exp = new Date(a.expirationDate);
+      exp.setHours(0, 0, 0, 0);
+      const diff = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
+      return diff >= 0 && diff <= 7;
+    });
+  }, [rawSellerAccounts]);
+
+  // CÁLCULO DE CUENTAS VENCIDAS PARA EL VENDEDOR
+  const expiredAccounts = React.useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return rawSellerAccounts.filter((a) => {
+      if (!a.expirationDate) return false;
+      const exp = new Date(a.expirationDate);
+      exp.setHours(0, 0, 0, 0);
+      return exp < today;
+    });
+  }, [rawSellerAccounts]);
+
+  // Nombres de los meses en español
+  const monthNames = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  // CÁLCULO DE DÍAS Y DATOS DEL MES PARA EL CALENDARIO DEL VENDEDOR
+  const calendarMonthData = React.useMemo(() => {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const startOffset = (firstDay + 6) % 7; // Lunes = 0, Domingo = 6
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const cells: Array<{ dayNumber: number; dateStr: string } | null> = [];
+    for (let i = 0; i < startOffset; i++) {
+      cells.push(null);
+    }
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cells.push({ dayNumber: d, dateStr });
+    }
+    return { year, month, cells };
+  }, [currentCalendarDate]);
+
+  const handlePrevMonth = () => {
+    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentCalendarDate(new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 1));
+  };
+
+  const handleTodayCalendar = () => {
+    const now = new Date();
+    setCurrentCalendarDate(now);
+    setSelectedCalendarDate(now.toISOString().split("T")[0]);
+  };
 
   // MANEJO DE CAMBIO DE CONTRASEÑA
   const handleChangePassword = (e: React.FormEvent) => {
@@ -238,6 +311,7 @@ export default function SellerLiveCodesPage() {
     }));
 
     setAssignedAccounts(formatted);
+    setRawSellerAccounts(validAccs);
     if (formatted.length > 0 && (!selectedAccount || !formatted.some(f => f.email === selectedAccount))) {
       setSelectedAccount(formatted[0].email);
     }
@@ -434,28 +508,39 @@ export default function SellerLiveCodesPage() {
         </div>
 
         {/* Pestañas de Navegación Móvil */}
-        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+        <div className="grid grid-cols-3 gap-1.5 pt-0.5">
           <button
             onClick={() => setActiveTab("cuentas")}
-            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+            className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
               activeTab === "cuentas"
                 ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
                 : "bg-[#202020] text-zinc-400 hover:text-white"
             }`}
           >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Mis Cuentas ({assignedAccounts.length})</span>
+            <KeyRound className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Cuentas ({assignedAccounts.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("calendario")}
+            className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
+              activeTab === "calendario"
+                ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
+                : "bg-[#202020] text-zinc-400 hover:text-white"
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Calendario {expiringSoonAccounts.length > 0 && `(${expiringSoonAccounts.length})`}</span>
           </button>
           <button
             onClick={() => setActiveTab("configuracion")}
-            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+            className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
               activeTab === "configuracion"
                 ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
                 : "bg-[#202020] text-zinc-400 hover:text-white"
             }`}
           >
-            <Settings className="w-3.5 h-3.5" />
-            <span>Configuración</span>
+            <Settings className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Ajustes</span>
           </button>
         </div>
       </div>
@@ -477,14 +562,38 @@ export default function SellerLiveCodesPage() {
           <nav className="space-y-1.5 text-sm font-medium">
             <button
               onClick={() => setActiveTab("cuentas")}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-left ${
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-left ${
                 activeTab === "cuentas"
                   ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
                   : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
               }`}
             >
-              <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-[#E50914]" : "text-zinc-400"}`} />
-              <span>Gestión de Cuentas</span>
+              <div className="flex items-center gap-3">
+                <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-[#E50914]" : "text-zinc-400"}`} />
+                <span>Gestión de Cuentas</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
+                {assignedAccounts.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("calendario")}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-left ${
+                activeTab === "calendario"
+                  ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
+                  : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className={`w-4 h-4 ${activeTab === "calendario" ? "text-[#E50914]" : "text-zinc-400"}`} />
+                <span>Calendario de Vencimientos</span>
+              </div>
+              {expiringSoonAccounts.length > 0 ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-950 text-red-300 border border-red-500/40 font-mono font-bold animate-pulse">
+                  {expiringSoonAccounts.length} prox
+                </span>
+              ) : null}
             </button>
 
             <button
@@ -730,7 +839,257 @@ export default function SellerLiveCodesPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* VISTA 2: GESTIÓN DE CUENTAS (TERMINAL Y SOLICITUD DE CÓDIGOS) */}
+        {/* VISTA 2: CALENDARIO DE VENCIMIENTO DE CUENTAS DEL REVENDEDOR */}
+        {/* ========================================================================= */}
+        {activeTab === "calendario" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Encabezado del Calendario */}
+            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-72 h-72 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-[#262626]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <div>
+                    <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-[#E50914]" />
+                      <span>Calendario de Vencimiento de Cuentas</span>
+                    </h2>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Monitorea las fechas de expiración de tus cuentas asignadas. Los días con vencimientos aparecen resaltados en rojo.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-zinc-400 font-mono">
+                  Total Asignadas: <strong className="text-white">{rawSellerAccounts.length}</strong>
+                </div>
+              </div>
+
+              {/* KPIs de Alerta de Vencimientos */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                <div className="p-3.5 rounded-xl bg-[#141414] border border-amber-500/30 shadow-md">
+                  <div className="flex items-center justify-between text-xs text-amber-400 font-bold mb-1">
+                    <span>Por Vencer (7 Días)</span>
+                    <Clock className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">{expiringSoonAccounts.length}</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Requieren renovación pronto</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#141414] border border-red-500/30 shadow-md">
+                  <div className="flex items-center justify-between text-xs text-red-400 font-bold mb-1">
+                    <span>Ya Vencidas</span>
+                    <AlertCircle className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">{expiredAccounts.length}</div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Contacta al admin para renovar</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#141414] border border-[#2c2c2c] shadow-md">
+                  <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1">
+                    <span>Mis Cuentas Activas</span>
+                    <Tv className="w-3.5 h-3.5 text-[#E50914]" />
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">
+                    {rawSellerAccounts.filter(a => !a.expirationDate || new Date(a.expirationDate) >= new Date()).length}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 mt-0.5">Operando normalmente</div>
+                </div>
+              </div>
+
+              {/* Controles de Navegación del Mes */}
+              <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-xl bg-[#141414] border border-[#262626]">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePrevMonth}
+                    className="p-1.5 rounded-lg bg-[#222222] hover:bg-zinc-700 text-white transition border border-[#333333]"
+                    title="Mes Anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <div className="text-sm sm:text-base font-black text-white tracking-tight flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-[#E50914]" />
+                    <span>{monthNames[calendarMonthData.month]} {calendarMonthData.year}</span>
+                  </div>
+                  <button
+                    onClick={handleNextMonth}
+                    className="p-1.5 rounded-lg bg-[#222222] hover:bg-zinc-700 text-white transition border border-[#333333]"
+                    title="Mes Siguiente"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleTodayCalendar}
+                  className="px-3 py-1.5 bg-[#E50914]/20 hover:bg-[#E50914]/40 text-[#ff6666] hover:text-white border border-[#E50914]/30 rounded-lg text-xs font-bold transition"
+                >
+                  Hoy
+                </button>
+              </div>
+
+              {/* Grid del Calendario */}
+              <div className="rounded-xl border border-[#262626] bg-[#101010] overflow-hidden mb-6 shadow-inner">
+                {/* Días de la semana */}
+                <div className="grid grid-cols-7 text-center py-2 bg-[#181818] border-b border-[#262626] text-[10px] sm:text-xs font-black text-zinc-400 uppercase tracking-wider">
+                  <div>Lun</div>
+                  <div>Mar</div>
+                  <div>Mié</div>
+                  <div>Jue</div>
+                  <div>Vie</div>
+                  <div>Sáb</div>
+                  <div>Dom</div>
+                </div>
+
+                {/* Celdas de los días */}
+                <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-[#222222]">
+                  {calendarMonthData.cells.map((cell, idx) => {
+                    if (!cell) {
+                      return (
+                        <div key={`empty-seller-${idx}`} className="min-h-[70px] sm:min-h-[85px] bg-[#0c0c0c]/40 p-1.5" />
+                      );
+                    }
+
+                    const todayStr = new Date().toISOString().split("T")[0];
+                    const isToday = cell.dateStr === todayStr;
+                    const isSelected = cell.dateStr === selectedCalendarDate;
+
+                    // Cuentas de este vendedor que vencen este día
+                    const expiringAccountsToday = rawSellerAccounts.filter(a => {
+                      if (!a.expirationDate) return false;
+                      const datePart = a.expirationDate.split("T")[0];
+                      return datePart === cell.dateStr;
+                    });
+                    const hasExpiring = expiringAccountsToday.length > 0;
+
+                    return (
+                      <div
+                        key={cell.dateStr}
+                        onClick={() => setSelectedCalendarDate(cell.dateStr)}
+                        className={`min-h-[70px] sm:min-h-[85px] p-2 flex flex-col justify-between transition cursor-pointer select-none relative ${
+                          hasExpiring
+                            ? "bg-[#E50914] text-white border-2 border-red-500 shadow-md shadow-red-950/70 font-black scale-[1.01]"
+                            : isSelected
+                            ? "bg-[#221214] ring-2 ring-[#E50914] text-white"
+                            : "bg-[#141414] hover:bg-[#1e1e1e] text-zinc-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-mono font-black ${
+                            hasExpiring 
+                              ? "text-white text-sm" 
+                              : isToday 
+                              ? "w-5 h-5 rounded-full bg-[#E50914] text-white flex items-center justify-center text-[11px]" 
+                              : isSelected 
+                              ? "text-[#E50914]" 
+                              : "text-zinc-300"
+                          }`}>
+                            {cell.dayNumber}
+                          </span>
+
+                          {isToday && !hasExpiring && (
+                            <span className="text-[8px] font-black uppercase text-[#E50914] bg-[#E50914]/20 px-1 rounded">
+                              Hoy
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Indicador en rojo de vencimiento */}
+                        {hasExpiring && (
+                          <div className="mt-1 bg-black/60 rounded px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black text-white tracking-tight truncate border border-white/20">
+                            🔴 {expiringAccountsToday.length} {expiringAccountsToday.length === 1 ? "vence" : "vencen"}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* PANEL DETALLADO DE LA FECHA SELECCIONADA */}
+              {(() => {
+                const dayAccounts = rawSellerAccounts.filter(a => {
+                  if (!a.expirationDate) return false;
+                  return a.expirationDate.split("T")[0] === selectedCalendarDate;
+                });
+
+                return (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#141414] border border-[#2a2a2a] shadow-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#262626] mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-[#E50914] rounded-full" />
+                        <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-[#E50914]" />
+                          <span>Cuentas con Vencimiento el:</span>
+                          <span className="font-mono text-emerald-400">{selectedCalendarDate}</span>
+                        </h3>
+                      </div>
+                      <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-black/60 text-zinc-300 border border-zinc-700">
+                        {dayAccounts.length} {dayAccounts.length === 1 ? "cuenta" : "cuentas"}
+                      </span>
+                    </div>
+
+                    {dayAccounts.length === 0 ? (
+                      <div className="p-6 rounded-xl bg-[#101010] border border-dashed border-[#262626] text-center text-xs text-zinc-400">
+                        🎉 No tienes ninguna cuenta programada para vencer el {selectedCalendarDate}.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {dayAccounts.map((acc) => {
+                          const isExpired = new Date(acc.expirationDate) < new Date();
+
+                          return (
+                            <div
+                              key={acc.id}
+                              className="p-4 rounded-xl bg-[#181818] border border-red-500/40 shadow-lg flex flex-col justify-between"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/30 truncate max-w-[160px]">
+                                    {acc.platform}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-950 text-red-400 border border-red-500/40 uppercase">
+                                    {isExpired ? "Vencida" : "Vence este día"}
+                                  </span>
+                                </div>
+
+                                <div className="font-mono text-xs font-bold text-white break-all mb-1">
+                                  {acc.email}
+                                </div>
+
+                                <div className="text-[11px] text-zinc-400 flex items-center justify-between mt-2 pt-2 border-t border-[#262626]">
+                                  <span>Perfiles: <strong className="text-zinc-200 font-mono">{acc.occupiedProfiles || 0}/{acc.maxProfiles || 5}</strong></span>
+                                  <span>Vence: <strong className="text-amber-400 font-mono">{acc.expirationDate}</strong></span>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 pt-3 border-t border-[#262626] flex justify-end">
+                                <button
+                                  onClick={() => {
+                                    setSelectedAccount(acc.email);
+                                    setActiveTab("cuentas");
+                                  }}
+                                  className="w-full py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
+                                >
+                                  <Zap className="w-3.5 h-3.5" />
+                                  <span>Pedir Códigos para esta Cuenta</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VISTA 3: GESTIÓN DE CUENTAS (TERMINAL Y SOLICITUD DE CÓDIGOS) */}
         {/* ========================================================================= */}
         {activeTab === "cuentas" && (
           <>

@@ -2207,7 +2207,45 @@ export default function OwnerDashboard() {
                 <p className="text-xs text-zinc-400">Control de correos, credenciales, cupos de pantalla y vendedor o comprador asignado</p>
               </div>
 
-              {/* Barra de Búsqueda y Filtros Activos estilo Netflix */}
+              {/* Acciones Rápidas: Subir Lista, Descargar Formato, Nueva Cuenta */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExcelPreviewData([]);
+                    setExcelFile(null);
+                    setImportSuccessMessage(null);
+                    setIsExcelModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Subir Lista</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-3.5 py-2 bg-[#222222] hover:bg-zinc-700 text-zinc-200 border border-[#333333] text-xs font-bold rounded-xl flex items-center gap-1.5 transition active:scale-95 shadow-sm"
+                  title="Descargar archivo Excel de ejemplo con el formato requerido"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#E50914]" />
+                  <span>Descargar Formato</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenCreateModal}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 border border-white/10 transition active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Nueva Cuenta</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Filtros y Búsqueda:</span>
               <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative flex-1 sm:w-64">
                   <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
@@ -2960,7 +2998,7 @@ export default function OwnerDashboard() {
                       const isSelected = cell.dateStr === selectedCalendarDate;
 
                       // Cuentas que vencen este día
-                      const expiringAccountsOnDay = accounts.filter(a => a.expirationDate === cell.dateStr);
+                      const expiringAccountsOnDay = accounts.filter(a => a.expirationDate && a.expirationDate.split("T")[0] === cell.dateStr);
                       // Recordatorios para este día
                       const remindersOnDay = calendarReminders.filter(r => r.date === cell.dateStr);
 
@@ -3016,7 +3054,7 @@ export default function OwnerDashboard() {
 
                 {/* PANEL DE DETALLE PARA LA FECHA SELECCIONADA */}
                 {(() => {
-                  const dayAccounts = accounts.filter(a => a.expirationDate === selectedCalendarDate);
+                  const dayAccounts = accounts.filter(a => a.expirationDate && a.expirationDate.split("T")[0] === selectedCalendarDate);
                   const dayReminders = calendarReminders.filter(r => r.date === selectedCalendarDate);
 
                   return (
@@ -3890,19 +3928,31 @@ export default function OwnerDashboard() {
                 ✕
               </button>
 
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
-                    <h3 className="text-lg font-black text-white">Importar Lista de Cuentas desde Excel o CSV</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#262626] pr-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30 shrink-0">
+                    <FileSpreadsheet className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
-                    Sube cuentas masivas con país, verificación, fecha de vencimiento y asignación opcional
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
+                      <h3 className="text-lg font-black text-white">Importar Lista de Cuentas (Excel / CSV)</h3>
+                    </div>
+                    <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
+                      Sube cuentas masivas con país, verificación, fecha de vencimiento y asignación
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-4 py-2.5 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-red-950/60 transition active:scale-95 shrink-0"
+                  title="Descargar formato oficial de Excel para subir cuentas"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Descargar Formato</span>
+                </button>
               </div>
 
               {/* Selector de Plataforma Destino */}
