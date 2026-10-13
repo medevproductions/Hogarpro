@@ -40,7 +40,7 @@ export default function LoginPage() {
               <Tv className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-black tracking-tighter text-white">
-              STREAM<span className="text-[#E50914]">HUB</span>
+              HOGAR<span className="text-[#E50914]">PRO</span>
             </span>
           </Link>
           <div className="flex items-center justify-center gap-2 mt-4">
@@ -58,7 +58,7 @@ export default function LoginPage() {
             type="button"
             onClick={() => {
               setSelectedDemoRole("owner");
-              setEmail("owner@streamhub.com");
+              setEmail("owner@hogarpro.com");
               setPassword("owner123");
             }}
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${
@@ -74,7 +74,7 @@ export default function LoginPage() {
             type="button"
             onClick={() => {
               setSelectedDemoRole("seller");
-              setEmail("seller@streamhub.com");
+              setEmail("seller@hogarpro.com");
               setPassword("seller123");
             }}
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${

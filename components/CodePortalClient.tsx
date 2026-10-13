@@ -269,7 +269,7 @@ export default function CodePortalClient({
               <Tv className="w-4 h-4" />
             </div>
             <span className="font-black text-white text-sm tracking-tight">
-              STREAM<span className="text-indigo-400">HUB</span>
+              HOGAR<span className="text-[#E50914]">PRO</span>
             </span>
           </div>
         </div>
@@ -474,7 +474,7 @@ export default function CodePortalClient({
 
       {/* FOOTER */}
       <footer className="py-6 text-center text-xs text-gray-500 border-t border-gray-800/80">
-        © 2026 StreamHub Pro • Módulo de Gestión de Códigos
+        © 2026 HogarPro • Módulo de Gestión de Códigos
       </footer>
     </div>
   );

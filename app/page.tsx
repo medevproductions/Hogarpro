@@ -177,10 +177,10 @@ export default function HomeOrSellerCatalogPage() {
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-[#E50914] flex items-center justify-center font-black text-2xl text-white shadow-xl shadow-red-600/40">
-                N
+                H
               </div>
               <span className="text-3xl font-black tracking-wider text-white">
-                STREAM<span className="text-[#E50914]">HUB</span>
+                HOGAR<span className="text-[#E50914]">PRO</span>
               </span>
             </div>
             <h1 className="mt-4 text-2xl font-black text-white tracking-tight">Portal de Revendedores</h1>
@@ -385,11 +385,11 @@ export default function HomeOrSellerCatalogPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center font-black text-xl text-white shadow-lg shadow-red-600/40">
-              N
+              H
             </div>
             <div>
               <span className="text-2xl font-black tracking-wider text-white">
-                STREAM<span className="text-[#E50914]">HUB</span>
+                HOGAR<span className="text-[#E50914]">PRO</span>
               </span>
               <span className="hidden sm:inline-block ml-2 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-red-950/80 text-red-300 border border-red-500/30 rounded-full">
                 VENDEDOR ACTIVO
@@ -512,7 +512,7 @@ export default function HomeOrSellerCatalogPage() {
 
       {/* FOOTER */}
       <footer className="py-8 text-center text-xs text-zinc-500 border-t border-[#262626] mt-12">
-        © 2026 StreamHub Pro • Portal Privado de Distribución de Streaming
+        © 2026 HogarPro • Portal Privado de Distribución de Streaming
       </footer>
     </div>
   );

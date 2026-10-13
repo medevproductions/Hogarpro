@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StreamHub Pro - Gestión & Venta de Cuentas de Streaming",
-  description: "Plataforma automatizada para venta y administración de cuentas de streaming en tiempo real.",
+  title: "HogarPro - Gestión & Venta de Cuentas de Streaming",
+  description: "Plataforma automatizada HogarPro para venta y administración de cuentas de streaming en tiempo real.",
 };
 
 export default function RootLayout({

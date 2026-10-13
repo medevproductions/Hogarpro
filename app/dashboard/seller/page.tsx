@@ -103,7 +103,7 @@ const ACTIONS: ActionConfig[] = [
 ];
 
 export default function SellerLiveCodesPage() {
-  const [selectedAccount, setSelectedAccount] = useState<string>("netflix01@streamhub.io");
+  const [selectedAccount, setSelectedAccount] = useState<string>("netflix01@hogarpro.com");
   const [activeAction, setActiveAction] = useState<CodeAction | null>(null);
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [isWaiting, setIsWaiting] = useState<boolean>(false);
@@ -488,10 +488,10 @@ export default function SellerLiveCodesPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#E50914] flex items-center justify-center font-black text-white shadow-md shadow-red-600/40">
-              N
+              H
             </div>
             <div>
-              <div className="font-black text-white text-xs tracking-wider leading-none">STREAMHUB</div>
+              <div className="font-black text-white text-xs tracking-wider leading-none">HOGAR<span className="text-[#E50914]">PRO</span></div>
               <div className="text-[9px] text-[#E50914] font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
             </div>
           </div>
@@ -552,10 +552,10 @@ export default function SellerLiveCodesPage() {
         <div>
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center font-black text-xl text-white shadow-lg shadow-red-600/40">
-              N
+              H
             </div>
             <div>
-              <div className="font-black text-white tracking-wider text-base">STREAMHUB</div>
+              <div className="font-black text-white tracking-wider text-base">HOGAR<span className="text-[#E50914]">PRO</span></div>
               <div className="text-[10px] text-[#E50914] font-bold uppercase tracking-wider">PORTAL REVENDEDOR</div>
             </div>
           </div>

@@ -985,7 +985,7 @@ export default function OwnerDashboard() {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Libro de Ventas");
-    XLSX.writeFile(wb, `Libro_Ventas_StreamHub_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb, `Libro_Ventas_HogarPro_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   // ABRIR MODAL PARA REGISTRAR GASTO
@@ -1084,7 +1084,7 @@ export default function OwnerDashboard() {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Libro de Gastos");
-    XLSX.writeFile(wb, `Libro_Gastos_StreamHub_${new Date().toISOString().split("T")[0]}.xlsx`);
+    XLSX.writeFile(wb, `Libro_Gastos_HogarPro_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   // GESTIÓN DEL CATÁLOGO DE PLATAFORMAS (CREAR / EDITAR / ELIMINAR)
@@ -1477,7 +1477,7 @@ export default function OwnerDashboard() {
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Cuentas_Plantilla");
-    XLSX.writeFile(wb, "Plantilla_Cuentas_Streaming_StreamHub.xlsx");
+    XLSX.writeFile(wb, "Plantilla_Cuentas_Streaming_HogarPro.xlsx");
   };
 
   // ABRIR MODAL CREAR VENDEDOR
@@ -1606,7 +1606,7 @@ export default function OwnerDashboard() {
             </div>
             <div>
               <div className="font-black text-sm text-white tracking-tight leading-none">
-                STREAM<span className="text-[#E50914]">HUB</span>
+                HOGAR<span className="text-[#E50914]">PRO</span>
               </div>
               <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5">PANEL OWNER</div>
             </div>
@@ -1751,7 +1751,7 @@ export default function OwnerDashboard() {
             </div>
             <div>
               <div className="font-black text-white text-base tracking-tight leading-none">
-                STREAM<span className="text-[#E50914]">HUB</span>
+                HOGAR<span className="text-[#E50914]">PRO</span>
               </div>
               <div className="text-[10px] text-[#E50914] font-black uppercase tracking-widest mt-1">PANEL OWNER</div>
             </div>

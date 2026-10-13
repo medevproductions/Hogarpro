@@ -63,10 +63,10 @@ export default function AdminLoginPage() {
 
           <div className="flex items-center justify-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-[#E50914] flex items-center justify-center font-black text-2xl text-white shadow-xl shadow-red-600/40">
-              N
+              H
             </div>
             <span className="text-3xl font-black tracking-wider text-white">
-              STREAM<span className="text-[#E50914]">HUB</span>
+              HOGAR<span className="text-[#E50914]">PRO</span>
             </span>
           </div>
           <h1 className="mt-3 text-2xl font-black text-white tracking-tight">Acceso Administrativo</h1>
@@ -96,7 +96,7 @@ export default function AdminLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@streamhub.io"
+                  placeholder="admin@hogarpro.com"
                   className="w-full bg-[#161616] border border-[#333333] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] transition font-mono"
                 />
               </div>
