@@ -5,7 +5,8 @@
 
 const CONFIG = {
   BASE_URL: "https://hogarpro-xrhd.vercel.app",
-  API_SECRET: "token_ultra_secreto_para_proteger_endpoint_de_codigos_2026"
+  // Lee de las propiedades seguras del script de Google o usa el fallback configurado
+  API_SECRET: (typeof PropertiesService !== "undefined" && PropertiesService.getScriptProperties().getProperty("API_SECRET")) || "token_ultra_secreto_para_proteger_endpoint_de_codigos_2026"
 };
 
 const SERVICE_DOMAINS = {

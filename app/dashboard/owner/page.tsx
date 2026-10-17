@@ -438,8 +438,8 @@ export default function OwnerDashboard() {
   // Cargar datos iniciales y escuchar cambios (con protección de rol)
   useEffect(() => {
     const user = getCurrentUser();
-    if (user && user.role === "seller") {
-      router.push("/dashboard/seller");
+    if (!user || (user.role !== "owner" && (user.role as string) !== "admin")) {
+      router.push("/admin?error=unauthorized");
       return;
     }
 
@@ -1582,15 +1582,13 @@ export default function OwnerDashboard() {
     setTestResult(null);
     setCopiedTestCode(false);
 
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
-
     try {
-      const res = await fetch(`${GAS_URL}?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(testAction)}&t=${Date.now()}`);
+      const res = await fetch(`/api/codes/check?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(testAction)}&t=${Date.now()}`);
       const data = await res.json();
       if (data && data.success && data.code) {
         setTestResult(data.code);
       } else {
-        setTestResult(data?.message || "No se encontró código reciente para este correo.");
+        setTestResult(data?.message || data?.error || "No se encontró código reciente para este correo.");
       }
     } catch (err: any) {
       setTestResult("Error consultando el servicio: " + err.message);

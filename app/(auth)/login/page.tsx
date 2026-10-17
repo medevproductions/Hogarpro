@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, User, Sparkles } from "lucide-react";
+import { setCurrentUser, SystemUser } from "@/lib/account-manager";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,8 +17,18 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Simulación rápida de redirección según rol
     setTimeout(() => {
+      const cleanEmail = email.trim().toLowerCase() || (selectedDemoRole === "owner" ? "owner@hogarpro.com" : "carlos@ventas.com");
+      const loggedUser: SystemUser = {
+        id: selectedDemoRole === "owner" ? "owner-1" : "s-1",
+        email: cleanEmail,
+        name: selectedDemoRole === "owner" ? "Owner Administrador" : "Carlos Vendedor",
+        role: selectedDemoRole,
+        status: "active"
+      };
+
+      setCurrentUser(loggedUser);
+
       if (selectedDemoRole === "owner") {
         router.push("/dashboard/owner");
       } else {

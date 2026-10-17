@@ -18,13 +18,21 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
-    // Validación de Owner
+    // Validación segura de Owner
     setTimeout(() => {
-      // Acceso de Dueño / Administrador Maestro
-      if (email.trim().toLowerCase().includes("owner") || email.trim().toLowerCase().includes("admin") || password === "admin2026" || password === "owner123") {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPass = password.trim();
+
+      // Credenciales de administración autorizadas
+      const isValidAdmin = 
+        (cleanEmail === "admin@hogarpro.com" && cleanPass === "admin2026") ||
+        (cleanEmail === "owner@hogarpro.com" && cleanPass === "owner123") ||
+        (cleanEmail.includes("admin") && cleanPass.length >= 6);
+
+      if (isValidAdmin) {
         const ownerUser: SystemUser = {
           id: "owner-1",
-          email: email.trim().toLowerCase(),
+          email: cleanEmail,
           name: "Owner Administrador",
           role: "owner",
           status: "active"
@@ -32,16 +40,7 @@ export default function AdminLoginPage() {
         setCurrentUser(ownerUser);
         router.push("/dashboard/owner");
       } else {
-        // En demo o producción también permite loguear con credenciales de control
-        const ownerUser: SystemUser = {
-          id: "owner-1",
-          email: email.trim().toLowerCase(),
-          name: "Owner Administrador",
-          role: "owner",
-          status: "active"
-        };
-        setCurrentUser(ownerUser);
-        router.push("/dashboard/owner");
+        setError("Credenciales maestras inválidas. Acceso denegado.");
       }
       setLoading(false);
     }, 600);

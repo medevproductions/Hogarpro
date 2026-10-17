@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyWebhookSecret, sanitizeInput, isValidEmail } from "@/lib/security";
 
 export type CodeActionType = 
   | "actualizar" 
@@ -18,7 +19,7 @@ interface ProcessCodePayload {
 
 /**
  * Función central para procesar y actualizar la solicitud de código en Supabase
- * Adaptada para funcionar con cualquier versión de la tabla code_requests
+ * Protegida con autenticación estricta de Webhook Secret y sanitización
  */
 // Memoria compartida del servidor para entrega instantánea garantizada
 const memoryStore = new Map<string, { code: string; timestamp: number; service?: string; actionType?: string }>();
@@ -26,6 +27,15 @@ const memoryStore = new Map<string, { code: string; timestamp: number; service?:
 export { memoryStore };
 
 export async function processIncomingCode(payload: ProcessCodePayload, authHeader: string | null) {
+  // 1. Blindaje de Autenticación: Validar Secreto de Webhook
+  if (!verifyWebhookSecret(authHeader)) {
+    console.warn("[ALERTA SEGURIDAD] Intento no autorizado de inyección de código sin token válido.");
+    return NextResponse.json(
+      { success: false, error: "No autorizado. Token de autorización de webhook inválido o ausente." },
+      { status: 401 }
+    );
+  }
+
   const { account_email, extracted_code, action_type = "login_code", raw_subject = "", raw_body = "" } = payload;
 
   if (!account_email || !extracted_code) {
@@ -36,21 +46,36 @@ export async function processIncomingCode(payload: ProcessCodePayload, authHeade
   }
 
   const cleanEmail = account_email.toLowerCase().trim();
-  const cleanCode = String(extracted_code).trim();
+  if (!isValidEmail(cleanEmail)) {
+    return NextResponse.json(
+      { success: false, error: "Formato de correo electrónico inválido" },
+      { status: 400 }
+    );
+  }
 
-  // 1. Guardar de inmediato en memoria ultra rápida garantizada
+  // Sanitizar el código o enlace recibido
+  const cleanCode = sanitizeInput(String(extracted_code));
+
+  // 2. Guardar de inmediato en memoria ultra rápida garantizada
   memoryStore.set(cleanEmail, {
     code: cleanCode,
     timestamp: Date.now(),
     actionType: action_type
   });
 
-  // Guardar también bajo alias limpio o raíz si aplica
-  console.log(`[EXITO TOTAL] Código ${cleanCode} guardado para ${cleanEmail}`);
+  console.log(`[EXITO TOTAL] Código seguro guardado para ${cleanEmail}`);
 
-  // Conexión con Supabase en segundo plano
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gbdbtjgyilrppzyhcclw.supabase.co";
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZGJ0amd5aWxycHB6eWhjY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4OTI1MTAsImV4cCI6MjEwMjQ2ODUxMH0.3MlQma6py4jRJo7whiwP1tVVBh6CuK7SUJch87Uu2Vw";
+  // Conexión con Supabase usando exclusivamente variables de entorno
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({
+      success: true,
+      message: `Código guardado en memoria instantánea para ${cleanEmail}`,
+      code: cleanCode
+    });
+  }
 
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);

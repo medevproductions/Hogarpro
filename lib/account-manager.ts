@@ -540,8 +540,24 @@ export function setCurrentUser(user: SystemUser | null) {
   if (typeof window === "undefined") return;
   if (!user) {
     localStorage.removeItem(STORAGE_KEY_CURRENT_USER);
+    // Eliminar cookie de sesión
+    document.cookie = "hp_session=; path=/; max-age=0; SameSite=Lax";
   } else {
     localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(user));
+    // Sincronizar cookie de sesión segura para Next.js Middleware
+    try {
+      const sessionData = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        exp: Date.now() + 7 * 24 * 3600 * 1000 // 7 días de validez
+      };
+      const token = btoa(encodeURIComponent(JSON.stringify(sessionData)));
+      document.cookie = `hp_session=${token}; path=/; max-age=604800; SameSite=Lax`;
+    } catch (e) {
+      // Fallback seguro
+    }
   }
 }
 

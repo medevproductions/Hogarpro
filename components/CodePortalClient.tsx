@@ -135,8 +135,6 @@ export default function CodePortalClient({
     return () => clearInterval(interval);
   }, [isWaiting]);
 
-  const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
-
   // POLLING INTELIGENTE CADA 3 SEGUNDOS HACIA EL BACKEND
   useEffect(() => {
     if (!isWaiting || !email) return;
@@ -215,9 +213,9 @@ export default function CodePortalClient({
     setReceivedCode(null);
     setCopied(false);
 
-    // Disparar búsqueda inmediata en Google Apps Script
+    // Disparar búsqueda inmediata a través del proxy seguro del backend
     try {
-      fetch(`${GAS_WEBAPP_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`)
+      fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {

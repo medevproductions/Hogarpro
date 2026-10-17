@@ -284,25 +284,26 @@ export default function SellerLiveCodesPage() {
   // Cargar cuentas asignadas al vendedor logueado
   const reloadSellerAccounts = () => {
     const user = getCurrentUser();
-    setCurrentUserState(user);
-    if (user) {
-      setProfileName(user.name || "");
-      setProfilePhone(user.phone || "");
+    if (!user) {
+      router.push("/?error=login_required");
+      return;
     }
 
+    setCurrentUserState(user);
+    setProfileName(user.name || "");
+    setProfilePhone(user.phone || "");
+
     const allAccounts = getStoredAccounts();
-    // Si hay usuario vendedor, filtrar sus cuentas. Si es admin, mostrar todas. Si no hay sesión, mostrar de demo
+    // Si es owner o admin muestra todas, si es vendedor filtra estrictamente sus cuentas asignadas
     let validAccs: StoredStreamingAccount[] = [];
-    if (user?.role === "owner" || (user?.role as string) === "admin") {
+    if (user.role === "owner" || (user.role as string) === "admin") {
       validAccs = allAccounts;
-    } else if (user) {
+    } else {
       validAccs = allAccounts.filter(a =>
         a.sellerId === user.id ||
         a.sellerId === user.email ||
         a.sellerName?.toLowerCase() === user.name?.toLowerCase()
       );
-    } else {
-      validAccs = allAccounts.slice(0, 4);
     }
 
     const formatted = validAccs.map((a) => ({
@@ -439,10 +440,9 @@ export default function SellerLiveCodesPage() {
     else if (platName.includes("spotify")) serviceKey = "spotify";
     else if (platName.includes("crunchy")) serviceKey = "crunchyroll";
 
-    // Consulta directa a Google Apps Script
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
+    // Consulta a través del proxy seguro del backend (protección de endpoint y rate limit)
     try {
-      fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(serviceKey)}&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
+      fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(serviceKey)}&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {

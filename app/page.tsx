@@ -88,9 +88,15 @@ export default function HomeOrSellerCatalogPage() {
 
     setTimeout(() => {
       const cleanEmail = loginEmail.trim().toLowerCase();
-      // Buscar usuario en el sistema o crear sesión
       const allUsers = getSystemUsers();
       const found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
+      // Si existe y tiene contraseña asignada, validarla
+      if (found && found.password && loginPassword && found.password !== loginPassword) {
+        setLoginError("Contraseña incorrecta. Por favor verifica tus datos.");
+        setLoggingIn(false);
+        return;
+      }
 
       const sellerUser: SystemUser = found || {
         id: `s-${Date.now().toString().slice(-4)}`,
@@ -100,7 +106,7 @@ export default function HomeOrSellerCatalogPage() {
         status: "active"
       };
 
-      // Guardar sesión y redirigir DIRECTO al panel de vendedor
+      // Guardar sesión con cookie de seguridad y redirigir
       setCurrentUser(sellerUser);
       router.push("/dashboard/seller");
       setLoggingIn(false);

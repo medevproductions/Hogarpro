@@ -1,101 +1,181 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { memoryStore } from "@/lib/code-processor";
+import { 
+  getCorsHeaders, 
+  checkRateLimit, 
+  getClientIp, 
+  isValidEmail, 
+  sanitizeInput,
+  sanitizeStreamingLink
+} from "@/lib/security";
+
+/**
+ * OPTIONS handler for CORS preflight
+ */
+export async function OPTIONS(req: NextRequest) {
+  const corsHeaders = getCorsHeaders(req);
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
 
 /**
  * ENDPOINT GET: /api/codes/check?email=correo@ejemplo.com
- * Permite a la página web consultar el código de inmediato sin depender de RLS
+ * Permite a la página web consultar el código de inmediato mediante un proxy seguro
+ * Incluye Rate Limiting, CORS estricto, Anti-Hotlinking y sanitización de enlaces.
  */
-import { memoryStore } from "@/lib/code-processor";
-
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get("email");
-  const service = searchParams.get("service");
-  const actionType = searchParams.get("actionType") || "temporal";
+  const corsHeaders = getCorsHeaders(req);
+  const clientIp = getClientIp(req);
 
-  if (!email) {
-    return NextResponse.json({ success: false, code: null });
+  // 1. RATE LIMITING: Máximo 35 consultas por minuto por dirección IP
+  const rateLimitResult = checkRateLimit(`check:${clientIp}`, 35, 60 * 1000);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: "Demasiadas solicitudes. Límite de tasa excedido, intenta de nuevo en unos momentos.",
+        retryAfterMs: rateLimitResult.resetInMs
+      },
+      { 
+        status: 429, 
+        headers: {
+          ...corsHeaders,
+          "Retry-After": String(Math.ceil(rateLimitResult.resetInMs / 1000))
+        } 
+      }
+    );
   }
 
-  const cleanEmail = email.toLowerCase().trim();
+  const { searchParams } = new URL(req.url);
+  const rawEmail = searchParams.get("email");
+  const rawService = searchParams.get("service");
+  const rawActionType = searchParams.get("actionType") || "temporal";
 
-  // 1. CHEQUEO INSTANTÁNEO EN MEMORIA (INMUNE A ERRORES DE SUPABASE/RED)
+  if (!rawEmail) {
+    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
+  }
+
+  const cleanEmail = rawEmail.toLowerCase().trim();
+  if (!isValidEmail(cleanEmail)) {
+    return NextResponse.json(
+      { success: false, error: "Formato de correo inválido", code: null },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  // Sanitizar parámetros de consulta
+  const service = sanitizeInput(rawService || "all");
+  const allowedActions = ["actualizar", "temporal", "login_code", "login_confirm", "reset_password"];
+  const actionType = allowedActions.includes(rawActionType) ? rawActionType : "temporal";
+
+  // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR (Rápido y Seguro)
   if (memoryStore.has(cleanEmail)) {
     const cached = memoryStore.get(cleanEmail)!;
-    // Si estamos en /temporal, solo devolver si es un código numérico
     const isLink = cached.code.startsWith("http://") || cached.code.startsWith("https://");
-    if (!(actionType === "temporal" && isLink)) {
+    
+    // Si es enlace, verificar que sea un dominio de streaming legítimo
+    if (isLink) {
+      const safeLink = sanitizeStreamingLink(cached.code);
+      if (safeLink && actionType !== "temporal") {
+        return NextResponse.json({
+          success: true,
+          code: safeLink,
+          status: "completado",
+          timestamp: new Date(cached.timestamp).toISOString(),
+          source: "instant_cache"
+        }, { headers: corsHeaders });
+      }
+    } else {
       return NextResponse.json({
         success: true,
         code: cached.code,
         status: "completado",
         timestamp: new Date(cached.timestamp).toISOString(),
         source: "instant_cache"
-      });
+      }, { headers: corsHeaders });
     }
   }
 
-  // 2. Consulta de respaldo directa a Google Apps Script
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
+  // 3. Proxy Seguro hacia Google Apps Script (Upstream protegido detrás del backend)
+  const GAS_URL = process.env.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
   try {
-    const gasRes = await fetch(`${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service || "all")}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`, {
-      next: { revalidate: 0 }
-    });
+    const gasRes = await fetch(
+      `${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`,
+      { next: { revalidate: 0 } }
+    );
+
     if (gasRes.ok) {
       const gasData = await gasRes.json();
       if (gasData && gasData.success && gasData.code) {
+        let finalCode = String(gasData.code).trim();
+        if (finalCode.startsWith("http://") || finalCode.startsWith("https://")) {
+          const verifiedLink = sanitizeStreamingLink(finalCode);
+          if (verifiedLink) {
+            finalCode = verifiedLink;
+          }
+        }
+
         memoryStore.set(cleanEmail, {
-          code: gasData.code,
+          code: finalCode,
           timestamp: Date.now(),
           service: service || undefined
         });
+
         return NextResponse.json({
           success: true,
-          code: gasData.code,
+          code: finalCode,
           status: "completado",
           timestamp: new Date().toISOString(),
           source: "gas_direct"
-        });
+        }, { headers: corsHeaders });
       }
     }
   } catch (gasErr) {
-    // Si GAS tarda, continuar
+    // Si Google Apps Script demora, continuar con la consulta de base de datos
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gbdbtjgyilrppzyhcclw.supabase.co";
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZGJ0amd5aWxycHB6eWhjY2x3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4OTI1MTAsImV4cCI6MjEwMjQ2ODUxMH0.3MlQma6py4jRJo7whiwP1tVVBh6CuK7SUJch87Uu2Vw";
+  // 4. Conexión a Base de Datos con Variables de Entorno (Sin claves expuestas)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
+  }
 
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let query = supabase
+    const { data: list, error: queryErr } = await supabase
       .from("code_requests")
-      .select("*")
+      .select("id, account_email, extracted_code, status, created_at")
       .eq("account_email", cleanEmail)
       .order("created_at", { ascending: false })
       .limit(5);
 
-    const { data: list, error: queryErr } = await query;
-
     if (queryErr) {
-      return NextResponse.json({ success: false, code: null, error: queryErr.message, details: queryErr });
+      return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
     }
 
     if (list && list.length > 0) {
       const itemWithCode = list.find((item: any) => item.extracted_code);
       if (itemWithCode) {
+        let codeValue = String(itemWithCode.extracted_code).trim();
+        if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
+          const verified = sanitizeStreamingLink(codeValue);
+          if (verified) codeValue = verified;
+        }
+
         return NextResponse.json({
           success: true,
-          code: itemWithCode.extracted_code,
+          code: codeValue,
           status: itemWithCode.status,
-          timestamp: itemWithCode.created_at,
-          matched: itemWithCode
-        });
+          timestamp: itemWithCode.created_at
+        }, { headers: corsHeaders });
       }
     }
 
-    return NextResponse.json({ success: false, code: null, foundRows: list ? list.length : 0, rows: list });
+    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
   } catch (error: any) {
-    return NextResponse.json({ success: false, code: null, error: error.message });
+    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
   }
 }
