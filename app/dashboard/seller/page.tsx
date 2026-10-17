@@ -291,9 +291,9 @@ export default function SellerLiveCodesPage() {
     }
 
     const allAccounts = getStoredAccounts();
-    // Si hay usuario vendedor, filtrar sus cuentas. Si es owner, mostrar todas. Si no hay sesión, mostrar de demo
+    // Si hay usuario vendedor, filtrar sus cuentas. Si es admin, mostrar todas. Si no hay sesión, mostrar de demo
     let validAccs: StoredStreamingAccount[] = [];
-    if (user?.role === "owner") {
+    if (user?.role === "owner" || (user?.role as string) === "admin") {
       validAccs = allAccounts;
     } else if (user) {
       validAccs = allAccounts.filter(a =>
@@ -320,6 +320,14 @@ export default function SellerLiveCodesPage() {
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab");
+      if (tabParam === "calendario" || tabParam === "configuracion" || tabParam === "cuentas") {
+        setActiveTab(tabParam);
+      }
+    }
+
     reloadSellerAccounts();
 
     const handleUpdate = () => reloadSellerAccounts();
@@ -512,6 +520,7 @@ export default function SellerLiveCodesPage() {
         {/* Pestañas de Navegación Móvil */}
         <div className="grid grid-cols-3 gap-1.5 pt-0.5">
           <button
+            id="seller-mobile-tab-cuentas"
             onClick={() => setActiveTab("cuentas")}
             className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
               activeTab === "cuentas"
@@ -523,6 +532,7 @@ export default function SellerLiveCodesPage() {
             <span className="truncate">Cuentas ({assignedAccounts.length})</span>
           </button>
           <button
+            id="seller-mobile-tab-calendario"
             onClick={() => setActiveTab("calendario")}
             className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
               activeTab === "calendario"
@@ -534,6 +544,7 @@ export default function SellerLiveCodesPage() {
             <span className="truncate">Calendario {expiringSoonAccounts.length > 0 && `(${expiringSoonAccounts.length})`}</span>
           </button>
           <button
+            id="seller-mobile-tab-configuracion"
             onClick={() => setActiveTab("configuracion")}
             className={`py-2 px-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition ${
               activeTab === "configuracion"
@@ -635,12 +646,14 @@ export default function SellerLiveCodesPage() {
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-7 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {activeTab === "cuentas" ? "Gestión y Solicitud de Códigos" : "Configuración de tu Cuenta"}
+                {activeTab === "cuentas" ? "Gestión y Solicitud de Códigos" : activeTab === "calendario" ? "Calendario de Vencimientos" : "Configuración de tu Cuenta"}
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1 pl-4">
               {activeTab === "cuentas" 
                 ? "Selecciona tu cuenta autorizada y pulsa la acción deseada para extraer el código o enlace en segundos." 
+                : activeTab === "calendario"
+                ? "Consulta las fechas en que vencen tus cuentas asignadas para renovarlas con el administrador a tiempo."
                 : "Actualiza tus datos de revendedor y tu contraseña personal de acceso."}
             </p>
           </div>
@@ -1127,7 +1140,7 @@ export default function SellerLiveCodesPage() {
 
               {assignedAccounts.length === 0 ? (
                 <div className="p-6 rounded-xl bg-[#121212] border border-[#262626] text-center text-xs text-zinc-400">
-                  No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas desde el Catálogo Maestro.
+                  No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas de streaming.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

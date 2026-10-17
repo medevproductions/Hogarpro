@@ -443,6 +443,14 @@ export default function OwnerDashboard() {
       return;
     }
 
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab");
+      if (tabParam && ["resumen", "ventas", "cuentas", "vendedores", "calendario", "catalogo", "codigos", "todo"].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      }
+    }
+
     reloadData();
 
     // Escuchar cambios entre pestañas o eventos locales

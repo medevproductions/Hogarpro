@@ -68,7 +68,7 @@ export default function LoginPage() {
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            Rol Administrador (Dueño)
+            Rol Administrador
           </button>
           <button
             type="button"
