@@ -1638,17 +1638,17 @@ export default function OwnerDashboard() {
         </div>
       </div>
 
-      {/* DRAWER MÓVIL DESLIZABLE DESDE LA IZQUIERDA CON DESENFOQUE (BACKDROP BLUR) */}
+      {/* DRAWER MÓVIL DESLIZABLE DESDE LA DERECHA CON DESENFOQUE (BACKDROP BLUR) */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 animate-in fade-in duration-200">
+        <div className="md:hidden fixed inset-0 z-50">
           {/* Fondo con desenfoque (Backdrop Blur) */}
           <div 
-            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md animate-backdrop-fade transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Menú deslizable desde la izquierda */}
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#111111] border-r border-[#262626] shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-300 ease-out">
+          {/* Menú deslizable desde la derecha con animación suave */}
+          <div className="fixed inset-y-0 right-0 w-72 max-w-[85vw] bg-[#111111] border-l border-[#262626] shadow-2xl flex flex-col justify-between p-5 z-10 animate-drawer-right">
             <div>
               {/* Cabecera del Drawer con Logo y botón de cerrar */}
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#222222]">

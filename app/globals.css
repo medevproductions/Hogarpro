@@ -88,3 +88,33 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #E50914;
 }
+
+/* Smooth Drawer Animations */
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInBackdrop {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-drawer-right {
+  animation: slideInFromRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-backdrop-fade {
+  animation: fadeInBackdrop 0.25s ease-out forwards;
+}
