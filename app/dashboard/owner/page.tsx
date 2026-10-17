@@ -1600,147 +1600,267 @@ export default function OwnerDashboard() {
       {/* MOBILE STICKY HEADER & HUD BAR (ESTILO NETFLIX) */}
       <div className="md:hidden sticky top-0 z-40 bg-[#141414]/95 backdrop-blur-md border-b border-[#262626] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-md shadow-red-600/30">
-              <Tv className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-black text-sm text-white tracking-tight leading-none">
-                HOGAR<span className="text-[#E50914]">PRO</span>
+          {/* Botón Hamburger + Logo */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-xl bg-[#222222] text-zinc-300 hover:text-white hover:bg-zinc-800 border border-[#333333] active:scale-95 transition shadow-sm flex items-center justify-center"
+              title="Abrir menú de secciones"
+            >
+              <Menu className="w-5 h-5 text-white" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-md shadow-red-600/30">
+                <Tv className="w-4 h-4" />
               </div>
-              <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5">PANEL OWNER</div>
+              <div>
+                <div className="font-black text-sm text-white tracking-tight leading-none">
+                  HOGAR<span className="text-[#E50914]">PRO</span>
+                </div>
+                <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5">PANEL OWNER</div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Botón de acción rápida: + Venta */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handleOpenCreateSale()}
-              className="px-2.5 py-1.5 bg-[#E50914] hover:bg-[#f40612] text-white text-[11px] font-black rounded-lg flex items-center gap-1 shadow-md shadow-red-950/60 active:scale-95 transition"
+              className="px-3 py-1.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 active:scale-95 transition"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Venta</span>
-            </button>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 rounded-lg bg-[#222222] text-zinc-300 hover:text-white border border-[#333333]"
-              title="Abrir menú"
-            >
-              <Menu className="w-4 h-4" />
+              <span>+ Venta</span>
             </button>
           </div>
         </div>
-
-        {/* Carrusel de pestañas horizontal deslizable en móvil estilo Netflix Categories */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2 pb-0.5 text-xs font-semibold">
-          <button
-            onClick={() => setActiveTab("resumen")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "resumen" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>Resumen</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("ventas")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "ventas" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Libro Ventas ({sales.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("cuentas")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "cuentas" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <Tv className="w-3.5 h-3.5" />
-            <span>Stock ({accounts.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("vendedores")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "vendedores" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Vendedores ({sellers.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("calendario")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "calendario" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Calendario {expiringSoonAccounts.length > 0 && `(${expiringSoonAccounts.length})`}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("catalogo")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "catalogo" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Catálogo</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("codigos")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "codigos" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60 font-bold border border-[#E50914]" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Códigos</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("todo")}
-            className={`px-3 py-1.5 rounded-lg shrink-0 flex items-center gap-1.5 transition ${
-              activeTab === "todo" 
-                ? "bg-zinc-700 text-white font-bold" 
-                : "bg-[#222222] text-zinc-400 border border-[#333333] hover:text-white"
-            }`}
-          >
-            <span>Ver Todo</span>
-          </button>
-        </div>
-
-        {/* Desplegable móvil extra si mobileMenuOpen */}
-        {mobileMenuOpen && (
-          <div className="mt-2.5 pt-2.5 border-t border-[#262626] space-y-1.5 text-xs">
-            <Link
-              href="/dashboard/seller"
-              className="flex items-center gap-1.5 p-2 rounded-lg bg-[#222222] text-[#E50914] font-semibold hover:bg-zinc-800"
-            >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
-              <span>Cambiar a Vista Vendedor</span>
-            </Link>
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 p-2 rounded-lg bg-[#222222] text-zinc-400 font-medium hover:text-white"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Ver Tienda Pública</span>
-            </Link>
-          </div>
-        )}
       </div>
+
+      {/* DRAWER MÓVIL DESLIZABLE DESDE LA IZQUIERDA CON DESENFOQUE (BACKDROP BLUR) */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 animate-in fade-in duration-200">
+          {/* Fondo con desenfoque (Backdrop Blur) */}
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Menú deslizable desde la izquierda */}
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-[#111111] border-r border-[#262626] shadow-2xl flex flex-col justify-between p-5 z-10 animate-in slide-in-from-left duration-300 ease-out">
+            <div>
+              {/* Cabecera del Drawer con Logo y botón de cerrar */}
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#222222]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-lg shadow-red-600/30">
+                    <Tv className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-black text-white text-base tracking-tight leading-none">
+                      HOGAR<span className="text-[#E50914]">PRO</span>
+                    </div>
+                    <div className="text-[10px] text-[#E50914] font-black uppercase tracking-widest mt-1">PANEL OWNER</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-lg bg-[#222222] text-zinc-400 hover:text-white border border-[#333333] transition"
+                  title="Cerrar menú"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Indicador de secciones */}
+              <div className="text-[10px] font-black uppercase tracking-wider text-zinc-500 px-3 py-1 mb-2">
+                MENÚ DE SECCIONES
+              </div>
+
+              {/* Lista Vertical de Secciones */}
+              <nav className="space-y-1.5 text-xs font-semibold overflow-y-auto max-h-[calc(100vh-230px)] pr-1">
+                <button
+                  onClick={() => {
+                    setActiveTab("resumen");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "resumen" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Resumen & KPIs</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("ventas");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "ventas" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Receipt className="w-4 h-4" />
+                    <span>Libro Contable & Finanzas</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/60 text-emerald-400 border border-emerald-500/30 font-mono font-bold">
+                    {sales.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("cuentas");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "cuentas" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Tv className="w-4 h-4" />
+                    <span>Stock de Cuentas</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/60 text-zinc-300 border border-zinc-700 font-mono font-bold">
+                    {accounts.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("vendedores");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "vendedores" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Users className="w-4 h-4" />
+                    <span>Vendedores & Revendedores</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/60 text-zinc-300 border border-zinc-700 font-mono font-bold">
+                    {sellers.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("calendario");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "calendario" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-4 h-4" />
+                    <span>Calendario & Vencimientos</span>
+                  </div>
+                  {expiringSoonAccounts.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono font-bold animate-pulse">
+                      {expiringSoonAccounts.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("catalogo");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "catalogo" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Catálogo & Tarifas</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/60 text-[#ff6666] border border-[#E50914]/30 font-mono font-bold">
+                    {catalogPlatforms.length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("codigos");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "codigos" 
+                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <KeyRound className="w-4 h-4" />
+                    <span>Extractor de Códigos</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("todo");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                    activeTab === "todo" 
+                      ? "bg-zinc-700 text-white shadow-lg font-bold" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Eye className="w-4 h-4" />
+                    <span>Ver Todas las Secciones</span>
+                  </div>
+                </button>
+              </nav>
+            </div>
+
+            {/* Accesos Rápidos Inferiores del Drawer */}
+            <div className="pt-4 border-t border-[#262626] space-y-1.5 text-xs">
+              <Link
+                href="/dashboard/seller"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between p-2.5 rounded-xl bg-[#1c1c1c] text-[#E50914] font-bold hover:bg-zinc-800 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span>Cambiar a Vista Vendedor</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between p-2.5 rounded-xl bg-[#161616] text-zinc-400 font-medium hover:text-white hover:bg-zinc-800 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Ver Tienda Pública</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DESKTOP SIDEBAR ESTILO NETFLIX DASHBOARD */}
       <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0">
