@@ -1600,37 +1600,39 @@ export default function OwnerDashboard() {
       {/* MOBILE STICKY HEADER & HUD BAR (ESTILO NETFLIX) */}
       <div className="md:hidden sticky top-0 z-40 bg-[#141414]/95 backdrop-blur-md border-b border-[#262626] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          {/* Botón Hamburger + Logo */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-xl bg-[#222222] text-zinc-300 hover:text-white hover:bg-zinc-800 border border-[#333333] active:scale-95 transition shadow-sm flex items-center justify-center"
-              title="Abrir menú de secciones"
-            >
-              <Menu className="w-5 h-5 text-white" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-md shadow-red-600/30">
-                <Tv className="w-4 h-4" />
+          {/* Logo HogarPro a la izquierda */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-md shadow-red-600/30 shrink-0">
+              <Tv className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-black text-sm text-white tracking-tight leading-none">
+                HOGAR<span className="text-[#E50914]">PRO</span>
               </div>
-              <div>
-                <div className="font-black text-sm text-white tracking-tight leading-none">
-                  HOGAR<span className="text-[#E50914]">PRO</span>
-                </div>
-                <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5">PANEL OWNER</div>
+              <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5 truncate">
+                PANEL OWNER
               </div>
             </div>
           </div>
 
-          {/* Botón de acción rápida: + Venta */}
-          <div className="flex items-center gap-2">
+          {/* Botón de Venta al lado del menú, y Menú en la esquina superior derecha */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => handleOpenCreateSale()}
-              className="px-3 py-1.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 active:scale-95 transition"
+              className="px-3 py-1.5 bg-[#E50914] hover:bg-[#b81d24] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 active:scale-95 transition"
+              title="Registrar Venta"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Venta</span>
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Venta</span>
+            </button>
+
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-xl bg-[#222222] text-zinc-300 hover:text-white hover:bg-zinc-800 border border-[#333333] active:scale-95 transition shadow-sm flex items-center justify-center"
+              title="Abrir menú de navegación"
+              aria-label="Abrir menú"
+            >
+              <Menu className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
@@ -2024,7 +2026,7 @@ export default function OwnerDashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-full">
+      <main className="flex-1 min-w-0 p-3.5 sm:p-6 md:p-8 overflow-y-auto max-w-full overflow-x-hidden">
         {/* HEADER PRINCIPAL CINEMATOGRÁFICO */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#262626]">
           <div>
@@ -2039,11 +2041,11 @@ export default function OwnerDashboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full lg:w-auto">
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="bg-[#181818] border border-[#333333] text-xs text-zinc-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#E50914]"
+              className="bg-[#181818] border border-[#333333] text-xs text-zinc-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#E50914] w-full sm:w-auto"
             >
               <option value="this_month">Este Mes</option>
               <option value="last_month">Mes Anterior</option>
@@ -2053,20 +2055,20 @@ export default function OwnerDashboard() {
             {/* BOTÓN REGISTRAR VENTA ESTILO NETFLIX PRIMARIO */}
             <button
               onClick={() => handleOpenCreateSale()}
-              className="px-4 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center gap-2 shadow-lg shadow-red-950/60 transition-transform active:scale-95"
+              className="px-3 sm:px-4 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-red-950/60 transition-transform active:scale-95 w-full sm:w-auto"
               title="Registrar una venta al detal, al mayor o en persona"
             >
-              <Plus className="w-4 h-4" />
-              <span>Registrar Venta</span>
+              <Plus className="w-4 h-4 shrink-0" />
+              <span className="truncate">Registrar Venta</span>
             </button>
 
             {/* BOTÓN NUEVA CUENTA */}
             <button
               onClick={handleOpenCreateModal}
-              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 border border-white/10 backdrop-blur-md transition"
+              className="px-3 sm:px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-white/10 backdrop-blur-md transition w-full sm:w-auto"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Nueva Cuenta</span>
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Nueva Cuenta</span>
             </button>
 
             {/* BOTÓN IMPORTAR EXCEL */}
@@ -2077,20 +2079,20 @@ export default function OwnerDashboard() {
                 setImportSuccessMessage(null);
                 setIsExcelModalOpen(true);
               }}
-              className="px-3.5 py-2 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+              className="px-3 sm:px-3.5 py-2.5 bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition w-full sm:w-auto"
               title="Importar cuentas masivamente desde archivo Excel o CSV"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Importar Excel</span>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">Importar Excel</span>
             </button>
 
             {/* BOTÓN NUEVO VENDEDOR */}
             <button
               onClick={() => setIsSellerModalOpen(true)}
-              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+              className="col-span-2 sm:col-span-1 px-3 sm:px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white border border-white/10 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition w-full sm:w-auto"
             >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Vendedor</span>
+              <UserPlus className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Vendedor</span>
             </button>
           </div>
         </div>
@@ -2178,63 +2180,63 @@ export default function OwnerDashboard() {
 
         {/* FINANCIAL KPI CARDS (RESUMEN ESTILO NETFLIX) */}
         {(activeTab === "resumen" || activeTab === "todo") && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-5 mb-8">
             {/* Ingresos */}
-            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-4 sm:p-5 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] shadow-xl group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">Ingresos Totales</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                  <TrendingUp className="w-4 h-4" />
+            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-3.5 sm:p-5 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] shadow-xl group min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider truncate">Ingresos Totales</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white mt-2 font-mono tracking-tight">{formatCurrency(stats.totalRevenue)}</div>
-              <div className="text-[11px] text-emerald-400 mt-1 font-semibold truncate flex items-center gap-1">
-                <span>Calculado en base a ocupación</span>
+              <div className="text-xl sm:text-2xl font-black text-white mt-2 font-mono tracking-tight truncate">{formatCurrency(stats.totalRevenue)}</div>
+              <div className="text-[10px] sm:text-[11px] text-emerald-400 mt-1 font-semibold truncate flex items-center gap-1">
+                <span>Basado en ocupación</span>
               </div>
             </div>
 
             {/* Gastos */}
-            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">Costos Cuentas</span>
-                <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20">
-                  <TrendingDown className="w-4 h-4" />
+            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-3.5 sm:p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl group min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider truncate">Costos Cuentas</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20 shrink-0">
+                  <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white mt-2 font-mono tracking-tight">{formatCurrency(stats.totalExpenses)}</div>
-              <div className="text-[11px] text-zinc-400 mt-1 font-medium truncate">
+              <div className="text-xl sm:text-2xl font-black text-white mt-2 font-mono tracking-tight truncate">{formatCurrency(stats.totalExpenses)}</div>
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-1 font-medium truncate">
                 {accounts.length} cuentas en inventario
               </div>
             </div>
 
             {/* Ganancia Neta */}
-            <div className="bg-gradient-to-br from-[#1c1c1c] to-[#141414] border border-[#E50914]/50 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-red-950/40 relative overflow-hidden transition-all duration-300 hover:scale-[1.02]">
+            <div className="bg-gradient-to-br from-[#1c1c1c] to-[#141414] border border-[#E50914]/50 rounded-2xl p-3.5 sm:p-5 shadow-2xl shadow-red-950/40 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] min-w-0">
               <div className="absolute top-0 right-0 w-24 h-24 bg-[#E50914]/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-                  <span>Ganancia Neta</span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5 truncate">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#E50914] animate-pulse shrink-0" />
+                  <span className="truncate">Ganancia Neta</span>
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-[#E50914]/20 text-[#E50914] flex items-center justify-center border border-[#E50914]/40">
-                  <DollarSign className="w-4 h-4" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#E50914]/20 text-[#E50914] flex items-center justify-center border border-[#E50914]/40 shrink-0">
+                  <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-2 font-mono tracking-tight">{formatCurrency(stats.netProfit)}</div>
-              <div className="text-[11px] text-zinc-300 mt-1 font-bold truncate">
-                Margen Utilidad: <span className="text-[#E50914] font-black">{stats.marginPercentage}</span>
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-2 font-mono tracking-tight truncate">{formatCurrency(stats.netProfit)}</div>
+              <div className="text-[10px] sm:text-[11px] text-zinc-300 mt-1 font-bold truncate">
+                Margen: <span className="text-[#E50914] font-black">{stats.marginPercentage}</span>
               </div>
             </div>
 
             {/* Vencimientos Próximos */}
-            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl group">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">Vencen en 7 días</span>
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
-                  <AlertCircle className="w-4 h-4" />
+            <div className="bg-[#181818] border border-[#2a2a2a] hover:border-zinc-600 rounded-2xl p-3.5 sm:p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl group min-w-0">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider truncate">Vencen en 7 días</span>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-400 mt-2 tracking-tight">{stats.expiringSoon} cuentas</div>
-              <div className="text-[11px] text-zinc-400 mt-1 truncate">
+              <div className="text-xl sm:text-2xl font-black text-amber-400 mt-2 tracking-tight truncate">{stats.expiringSoon} cuentas</div>
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-1 truncate">
                 Requieren renovación
               </div>
             </div>
@@ -2243,7 +2245,7 @@ export default function OwnerDashboard() {
 
         {/* SECCIÓN LIBRO CONTABLE, GASTOS & BALANCE FINANCIERO ESTILO NETFLIX CONSOLA */}
         {(activeTab === "ventas" || activeTab === "todo") && (
-          <section id="ventas-sheet" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-4 sm:p-6 mb-8 shadow-2xl">
+          <section id="ventas-sheet" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             {/* Cabecera Principal */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-5 border-b border-[#282828]">
               <div>
@@ -2341,93 +2343,93 @@ export default function OwnerDashboard() {
             )}
 
             {/* 4 CARDS: CONSOLIDADO FINANCIERO GENERAL */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-6">
               {/* Ingresos Totales */}
-              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-emerald-500/40 rounded-xl p-3.5 sm:p-4 transition group">
-                <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-emerald-400 flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Ingresos Brutos</span>
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-emerald-500/40 rounded-xl p-3 sm:p-4 transition group min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between text-xs text-zinc-400 gap-1">
+                  <span className="font-bold uppercase text-[9px] sm:text-[10px] tracking-wider text-emerald-400 flex items-center gap-1.5 truncate">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">Ingresos Brutos</span>
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-mono font-bold text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded shrink-0">
                     {financeConsolidatedStats.totalSalesCount} vts
                   </span>
                 </div>
-                <div className="text-lg sm:text-xl font-black text-white mt-2 font-mono">
+                <div className="text-base sm:text-xl font-black text-white mt-2 font-mono truncate">
                   {formatCurrency(financeConsolidatedStats.totalCollected)}
                 </div>
-                <div className="text-[11px] text-zinc-400 mt-0.5">
-                  Cobros recaudados en ventas
+                <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate">
+                  Cobros en ventas
                 </div>
               </div>
 
               {/* Costos de Cuentas */}
-              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-amber-500/40 rounded-xl p-3.5 sm:p-4 transition group">
-                <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-amber-400 flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Costo Cuentas</span>
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-amber-500/40 rounded-xl p-3 sm:p-4 transition group min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between text-xs text-zinc-400 gap-1">
+                  <span className="font-bold uppercase text-[9px] sm:text-[10px] tracking-wider text-amber-400 flex items-center gap-1.5 truncate">
+                    <Package className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">Costo Cuentas</span>
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded">
-                    Inventario
+                  <span className="text-[10px] font-mono font-bold text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded shrink-0">
+                    Stock
                   </span>
                 </div>
-                <div className="text-lg sm:text-xl font-black text-amber-300 mt-2 font-mono">
+                <div className="text-base sm:text-xl font-black text-amber-300 mt-2 font-mono truncate">
                   -{formatCurrency(financeConsolidatedStats.totalAccountCosts)}
                 </div>
-                <div className="text-[11px] text-zinc-400 mt-0.5">
-                  Costo de adquisición de cuentas
+                <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate">
+                  Costos adquisición
                 </div>
               </div>
 
               {/* Gastos Operativos */}
-              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-rose-500/40 rounded-xl p-3.5 sm:p-4 transition group">
-                <div className="flex items-center justify-between text-xs text-zinc-400">
-                  <span className="font-bold uppercase text-[10px] tracking-wider text-rose-400 flex items-center gap-1.5">
-                    <Wallet className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Gastos Operativos</span>
+              <div className="bg-[#141414] border border-[#2a2a2a] hover:border-rose-500/40 rounded-xl p-3 sm:p-4 transition group min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between text-xs text-zinc-400 gap-1">
+                  <span className="font-bold uppercase text-[9px] sm:text-[10px] tracking-wider text-rose-400 flex items-center gap-1.5 truncate">
+                    <Wallet className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <span className="truncate">Gastos Operativos</span>
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/60 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/60 border border-rose-500/30 px-1.5 py-0.5 rounded shrink-0">
                     {financeConsolidatedStats.totalExpensesCount} reg
                   </span>
                 </div>
-                <div className="text-lg sm:text-xl font-black text-rose-400 mt-2 font-mono">
+                <div className="text-base sm:text-xl font-black text-rose-400 mt-2 font-mono truncate">
                   -{formatCurrency(financeConsolidatedStats.totalOpExpenses)}
                 </div>
-                <div className="text-[11px] text-zinc-400 mt-0.5">
-                  Proveedores, publicidad, servicios
+                <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate">
+                  Proveedores, servicios
                 </div>
               </div>
 
               {/* Ganancia Neta Real */}
-              <div className="bg-[#141414] border border-[#E50914]/40 hover:border-[#E50914] rounded-xl p-3.5 sm:p-4 shadow-lg shadow-red-950/20 transition group">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-black uppercase text-[10px] tracking-wider text-white flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Ganancia Neta Real</span>
+              <div className="bg-[#141414] border border-[#E50914]/40 hover:border-[#E50914] rounded-xl p-3 sm:p-4 shadow-lg shadow-red-950/20 transition group min-w-0 overflow-hidden">
+                <div className="flex items-center justify-between text-xs gap-1">
+                  <span className="font-black uppercase text-[9px] sm:text-[10px] tracking-wider text-white flex items-center gap-1.5 truncate">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">Ganancia Neta</span>
                   </span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                  <span className={`text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ${
                     financeConsolidatedStats.realNetProfit >= 0 ? "bg-emerald-950 text-emerald-400 border border-emerald-500/40" : "bg-rose-950 text-rose-400 border border-rose-500/40"
                   }`}>
-                    {financeConsolidatedStats.realMargin}% margen
+                    {financeConsolidatedStats.realMargin}%
                   </span>
                 </div>
-                <div className={`text-xl sm:text-2xl font-black mt-2 font-mono ${
+                <div className={`text-base sm:text-2xl font-black mt-2 font-mono truncate ${
                   financeConsolidatedStats.realNetProfit >= 0 ? "text-emerald-400" : "text-rose-400"
                 }`}>
                   {financeConsolidatedStats.realNetProfit >= 0 ? "+" : ""}{formatCurrency(financeConsolidatedStats.realNetProfit)}
                 </div>
-                <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
-                  Gastos totales: {formatCurrency(financeConsolidatedStats.grandTotalExpenses)}
+                <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium truncate">
+                  Gastos: {formatCurrency(financeConsolidatedStats.grandTotalExpenses)}
                 </div>
               </div>
             </div>
 
             {/* BARRA DE NAVEGACIÓN DE SUB-PESTAÑAS */}
-            <div className="flex items-center gap-2 border-b border-[#2a2a2a] pb-3 mb-6">
+            <div className="flex items-center gap-2 border-b border-[#2a2a2a] pb-3 mb-6 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setFinanceSubTab("ventas")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
                   financeSubTab === "ventas"
                     ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
                     : "bg-[#141414] text-zinc-400 hover:text-white border border-[#2a2a2a]"
@@ -2442,7 +2444,7 @@ export default function OwnerDashboard() {
 
               <button
                 onClick={() => setFinanceSubTab("gastos")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
                   financeSubTab === "gastos"
                     ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
                     : "bg-[#141414] text-zinc-400 hover:text-white border border-[#2a2a2a]"
@@ -2457,7 +2459,7 @@ export default function OwnerDashboard() {
 
               <button
                 onClick={() => setFinanceSubTab("grafica")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
                   financeSubTab === "grafica"
                     ? "bg-[#E50914] text-white shadow-md shadow-red-950/50"
                     : "bg-[#141414] text-zinc-400 hover:text-white border border-[#2a2a2a]"
@@ -3184,7 +3186,7 @@ export default function OwnerDashboard() {
 
         {/* SECCIÓN CATÁLOGO DE SERVICIOS ESTILO NETFLIX */}
         {(activeTab === "catalogo" || activeTab === "todo") && (
-          <section id="catalogo" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl">
+          <section id="catalogo" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
                 <div className="flex items-center gap-2.5 mb-1.5">
@@ -3293,7 +3295,7 @@ export default function OwnerDashboard() {
 
         {/* TABLA DE GESTIÓN DE CUENTAS ESTILO NETFLIX INVENTARIO */}
         {(activeTab === "cuentas" || activeTab === "todo") && (
-          <section id="cuentas" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl">
+          <section id="cuentas" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
                 <div className="flex items-center gap-2.5 mb-1.5">
@@ -3569,7 +3571,7 @@ export default function OwnerDashboard() {
 
         {/* SECCIÓN 2: GESTIÓN DE VENDEDORES REGISTRADOS ESTILO NETFLIX */}
         {(activeTab === "vendedores" || activeTab === "todo") && (
-          <section id="vendedores" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl">
+          <section id="vendedores" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
                 <div className="flex items-center gap-2.5 mb-1.5">
@@ -3928,7 +3930,7 @@ export default function OwnerDashboard() {
 
         {/* SECCIÓN CALENDARIO DE VENCIMIENTOS Y RECORDATORIOS ESTILO NETFLIX (EXCLUSIVO OWNER) */}
         {(activeTab === "calendario" || activeTab === "todo") && (
-          <section id="calendario-owner" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden">
+          <section id="calendario-owner" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden max-w-full">
             <div className="absolute top-0 right-0 w-80 h-80 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Encabezado de Sección */}
@@ -4585,7 +4587,7 @@ export default function OwnerDashboard() {
 
         {/* SECCIÓN 3: GESTOR Y PROBADOR MAESTRO DE CÓDIGOS ESTILO NETFLIX CONSOLA */}
         {(activeTab === "codigos" || activeTab === "todo") && (
-          <section id="codigos-owner" className="bg-[#181818] border border-[#E50914]/40 rounded-2xl p-5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden">
+          <section id="codigos-owner" className="bg-[#181818] border border-[#E50914]/40 rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden max-w-full">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#282828]">

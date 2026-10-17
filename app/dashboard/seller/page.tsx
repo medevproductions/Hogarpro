@@ -482,7 +482,7 @@ export default function SellerLiveCodesPage() {
   const isUrl = receivedCode && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://"));
 
   return (
-    <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row selection:bg-[#E50914] selection:text-white">
+    <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-[#E50914] selection:text-white">
       {/* BARRA SUPERIOR MÓVIL STICKY (SOLO SMARTPHONES Y TABLETS PEQUEÑAS) */}
       <div className="md:hidden sticky top-0 z-40 bg-[#101010]/95 backdrop-blur-md border-b border-[#262626] p-3 flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
@@ -628,7 +628,7 @@ export default function SellerLiveCodesPage() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 p-3.5 sm:p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-3.5 sm:p-6 md:p-8 overflow-y-auto max-w-full overflow-x-hidden">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
