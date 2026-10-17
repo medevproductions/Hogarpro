@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentUser, checkAccountAuthorization } from "@/lib/account-manager";
+import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 
 interface CodePagePortalProps {
   actionType: "actualizar" | "temporal" | "login_code" | "login_confirm" | "reset_password";
@@ -229,18 +230,14 @@ export default function CodePortalClient({
         .catch(() => {});
     } catch (err) {}
 
-    // Registrar solicitud pendiente en Supabase si está disponible
+    // Registrar solicitud pendiente en Cloud Firestore
     try {
-      const supabase = createClient();
-      await (supabase as any).from("code_requests").insert({
+      await createPendingCodeRequestFirestore({
         account_email: cleanEmail,
         action_type: actionType,
-        service: platform,
-        status: "pendiente"
+        service: platform
       });
-    } catch (err) {
-      console.log("Modo activo");
-    }
+    } catch (err) {}
   };
 
   const handleCopy = () => {

@@ -9,6 +9,7 @@ import {
   sanitizeInput,
   sanitizeStreamingLink
 } from "@/lib/security";
+import { getRecentCodeFromFirestore } from "@/lib/firebase/firestore-service";
 
 /**
  * OPTIONS handler for CORS preflight
@@ -134,48 +135,63 @@ export async function GET(req: NextRequest) {
     // Si Google Apps Script demora, continuar con la consulta de base de datos
   }
 
-  // 4. Conexión a Base de Datos con Variables de Entorno (Sin claves expuestas)
+  // 4. Consulta a Cloud Firestore (Base de datos primaria)
+  try {
+    const firestoreCode = await getRecentCodeFromFirestore(cleanEmail);
+    if (firestoreCode && firestoreCode.extracted_code) {
+      let codeValue = String(firestoreCode.extracted_code).trim();
+      if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
+        const verified = sanitizeStreamingLink(codeValue);
+        if (verified) codeValue = verified;
+      }
+
+      return NextResponse.json({
+        success: true,
+        code: codeValue,
+        status: firestoreCode.status,
+        timestamp: firestoreCode.created_at,
+        source: "firestore"
+      }, { headers: corsHeaders });
+    }
+  } catch (fsErr) {
+    console.warn("[FIRESTORE] Advertencia consultando Firestore:", fsErr);
+  }
+
+  // Fallback secundario de respaldo en Supabase si está configurado
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
-  }
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-  try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
+      const { data: list, error: queryErr } = await supabase
+        .from("code_requests")
+        .select("id, account_email, extracted_code, status, created_at")
+        .eq("account_email", cleanEmail)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-    const { data: list, error: queryErr } = await supabase
-      .from("code_requests")
-      .select("id, account_email, extracted_code, status, created_at")
-      .eq("account_email", cleanEmail)
-      .order("created_at", { ascending: false })
-      .limit(5);
+      if (list && list.length > 0) {
+        const itemWithCode = list.find((item: any) => item.extracted_code);
+        if (itemWithCode) {
+          let codeValue = String(itemWithCode.extracted_code).trim();
+          if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
+            const verified = sanitizeStreamingLink(codeValue);
+            if (verified) codeValue = verified;
+          }
 
-    if (queryErr) {
-      return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
-    }
-
-    if (list && list.length > 0) {
-      const itemWithCode = list.find((item: any) => item.extracted_code);
-      if (itemWithCode) {
-        let codeValue = String(itemWithCode.extracted_code).trim();
-        if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
-          const verified = sanitizeStreamingLink(codeValue);
-          if (verified) codeValue = verified;
+          return NextResponse.json({
+            success: true,
+            code: codeValue,
+            status: itemWithCode.status,
+            timestamp: itemWithCode.created_at,
+            source: "supabase"
+          }, { headers: corsHeaders });
         }
-
-        return NextResponse.json({
-          success: true,
-          code: codeValue,
-          status: itemWithCode.status,
-          timestamp: itemWithCode.created_at
-        }, { headers: corsHeaders });
       }
-    }
-
-    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
+    } catch {}
   }
+
+  return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
 }

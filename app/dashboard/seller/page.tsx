@@ -42,6 +42,7 @@ import {
   StoredStreamingAccount,
   SystemUser
 } from "@/lib/account-manager";
+import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 
 export type CodeAction = 
   | "actualizar" 
@@ -453,17 +454,14 @@ export default function SellerLiveCodesPage() {
         .catch(() => {});
     } catch (e) {}
 
-    // Registrar en Supabase si está disponible
+    // Registrar solicitud pendiente en Cloud Firestore
     try {
-      const supabase = createClient();
-      await (supabase as any).from("code_requests").insert({
+      await createPendingCodeRequestFirestore({
         account_email: cleanEmail,
         action_type: action,
-        status: "pendiente"
+        service: serviceKey
       });
-    } catch (e) {
-      console.log("Modo standalone activo");
-    }
+    } catch (e) {}
 
     // Demo Fallback: Si no hay webhook enviando en 5.5 segundos
     setTimeout(() => {
