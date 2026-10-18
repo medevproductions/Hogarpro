@@ -195,7 +195,7 @@ export default function HomeOrSellerCatalogPage() {
             </p>
           </div>
 
-          {/* Tarjeta de Autenticación Netflix */}
+          {/* Tarjeta de Autenticación HogarPro */}
           <div className="bg-black/80 border border-[#2f2f2f] rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
             {/* Pestañas Iniciar Sesión / Registrarse */}
             <div className="grid grid-cols-2 p-1 bg-[#161616] border border-[#2a2a2a] rounded-2xl mb-5">
@@ -423,7 +423,7 @@ export default function HomeOrSellerCatalogPage() {
         </div>
       </header>
 
-      {/* BANNER DE BIENVENIDA NETFLIX */}
+      {/* BANNER DE BIENVENIDA HOGARPRO */}
       <section className="relative overflow-hidden py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="rounded-3xl bg-gradient-to-r from-red-950/40 via-[#181818] to-[#121212] border border-[#2f2f2f] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-2xl relative">
           <div className="absolute top-0 right-0 w-72 h-72 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />

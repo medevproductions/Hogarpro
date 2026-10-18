@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center p-4 relative overflow-hidden selection:bg-[#E50914] selection:text-white">
-      {/* Netflix ambient glow backdrop */}
+      {/* Ambient glow backdrop */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#E50914]/15 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-radial-gradient pointer-events-none" />
 

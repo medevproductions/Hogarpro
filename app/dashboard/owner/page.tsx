@@ -1603,7 +1603,7 @@ export default function OwnerDashboard() {
 
   return (
     <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-[#E50914] selection:text-white">
-      {/* MOBILE STICKY HEADER & HUD BAR (ESTILO NETFLIX) */}
+      {/* MOBILE STICKY HEADER & HUD BAR */}
       <div className="md:hidden sticky top-0 z-40 bg-[#141414]/95 backdrop-blur-md border-b border-[#262626] px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           {/* Logo HogarPro a la izquierda */}
@@ -1870,7 +1870,7 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* DESKTOP SIDEBAR ESTILO NETFLIX DASHBOARD */}
+      {/* DESKTOP SIDEBAR DASHBOARD */}
       <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-8">
@@ -2037,7 +2037,7 @@ export default function OwnerDashboard() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#262626]">
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm shadow-red-950/60">
-              NETFLIX STYLE MAESTRO
+              HOGARPRO • PANEL MAESTRO
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               Panel Maestro del Owner
@@ -2058,7 +2058,7 @@ export default function OwnerDashboard() {
               <option value="this_year">Año Completo</option>
             </select>
 
-            {/* BOTÓN REGISTRAR VENTA ESTILO NETFLIX PRIMARIO */}
+            {/* BOTÓN REGISTRAR VENTA PRIMARIO */}
             <button
               onClick={() => handleOpenCreateSale()}
               className="px-3 sm:px-4 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-red-950/60 transition-transform active:scale-95 w-full sm:w-auto"
@@ -2103,7 +2103,7 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
-        {/* HUD DE SECCIONES (TABS BAR PARA ESCRITORIO Y TABLET ESTILO NETFLIX) */}
+        {/* HUD DE SECCIONES (TABS BAR PARA ESCRITORIO Y TABLET) */}
         <div className="hidden sm:flex items-center gap-2 p-1.5 rounded-2xl bg-[#181818] border border-[#2a2a2a] mb-6 overflow-x-auto no-scrollbar shadow-lg">
           <button
             onClick={() => setActiveTab("resumen")}
@@ -2184,7 +2184,7 @@ export default function OwnerDashboard() {
           </button>
         </div>
 
-        {/* FINANCIAL KPI CARDS (RESUMEN ESTILO NETFLIX) */}
+        {/* FINANCIAL KPI CARDS (RESUMEN FINANCIERO) */}
         {(activeTab === "resumen" || activeTab === "todo") && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-5 mb-8">
             {/* Ingresos */}
@@ -2249,7 +2249,7 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* SECCIÓN LIBRO CONTABLE, GASTOS & BALANCE FINANCIERO ESTILO NETFLIX CONSOLA */}
+        {/* SECCIÓN LIBRO CONTABLE, GASTOS & BALANCE FINANCIERO */}
         {(activeTab === "ventas" || activeTab === "todo") && (
           <section id="ventas-sheet" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             {/* Cabecera Principal */}
@@ -2555,7 +2555,7 @@ export default function OwnerDashboard() {
                   </div>
                 </div>
 
-                {/* Filtros del Sheet estilo Netflix */}
+                {/* Filtros del Sheet */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="inline-flex rounded-xl bg-[#141414] border border-[#2a2a2a] p-1">
@@ -3027,7 +3027,7 @@ export default function OwnerDashboard() {
                   </div>
                 </div>
 
-                {/* GRÁFICA VISUAL INTERACTIVA (BARRAS ESTILO NETFLIX) */}
+                {/* GRÁFICA VISUAL INTERACTIVA (BARRAS) */}
                 <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 sm:p-6 mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-bold text-zinc-300">
@@ -3190,7 +3190,7 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN CATÁLOGO DE SERVICIOS ESTILO NETFLIX */}
+        {/* SECCIÓN CATÁLOGO DE SERVICIOS */}
         {(activeTab === "catalogo" || activeTab === "todo") && (
           <section id="catalogo" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
@@ -3299,7 +3299,7 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* TABLA DE GESTIÓN DE CUENTAS ESTILO NETFLIX INVENTARIO */}
+        {/* TABLA DE GESTIÓN DE CUENTAS INVENTARIO */}
         {(activeTab === "cuentas" || activeTab === "todo") && (
           <section id="cuentas" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
@@ -3575,7 +3575,7 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN 2: GESTIÓN DE VENDEDORES REGISTRADOS ESTILO NETFLIX */}
+        {/* SECCIÓN 2: GESTIÓN DE VENDEDORES REGISTRADOS */}
         {(activeTab === "vendedores" || activeTab === "todo") && (
           <section id="vendedores" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
@@ -3934,7 +3934,7 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN CALENDARIO DE VENCIMIENTOS Y RECORDATORIOS ESTILO NETFLIX (EXCLUSIVO OWNER) */}
+        {/* SECCIÓN CALENDARIO DE VENCIMIENTOS Y RECORDATORIOS (EXCLUSIVO OWNER) */}
         {(activeTab === "calendario" || activeTab === "todo") && (
           <section id="calendario-owner" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden max-w-full">
             <div className="absolute top-0 right-0 w-80 h-80 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
@@ -4591,7 +4591,7 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN 3: GESTOR Y PROBADOR MAESTRO DE CÓDIGOS ESTILO NETFLIX CONSOLA */}
+        {/* SECCIÓN 3: GESTOR Y PROBADOR MAESTRO DE CÓDIGOS */}
         {(activeTab === "codigos" || activeTab === "todo") && (
           <section id="codigos-owner" className="bg-[#181818] border border-[#E50914]/40 rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl relative overflow-hidden max-w-full">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
