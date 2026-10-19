@@ -33,14 +33,14 @@ export default function AdminLoginPage() {
         const ownerUser: SystemUser = {
           id: "owner-1",
           email: cleanEmail,
-          name: "Owner Administrador",
+          name: "Administrador",
           role: "owner",
           status: "active"
         };
         setCurrentUser(ownerUser);
         router.push("/dashboard/owner");
       } else {
-        setError("Credenciales maestras inválidas. Acceso denegado.");
+        setError("Credenciales inválidas. Acceso denegado.");
       }
       setLoading(false);
     }, 600);
@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-950/70 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-widest mb-4">
             <Shield className="w-3.5 h-3.5 text-[#E50914]" />
-            <span>Portal Maestro • Owner</span>
+            <span>Administrador</span>
           </div>
 
           <div className="flex items-center justify-center gap-3">
@@ -70,7 +70,7 @@ export default function AdminLoginPage() {
           </div>
           <h1 className="mt-3 text-2xl font-black text-white tracking-tight">Acceso Administrativo</h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Portal exclusivo para el propietario y gestión centralizada
+            Gestión y control administrativo centralizado
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export default function AdminLoginPage() {
 
             <div>
               <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                Contraseña Maestra
+                Contraseña
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5" />
@@ -127,7 +127,7 @@ export default function AdminLoginPage() {
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Ingresar al Panel Owner</span>
+                  <span>Ingresar al Panel</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

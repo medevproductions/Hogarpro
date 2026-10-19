@@ -1615,9 +1615,6 @@ export default function OwnerDashboard() {
               <div className="font-black text-sm text-white tracking-tight leading-none">
                 HOGAR<span className="text-[#E50914]">PRO</span>
               </div>
-              <div className="text-[9px] text-[#E50914] font-black uppercase tracking-widest mt-0.5 truncate">
-                PANEL OWNER
-              </div>
             </div>
           </div>
 
@@ -1666,7 +1663,6 @@ export default function OwnerDashboard() {
                     <div className="font-black text-white text-base tracking-tight leading-none">
                       HOGAR<span className="text-[#E50914]">PRO</span>
                     </div>
-                    <div className="text-[10px] text-[#E50914] font-black uppercase tracking-widest mt-1">PANEL OWNER</div>
                   </div>
                 </div>
 
@@ -1881,7 +1877,6 @@ export default function OwnerDashboard() {
               <div className="font-black text-white text-base tracking-tight leading-none">
                 HOGAR<span className="text-[#E50914]">PRO</span>
               </div>
-              <div className="text-[10px] text-[#E50914] font-black uppercase tracking-widest mt-1">PANEL OWNER</div>
             </div>
           </div>
 
@@ -2036,11 +2031,8 @@ export default function OwnerDashboard() {
         {/* HEADER PRINCIPAL CINEMATOGRÁFICO */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-[#262626]">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm shadow-red-950/60">
-              HOGARPRO • PANEL MAESTRO
-            </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Panel Maestro del Owner
+              Panel de Administración
             </h1>
             <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
               Control centralizado de finanzas, ventas (detal/mayor), stock de cuentas y revendedores
@@ -3308,7 +3300,7 @@ export default function OwnerDashboard() {
                   <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
                   <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
                     <Tv className="w-5 h-5 text-[#E50914]" />
-                    <span>Inventario Maestro de Cuentas en Stock</span>
+                    <span>Inventario de Cuentas en Stock</span>
                     <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-black/60 text-zinc-300 border border-zinc-700">
                       {filteredAccounts.length} de {accounts.length}
                     </span>
@@ -3942,10 +3934,6 @@ export default function OwnerDashboard() {
             {/* Encabezado de Sección */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm">
-                  <Shield className="w-3 h-3" />
-                  <span>EXCLUSIVO ADMINISTRADOR • AGENDA OPERATIVA</span>
-                </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
                   <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
@@ -4598,10 +4586,6 @@ export default function OwnerDashboard() {
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-[#282828]">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-[#E50914] text-white text-[10px] font-black uppercase tracking-widest mb-2 shadow-sm">
-                  <Shield className="w-3 h-3" />
-                  <span>CONSOLA MASTER ILIMITADA</span>
-                </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
                   <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
