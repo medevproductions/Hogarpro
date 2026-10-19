@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     // Si es enlace, verificar que sea un dominio de streaming legítimo
     if (isLink) {
       const safeLink = sanitizeStreamingLink(cached.code);
-      if (safeLink && actionType !== "temporal") {
+      if (safeLink) {
         return NextResponse.json({
           success: true,
           code: safeLink,

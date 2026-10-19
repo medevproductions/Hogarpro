@@ -12,10 +12,40 @@ export type CodeActionType =
 
 interface ProcessCodePayload {
   account_email: string;
-  extracted_code: string;
+  extracted_code?: string;
   action_type: CodeActionType;
   raw_subject?: string;
   raw_body?: string;
+}
+
+/**
+ * Extrae automáticamente enlaces oficiales de Netflix u OTPs del cuerpo o asunto del correo
+ */
+export function extractNetflixLinkOrCode(text: string): string | null {
+  if (!text) return null;
+
+  // 1. Enlace específico de Actualización de Hogar o Viaje de Netflix
+  // ej: https://www.netflix.com/account/travel/verify?nftoken=... o https://www.netflix.com/update-household?...
+  const netflixSpecificRegex = /(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|update-household|account\/login-code|youraccount|password|nmtr)[^\s"'<>]+)/i;
+  const specificMatch = text.match(netflixSpecificRegex);
+  if (specificMatch && specificMatch[1]) {
+    return specificMatch[1].replace(/&amp;/g, "&");
+  }
+
+  // 2. Cualquier enlace HTTPS oficial de Netflix
+  const netflixGenericRegex = /(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/[^\s"'<>]+)/i;
+  const genericMatch = text.match(netflixGenericRegex);
+  if (genericMatch && genericMatch[1]) {
+    return genericMatch[1].replace(/&amp;/g, "&");
+  }
+
+  // 3. Códigos numéricos de 4 dígitos (temporal/viajero) o 6-8 dígitos (OTP)
+  const codeMatch = text.match(/\b([0-9]{4,8})\b/);
+  if (codeMatch && codeMatch[1]) {
+    return codeMatch[1];
+  }
+
+  return null;
 }
 
 /**
@@ -40,9 +70,20 @@ export async function processIncomingCode(payload: ProcessCodePayload, authHeade
 
     const { account_email, extracted_code, action_type = "login_code", raw_subject = "", raw_body = "" } = payload;
 
-    if (!account_email || !extracted_code) {
+    // Auto-extraer si no viene extraído directamente o si el cuerpo tiene un link oficial de Netflix
+    let resolvedCode = extracted_code ? String(extracted_code).trim() : "";
+    if (!resolvedCode && (raw_body || raw_subject)) {
+      resolvedCode = extractNetflixLinkOrCode(raw_body || raw_subject || "") || "";
+    } else if (raw_body && !resolvedCode.startsWith("http") && (action_type === "actualizar" || action_type === "login_confirm")) {
+      const linkCandidate = extractNetflixLinkOrCode(raw_body);
+      if (linkCandidate && linkCandidate.startsWith("http")) {
+        resolvedCode = linkCandidate;
+      }
+    }
+
+    if (!account_email || !resolvedCode) {
       return NextResponse.json(
-        { success: false, error: "Campos requeridos: 'account_email' y 'extracted_code'" },
+        { success: false, error: "Campos requeridos: 'account_email' y 'extracted_code' (o cuerpo de correo parseable)" },
         { status: 400 }
       );
     }
@@ -55,8 +96,10 @@ export async function processIncomingCode(payload: ProcessCodePayload, authHeade
       );
     }
 
-    // Sanitizar el código o enlace recibido
-    const cleanCode = sanitizeInput(String(extracted_code));
+    // Sanitizar el código o enlace recibido (manteniendo URLs intactas si son seguras)
+    const cleanCode = resolvedCode.startsWith("http://") || resolvedCode.startsWith("https://")
+      ? resolvedCode
+      : sanitizeInput(resolvedCode);
 
     // 2. Guardar de inmediato en memoria ultra rápida garantizada
     memoryStore.set(cleanEmail, {

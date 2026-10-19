@@ -153,7 +153,7 @@ export default function CodePortalClient({
           const json = await res.json();
           if (json.success && json.code && isMounted) {
             const clean = cleanCodeDisplay(json.code);
-            if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
+            if (clean) {
               setReceivedCode(clean);
               setIsWaiting(false);
               return;
@@ -221,7 +221,7 @@ export default function CodePortalClient({
         .then(data => {
           if (data && data.success && data.code) {
             const clean = cleanCodeDisplay(data.code);
-            if (!(actionType === "temporal" && (clean.startsWith("http://") || clean.startsWith("https://")))) {
+            if (clean) {
               setReceivedCode(clean);
               setIsWaiting(false);
             }
@@ -383,16 +383,16 @@ export default function CodePortalClient({
             </div>
           ) : receivedCode ? (
             <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in zoom-in-95">
-              {(actionType === "actualizar" || actionType === "reset_password") && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://")) ? (
+              {(receivedCode.startsWith("http://") || receivedCode.startsWith("https://")) ? (
                 <>
                   <span className="text-[11px] font-bold text-amber-400 uppercase tracking-widest bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-4">
                     <KeyRound className="w-3.5 h-3.5" />
-                    <span>Enlace de Confirmación Listo</span>
+                    <span>Enlace Oficial Listo</span>
                   </span>
 
                   <div className="my-3 bg-[#0b0f19] border-2 border-amber-500/40 rounded-2xl p-6 shadow-2xl text-left">
                     <p className="text-xs text-gray-300 font-medium mb-3">
-                      Se ha generado tu enlace oficial de acceso/actualización. Haz clic en el botón a continuación para abrirlo directamente:
+                      Se ha generado tu enlace oficial de acceso/confirmación. Haz clic en el botón a continuación para abrirlo directamente:
                     </p>
                     <a
                       href={receivedCode}
@@ -403,7 +403,11 @@ export default function CodePortalClient({
                       <span>
                         {actionType === "actualizar" 
                           ? "Actualizar Hogar Ahora" 
-                          : "Restablecer Contraseña"}
+                          : actionType === "login_confirm"
+                          ? "Confirmar Inicio de Sesión"
+                          : actionType === "reset_password"
+                          ? "Restablecer Contraseña"
+                          : "Abrir Enlace Oficial en Netflix"}
                       </span>
                       <ExternalLink className="w-4 h-4" />
                     </a>
