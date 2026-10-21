@@ -595,10 +595,17 @@ export function checkAccountAuthorization(accountEmail: string, user: SystemUser
   }
 
   // Verificar si está asignada a este vendedor
+  const uName = (user.name || "").toLowerCase().trim();
+  const uEmail = (user.email || "").toLowerCase().trim();
+  const uId = (user.id || "").toLowerCase().trim();
+  const sId = (match.sellerId || "").toLowerCase().trim();
+  const sName = (match.sellerName || (match as any).seller || "").toLowerCase().trim();
+  const sCustomer = (match.customerName || "").toLowerCase().trim();
+
   const isAssignedToUser = 
-    match.sellerId === user.id || 
-    match.sellerId === user.email || 
-    match.sellerName?.toLowerCase() === user.name?.toLowerCase();
+    (sId && (sId === uId || sId === uEmail)) || 
+    (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName))) ||
+    (sCustomer && (sCustomer === uName || sCustomer === uEmail));
 
   if (!isAssignedToUser) {
     return {

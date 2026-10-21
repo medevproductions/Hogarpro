@@ -295,16 +295,26 @@ export default function SellerLiveCodesPage() {
     setProfilePhone(user.phone || "");
 
     const allAccounts = getStoredAccounts();
-    // Si es owner o admin muestra todas, si es vendedor filtra estrictamente sus cuentas asignadas
+    // Si es owner o admin muestra todas, si es vendedor filtra con coincidencia inteligente sus cuentas asignadas
     let validAccs: StoredStreamingAccount[] = [];
     if (user.role === "owner" || (user.role as string) === "admin") {
       validAccs = allAccounts;
     } else {
-      validAccs = allAccounts.filter(a =>
-        a.sellerId === user.id ||
-        a.sellerId === user.email ||
-        a.sellerName?.toLowerCase() === user.name?.toLowerCase()
-      );
+      const uName = (user.name || "").toLowerCase().trim();
+      const uEmail = (user.email || "").toLowerCase().trim();
+      const uId = (user.id || "").toLowerCase().trim();
+
+      validAccs = allAccounts.filter(a => {
+        const sId = (a.sellerId || "").toLowerCase().trim();
+        const sName = (a.sellerName || (a as any).seller || "").toLowerCase().trim();
+        const sCustomer = (a.customerName || "").toLowerCase().trim();
+
+        return (
+          (sId && (sId === uId || sId === uEmail)) ||
+          (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName))) ||
+          (sCustomer && (sCustomer === uName || sCustomer === uEmail))
+        );
+      });
     }
 
     const formatted = validAccs.map((a) => ({
@@ -316,8 +326,12 @@ export default function SellerLiveCodesPage() {
 
     setAssignedAccounts(formatted);
     setRawSellerAccounts(validAccs);
-    if (formatted.length > 0 && (!selectedAccount || !formatted.some(f => f.email === selectedAccount))) {
-      setSelectedAccount(formatted[0].email);
+    if (formatted.length > 0) {
+      if (!selectedAccount || !formatted.some(f => f.email === selectedAccount)) {
+        setSelectedAccount(formatted[0].email);
+      }
+    } else {
+      setSelectedAccount("");
     }
   };
 
@@ -527,7 +541,7 @@ export default function SellerLiveCodesPage() {
             }`}
           >
             <KeyRound className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Cuentas ({assignedAccounts.length})</span>
+            <span className="truncate">Pedir Códigos ({assignedAccounts.length})</span>
           </button>
           <button
             id="seller-mobile-tab-calendario"
@@ -581,7 +595,7 @@ export default function SellerLiveCodesPage() {
             >
               <div className="flex items-center gap-3">
                 <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-[#E50914]" : "text-zinc-400"}`} />
-                <span>Gestión de Cuentas</span>
+                <span>Pedir Códigos & Cuentas</span>
               </div>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
                 {assignedAccounts.length}
@@ -857,6 +871,27 @@ export default function SellerLiveCodesPage() {
         {/* ========================================================================= */}
         {activeTab === "calendario" && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Acceso Directo a los 5 Botones de Códigos */}
+            <div className="p-4 rounded-2xl bg-[#1a1a1a] border border-[#2e2e2e] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#E50914]/20 text-[#E50914] flex items-center justify-center shrink-0 border border-[#E50914]/30">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">¿Necesitas consultar un código OTP, enlace de acceso o cambio de hogar?</div>
+                  <div className="text-[11px] text-zinc-400">Pulsa el botón para ir directamente al panel con los 5 botones de extracción automática</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("cuentas")}
+                className="px-4 py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl transition shrink-0 shadow-md shadow-red-950/50 flex items-center justify-center gap-1.5"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Ir a Pedir Códigos</span>
+              </button>
+            </div>
+
             {/* Encabezado del Calendario */}
             <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-72 h-72 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
@@ -1085,6 +1120,9 @@ export default function SellerLiveCodesPage() {
                                   onClick={() => {
                                     setSelectedAccount(acc.email);
                                     setActiveTab("cuentas");
+                                    setTimeout(() => {
+                                      window.scrollTo({ top: 320, behavior: "smooth" });
+                                    }, 100);
                                   }}
                                   className="w-full py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
                                 >
@@ -1186,11 +1224,13 @@ export default function SellerLiveCodesPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {ACTIONS.map((action) => {
+                  const isDisabled = isWaiting || assignedAccounts.length === 0;
                   return (
                     <button
                       key={action.id}
                       onClick={() => handleTriggerAction(action.id)}
-                      disabled={isWaiting}
+                      disabled={isDisabled}
+                      title={assignedAccounts.length === 0 ? "Asigna o solicita una cuenta primero para pedir códigos" : ""}
                       className={`p-5 rounded-2xl bg-gradient-to-br ${action.color} border text-left shadow-lg transition-all transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex flex-col justify-between min-h-[140px]`}
                     >
                       <div className="flex items-center justify-between">

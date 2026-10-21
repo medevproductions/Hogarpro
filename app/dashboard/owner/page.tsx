@@ -456,6 +456,7 @@ export default function OwnerDashboard() {
     // Escuchar cambios entre pestañas o eventos locales
     const handleStorageChange = () => reloadData();
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("streamhub_accounts_updated", handleStorageChange);
     window.addEventListener("streamhub_users_updated", handleStorageChange);
     window.addEventListener("streamhub_reminders_updated", handleStorageChange);
     window.addEventListener("streamhub_sales_updated", handleStorageChange);
@@ -463,6 +464,7 @@ export default function OwnerDashboard() {
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("streamhub_accounts_updated", handleStorageChange);
       window.removeEventListener("streamhub_users_updated", handleStorageChange);
       window.removeEventListener("streamhub_reminders_updated", handleStorageChange);
       window.removeEventListener("streamhub_sales_updated", handleStorageChange);
@@ -550,13 +552,43 @@ export default function OwnerDashboard() {
   // FILTRADO DINÁMICO DE CUENTAS (Búsqueda + Plataforma + Estado)
   const filteredAccounts = useMemo(() => {
     return accounts.filter((acc) => {
+      const q = searchQuery.toLowerCase().trim();
       const matchSearch =
-        acc.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        acc.platform.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        acc.seller.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        acc.email.toLowerCase().includes(q) ||
+        acc.platform.toLowerCase().includes(q) ||
+        acc.seller.toLowerCase().includes(q) ||
+        (acc.country && acc.country.toLowerCase().includes(q)) ||
+        (acc.notes && acc.notes.toLowerCase().includes(q));
 
-      const matchPlatform = platformFilter === "all" || acc.platform === platformFilter;
-      const matchStatus = statusFilter === "all" || acc.status === statusFilter;
+      // Coincidencia flexible de plataforma (ej. "Netflix Premium 4K" coincide con "Netflix", "Netflix 4K", etc.)
+      let matchPlatform = true;
+      if (platformFilter !== "all") {
+        const filterNorm = platformFilter.toLowerCase();
+        const accNorm = (acc.platform || "").toLowerCase();
+        matchPlatform = 
+          accNorm === filterNorm ||
+          accNorm.includes(filterNorm) ||
+          filterNorm.includes(accNorm) ||
+          (accNorm.includes("netflix") && filterNorm.includes("netflix")) ||
+          (accNorm.includes("disney") && filterNorm.includes("disney")) ||
+          (accNorm.includes("max") && filterNorm.includes("max")) ||
+          (accNorm.includes("prime") && filterNorm.includes("prime")) ||
+          (accNorm.includes("spotify") && filterNorm.includes("spotify")) ||
+          (accNorm.includes("crunchy") && filterNorm.includes("crunchy"));
+      }
+
+      // Coincidencia inteligente de estado
+      let matchStatus = true;
+      if (statusFilter !== "all") {
+        if (statusFilter === "assigned") {
+          matchStatus = Boolean(acc.sellerId || (acc.seller && acc.seller !== "Sin Asignar (En Stock)"));
+        } else if (statusFilter === "available") {
+          matchStatus = !acc.sellerId && (!acc.seller || acc.seller === "Sin Asignar (En Stock)");
+        } else if (statusFilter === "expiring") {
+          matchStatus = acc.status === "expiring";
+        }
+      }
 
       return matchSearch && matchPlatform && matchStatus;
     });
@@ -1232,6 +1264,7 @@ export default function OwnerDashboard() {
       };
       persistAccounts([newAcc, ...accounts]);
     }
+    setActiveTab("cuentas");
     setIsAccountModalOpen(false);
   };
 
@@ -1428,12 +1461,13 @@ export default function OwnerDashboard() {
         }
 
         setImportSuccessMessage(`¡Se importaron exitosamente ${importedAccounts.length} cuentas de streaming! Puedes deshacer o borrar este lote si fue un error durante las próximas 24 horas.`);
+        setActiveTab("cuentas");
         setTimeout(() => {
           setIsExcelModalOpen(false);
           setExcelFile(null);
           setExcelPreviewData([]);
           setImportSuccessMessage(null);
-        }, 2500);
+        }, 2000);
       } else {
         alert("No se detectaron cuentas con correo válido en el archivo.");
       }
@@ -3292,7 +3326,7 @@ export default function OwnerDashboard() {
         )}
 
         {/* TABLA DE GESTIÓN DE CUENTAS INVENTARIO */}
-        {(activeTab === "cuentas" || activeTab === "todo") && (
+        {(activeTab === "cuentas" || activeTab === "resumen" || activeTab === "todo") && (
           <section id="cuentas" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
@@ -3403,8 +3437,29 @@ export default function OwnerDashboard() {
                 <tbody className="divide-y divide-[#222222]">
                   {filteredAccounts.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-8 text-zinc-500">
-                        No se encontraron cuentas con los filtros seleccionados.
+                      <td colSpan={8} className="text-center py-8">
+                        {accounts.length === 0 ? (
+                          <div className="text-zinc-500 text-xs">
+                            Aún no hay cuentas registradas en el inventario. Agrega una nueva o importa desde Excel.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <span className="text-zinc-400 text-xs">
+                              Hay {accounts.length} cuenta{accounts.length === 1 ? "" : "s"} en total, pero ninguna coincide con los filtros actuales.
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSearchQuery("");
+                                setPlatformFilter("all");
+                                setStatusFilter("all");
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold transition shadow-md shadow-red-950/40"
+                            >
+                              Restablecer Filtros y Ver Todas ({accounts.length})
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ) : (
