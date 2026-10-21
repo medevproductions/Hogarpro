@@ -122,7 +122,7 @@ export async function getPendingCodeRequestsFirestore(minutes: number = 15): Pro
 /**
  * Consulta el código más reciente de una cuenta en Firestore
  */
-export async function getRecentCodeFromFirestore(accountEmail: string): Promise<FirestoreCodeRequest | null> {
+export async function getRecentCodeFromFirestore(accountEmail: string, actionType?: string): Promise<FirestoreCodeRequest | null> {
   if (!db || !isFirebaseConfigured()) {
     return null;
   }
@@ -135,15 +135,28 @@ export async function getRecentCodeFromFirestore(accountEmail: string): Promise<
       reqsRef,
       where("account_email", "==", cleanEmail),
       orderBy("created_at", "desc"),
-      limit(3)
+      limit(5)
     );
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
 
+    const now = Date.now();
+    const MAX_AGE_MS = 15 * 60 * 1000; // Máximo 15 minutos de antigüedad para evitar códigos viejos
+
     const matched = snapshot.docs
       .map(d => ({ id: d.id, ...d.data() } as FirestoreCodeRequest))
-      .find(r => r.extracted_code && r.status === "completado");
+      .find(r => {
+        if (!r.extracted_code || r.status !== "completado") return false;
+        // Solo aceptar si la acción solicitada coincide con la acción del código (ej: reset_password no debe recibir un login_code)
+        if (actionType && r.action_type && r.action_type !== actionType) return false;
+        const timeStr = r.updated_at || r.created_at;
+        if (timeStr) {
+          const age = now - new Date(timeStr).getTime();
+          if (age > MAX_AGE_MS) return false; // Descartar códigos expirados
+        }
+        return true;
+      });
 
     return matched || null;
   } catch (error: any) {

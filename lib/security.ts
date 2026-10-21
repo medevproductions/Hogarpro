@@ -155,11 +155,16 @@ export function isValidEmail(email: string): boolean {
  */
 export function sanitizeStreamingLink(url: string): string | null {
   if (!url || typeof url !== "string") return null;
-  const trimmed = url.trim();
-  if (!trimmed.startsWith("https://")) return null;
+  // 1. Limpiar espacios, decodificar entidades HTML completas y eliminar signos de puntuación pegados al final
+  const cleaned = url
+    .trim()
+    .replace(/&amp;/g, "&")
+    .replace(/[).,;'"<>]+$/, "");
+
+  if (!cleaned.startsWith("https://")) return null;
 
   try {
-    const parsed = new URL(trimmed);
+    const parsed = new URL(cleaned);
     const validDomains = [
       "netflix.com",
       "account.netflix.com",
@@ -174,7 +179,7 @@ export function sanitizeStreamingLink(url: string): string | null {
     ];
 
     const isMatch = validDomains.some(d => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`));
-    return isMatch ? trimmed : null;
+    return isMatch ? cleaned : null;
   } catch {
     return null;
   }

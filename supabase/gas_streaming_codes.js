@@ -77,8 +77,17 @@ function procesarHilos(threads, targetEmail, requestedActionType) {
   // Ordenar de más nuevo a más viejo
   allMessages.sort((a, b) => b.getDate().getTime() - a.getDate().getTime());
 
+  const now = new Date().getTime();
+  const MAX_MESSAGE_AGE_MS = 15 * 60 * 1000; // Solo mensajes recientes (últimos 15 minutos) para no enviar códigos viejos
+
   for (let i = 0; i < allMessages.length; i++) {
     const message = allMessages[i];
+    const msgDate = message.getDate().getTime();
+    if (now - msgDate > MAX_MESSAGE_AGE_MS) {
+      Logger.log(`Mensaje descartado por ser demasiado antiguo (>15 min): ${message.getDate()}`);
+      continue;
+    }
+
     const rawTo = (message.getTo() || "").toLowerCase();
     const body = message.getPlainBody();
     const htmlBody = message.getBody();
@@ -100,7 +109,7 @@ function procesarHilos(threads, targetEmail, requestedActionType) {
 
     if (codeOrLink) {
       Logger.log(`[ENCONTRADO PARA ${targetEmail}] -> ${codeOrLink}`);
-      enviarAlServidor(targetEmail, codeOrLink, actionType, subject, body);
+      enviarAlServidor(targetEmail, codeOrLink, actionType, subject, body || htmlBody);
       return { 
         success: true, 
         code: codeOrLink, 
@@ -111,7 +120,7 @@ function procesarHilos(threads, targetEmail, requestedActionType) {
     }
   }
 
-  return { success: false, message: "No se encontró código para el destinatario exacto: " + targetEmail };
+  return { success: false, message: "No se encontró código reciente para el destinatario exacto: " + targetEmail };
 }
 
 function extraerDestinatarioExacto(toHeader, body, htmlBody) {
@@ -136,37 +145,44 @@ function extraerDestinatarioExacto(toHeader, body, htmlBody) {
  */
 function extraerCodigoOEnlace(subject, body, htmlBody, actionType) {
   const fullText = subject + "\n" + body;
+  const isLinkAction = actionType === "reset_password" || actionType === "actualizar" || actionType === "login_confirm";
 
-  // 1. SIEMPRE intentar buscar dígitos numéricos primero
-  // Dígitos espaciados de Netflix: "3 5 9 7"
-  const spaced = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
-  if (spaced && spaced[1]) {
-    const clean = spaced[1].replace(/\s+/g, "");
-    if (clean.length >= 4 && clean.length <= 8) return clean;
-  }
-
-  // Dígitos continuos (4 a 8 dígitos)
-  const continuous = fullText.match(/(?:código|code|pin|clave)[\s\:\-]+([0-9]{4,8})/i) ||
-                     fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
-                     fullText.match(/\b([0-9]{4,6})\b/);
-  if (continuous && continuous[1]) {
-    return continuous[1].trim();
-  }
-
-  // 2. SOLO si la acción solicitada es 'actualizar' o 'reset_password' se buscan enlaces
-  if (actionType === "actualizar" || actionType === "reset_password") {
+  // 1. SI LA ACCIÓN REQUIERE UN ENLACE (Restablecer contraseña o Actualizar hogar), BUSCAR EL ENLACE PRIMERO
+  if (isLinkAction) {
     if (htmlBody) {
-      const buttonLinkMatch = htmlBody.match(/<a[^>]+href=["'](https:\/\/[^"']*(?:update-primary-location|account\/update|password|reset|travel|verify|confirm)[^"']*)["'][^>]*>/i) ||
-                             htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'>]+)["'][^>]*>[\s\S]*?(?:actualizar|hogar|restablecer|cambiar|confirmar|acceso|empezar|verificar)[\s\S]*?<\/a>/i);
+      // Buscar botón de acción directo en el HTML (incluye reset de contraseña y hogar de Netflix)
+      const buttonLinkMatch = htmlBody.match(/<a[^>]+href=["'](https:\/\/[^"']*(?:password\?|account\/password|password\/|update-primary-location|update-household|travel\/verify|verify|confirm)[^"']*)["'][^>]*>/i) ||
+                             htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:www\.)?(?:netflix|disneyplus|max|primevideo)\.com\/[^\s"'>]+)["'][^>]*>[\s\S]*?(?:actualizar|hogar|restablecer|cambiar|confirmar|acceso|empezar|verificar|reset)[\s\S]*?<\/a>/i);
       
       if (buttonLinkMatch && buttonLinkMatch[1]) {
-        return buttonLinkMatch[1].replace(/&amp;/g, "&").trim();
+        return buttonLinkMatch[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
       }
     }
 
-    const textLink = body.match(/(https:\/\/[^\s"'<>]+(?:update-primary-location|account\/update|password\/reset|verify|confirm)[^\s"'<>]*)/i);
+    // Buscar en el texto del cuerpo (limpiando saltos de línea de quoted-printable)
+    const cleanBody = (body || "").replace(/=\r?\n/g, "");
+    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/|update-household|account\/travel\/verify|verify|confirm)[^\s"'<>]+)/i) ||
+                     cleanBody.match(/(https:\/\/[^\s"'<>]+(?:password\?|account\/password|password\/|update-primary-location|update-household|verify|confirm)[^\s"'<>]*)/i);
     if (textLink && textLink[1]) {
-      return textLink[1].replace(/&amp;/g, "&").trim();
+      return textLink[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
+    }
+  }
+
+  // 2. Si no es una acción de enlace, buscar dígitos numéricos (OTP)
+  if (!isLinkAction || actionType === "login_code" || actionType === "temporal") {
+    // Dígitos espaciados de Netflix: "3 5 9 7"
+    const spaced = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
+    if (spaced && spaced[1]) {
+      const clean = spaced[1].replace(/\s+/g, "");
+      if (clean.length >= 4 && clean.length <= 8) return clean;
+    }
+
+    // Dígitos continuos (4 a 8 dígitos)
+    const continuous = fullText.match(/(?:código|code|pin|clave)[\s\:\-]+([0-9]{4,8})/i) ||
+                       fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
+                       fullText.match(/\b([0-9]{4,6})\b/);
+    if (continuous && continuous[1]) {
+      return continuous[1].trim();
     }
   }
 
@@ -198,7 +214,7 @@ function enviarAlServidor(email, codeOrLink, actionType, subject, body) {
     extracted_code: codeOrLink,
     action_type: actionType,
     raw_subject: subject,
-    raw_body: body ? body.substring(0, 300) : ""
+    raw_body: body ? body.substring(0, 4000) : ""
   };
 
   try {

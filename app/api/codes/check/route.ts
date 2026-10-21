@@ -77,31 +77,46 @@ export async function GET(req: NextRequest) {
   const allowedActions = ["actualizar", "temporal", "login_code", "login_confirm", "reset_password"];
   const actionType = allowedActions.includes(rawActionType) ? rawActionType : "temporal";
 
-  // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR (Rápido y Seguro)
-  if (memoryStore.has(cleanEmail)) {
-    const cached = memoryStore.get(cleanEmail)!;
-    const isLink = cached.code.startsWith("http://") || cached.code.startsWith("https://");
-    
-    // Si es enlace, verificar que sea un dominio de streaming legítimo
-    if (isLink) {
-      const safeLink = sanitizeStreamingLink(cached.code);
-      if (safeLink) {
+  // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR (Rápido y Seguro con validación de acción y frescura)
+  const MAX_CODE_AGE_MS = 15 * 60 * 1000; // Máximo 15 minutos de frescura
+  const now = Date.now();
+  const cacheKey = `${cleanEmail}:${actionType}`;
+  const cached = memoryStore.get(cacheKey) || memoryStore.get(cleanEmail);
+
+  if (cached) {
+    const isMatchingAction = !cached.actionType || cached.actionType === actionType;
+    const isFresh = (now - cached.timestamp) <= MAX_CODE_AGE_MS;
+
+    if (isMatchingAction && isFresh) {
+      const isLink = cached.code.startsWith("http://") || cached.code.startsWith("https://");
+      
+      // Si es enlace, verificar que sea un dominio de streaming legítimo
+      if (isLink) {
+        const safeLink = sanitizeStreamingLink(cached.code);
+        if (safeLink) {
+          return NextResponse.json({
+            success: true,
+            code: safeLink,
+            status: "completado",
+            actionType: cached.actionType || actionType,
+            timestamp: new Date(cached.timestamp).toISOString(),
+            source: "instant_cache"
+          }, { headers: corsHeaders });
+        }
+      } else {
         return NextResponse.json({
           success: true,
-          code: safeLink,
+          code: cached.code,
           status: "completado",
+          actionType: cached.actionType || actionType,
           timestamp: new Date(cached.timestamp).toISOString(),
           source: "instant_cache"
         }, { headers: corsHeaders });
       }
-    } else {
-      return NextResponse.json({
-        success: true,
-        code: cached.code,
-        status: "completado",
-        timestamp: new Date(cached.timestamp).toISOString(),
-        source: "instant_cache"
-      }, { headers: corsHeaders });
+    } else if (!isFresh) {
+      // Limpiar memoria si el código ya expiró
+      memoryStore.delete(cacheKey);
+      memoryStore.delete(cleanEmail);
     }
   }
 
@@ -124,16 +139,20 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        memoryStore.set(cleanEmail, {
+        const freshEntry = {
           code: finalCode,
           timestamp: Date.now(),
+          actionType: actionType,
           service: service || undefined
-        });
+        };
+        memoryStore.set(`${cleanEmail}:${actionType}`, freshEntry);
+        memoryStore.set(cleanEmail, freshEntry);
 
         return NextResponse.json({
           success: true,
           code: finalCode,
           status: "completado",
+          actionType: actionType,
           timestamp: new Date().toISOString(),
           source: "gas_direct"
         }, { headers: corsHeaders });
@@ -143,9 +162,9 @@ export async function GET(req: NextRequest) {
     // Si Google Apps Script demora, continuar con la consulta de base de datos
   }
 
-  // 4. Consulta a Cloud Firestore (Base de datos primaria)
+  // 4. Consulta a Cloud Firestore (Base de datos primaria con filtro de acción y frescura)
   try {
-    const firestoreCode = await getRecentCodeFromFirestore(cleanEmail);
+    const firestoreCode = await getRecentCodeFromFirestore(cleanEmail, actionType);
     if (firestoreCode && firestoreCode.extracted_code) {
       let codeValue = String(firestoreCode.extracted_code).trim();
       if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
@@ -157,6 +176,7 @@ export async function GET(req: NextRequest) {
         success: true,
         code: codeValue,
         status: firestoreCode.status,
+        actionType: firestoreCode.action_type || actionType,
         timestamp: firestoreCode.created_at,
         source: "firestore"
       }, { headers: corsHeaders });
@@ -175,13 +195,22 @@ export async function GET(req: NextRequest) {
 
       const { data: list, error: queryErr } = await supabase
         .from("code_requests")
-        .select("id, account_email, extracted_code, status, created_at")
+        .select("id, account_email, extracted_code, action_type, status, created_at")
         .eq("account_email", cleanEmail)
         .order("created_at", { ascending: false })
         .limit(5);
 
       if (list && list.length > 0) {
-        const itemWithCode = list.find((item: any) => item.extracted_code);
+        const itemWithCode = list.find((item: any) => {
+          if (!item.extracted_code) return false;
+          if (actionType && item.action_type && item.action_type !== actionType) return false;
+          if (item.created_at) {
+            const age = Date.now() - new Date(item.created_at).getTime();
+            if (age > 15 * 60 * 1000) return false;
+          }
+          return true;
+        });
+
         if (itemWithCode) {
           let codeValue = String(itemWithCode.extracted_code).trim();
           if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
@@ -193,6 +222,7 @@ export async function GET(req: NextRequest) {
             success: true,
             code: codeValue,
             status: itemWithCode.status,
+            actionType: itemWithCode.action_type || actionType,
             timestamp: itemWithCode.created_at,
             source: "supabase"
           }, { headers: corsHeaders });
