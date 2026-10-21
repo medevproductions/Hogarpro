@@ -48,12 +48,20 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const rawEmail = searchParams.get("email");
+  let rawEmail = searchParams.get("email");
   const rawService = searchParams.get("service");
   const rawActionType = searchParams.get("actionType") || "temporal";
 
   if (!rawEmail) {
     return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
+  }
+
+  // Si en la URL venía '+' sin escapar (ej: ?email=cuenta+embudo@gmail.com), URLSearchParams lo decodifica como espacio ' '
+  if (rawEmail.includes(" ")) {
+    const [localPart, domainPart] = rawEmail.split("@");
+    if (domainPart) {
+      rawEmail = `${localPart.replace(/\s+/g, "+")}@${domainPart}`;
+    }
   }
 
   const cleanEmail = rawEmail.toLowerCase().trim();

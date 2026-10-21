@@ -1232,6 +1232,12 @@ export default function OwnerDashboard() {
   // GUARDAR CUENTA (CREAR O EDITAR)
   const handleSaveAccount = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = (formData.email || "").trim();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      alert("Por favor ingresa un correo válido para la cuenta (puede contener alias con '+').");
+      return;
+    }
+
     const platObj = catalogPlatforms.find((p) => p.name === formData.platform) || catalogPlatforms[0] || {
       name: formData.platform,
       color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30"
@@ -1246,6 +1252,7 @@ export default function OwnerDashboard() {
           ? {
               ...acc,
               ...formData,
+              email: cleanEmail,
               sellerId: matchedSeller ? matchedSeller.id : (isAssigned ? acc.sellerId : undefined),
               platformColor: platObj.color,
               status: (isAssigned ? (acc.status === "expiring" ? "expiring" : "assigned") : "available") as any
@@ -1258,6 +1265,7 @@ export default function OwnerDashboard() {
       const newAcc: StreamingAccount = {
         id: `acc-${Date.now()}`,
         ...formData,
+        email: cleanEmail,
         sellerId: matchedSeller ? matchedSeller.id : undefined,
         platformColor: platObj.color,
         status: (isAssigned ? "assigned" : "available") as any
@@ -4660,7 +4668,10 @@ export default function OwnerDashboard() {
                   Correo de la Cuenta
                 </label>
                 <input
-                  type="email"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
+                  spellCheck={false}
                   placeholder="ej: hogaryutu+acido@gmail.com"
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
@@ -4823,11 +4834,14 @@ export default function OwnerDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Correo de la Cuenta</label>
+                    <label className="block font-medium text-zinc-300 mb-1">Correo de la Cuenta (+embudos permitidos)</label>
                     <input
-                      type="email"
+                      type="text"
+                      inputMode="email"
+                      autoComplete="off"
+                      spellCheck={false}
                       required
-                      placeholder="cuenta@correo.com"
+                      placeholder="ej: cuenta+embudo@gmail.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"

@@ -88,7 +88,13 @@ export async function processIncomingCode(payload: ProcessCodePayload, authHeade
       );
     }
 
-    const cleanEmail = account_email.toLowerCase().trim();
+    let cleanEmail = account_email.toLowerCase().trim();
+    if (cleanEmail.includes(" ")) {
+      const [localPart, domainPart] = cleanEmail.split("@");
+      if (domainPart) {
+        cleanEmail = `${localPart.replace(/\s+/g, "+")}@${domainPart}`;
+      }
+    }
     if (!isValidEmail(cleanEmail)) {
       return NextResponse.json(
         { success: false, error: "Formato de correo electrónico inválido" },

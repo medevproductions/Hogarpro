@@ -751,7 +751,7 @@ export default function SellerLiveCodesPage() {
                 <div>
                   <label className="block font-medium text-zinc-300 mb-1">Correo Electrónico (Solo Lectura)</label>
                   <input
-                    type="email"
+                    type="text"
                     disabled
                     value={currentUser?.email || ""}
                     className="w-full bg-[#101010] border border-[#262626] text-zinc-500 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed"
