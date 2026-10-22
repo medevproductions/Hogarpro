@@ -52,18 +52,21 @@ export async function saveIncomingCodeToFirestore(payload: {
     const cleanEmail = payload.account_email.toLowerCase().trim();
     const reqsRef = collection(db, COLLECTION_NAME);
 
-    // Buscar si hay una solicitud pendiente reciente para este correo
+    // Buscar si hay una solicitud pendiente reciente para este correo (sin requerir índice compuesto)
     const q = query(
       reqsRef,
-      where("account_email", "==", cleanEmail),
-      orderBy("created_at", "desc"),
-      limit(1)
+      where("account_email", "==", cleanEmail)
     );
 
     const snapshot = await getDocs(q);
 
     if (!snapshot.empty) {
-      const pendingDoc = snapshot.docs[0];
+      const sortedDocs = [...snapshot.docs].sort((a, b) => {
+        const timeA = new Date(a.data().updated_at || a.data().created_at || 0).getTime();
+        const timeB = new Date(b.data().updated_at || b.data().created_at || 0).getTime();
+        return timeB - timeA;
+      });
+      const pendingDoc = sortedDocs[0];
       const data = pendingDoc.data();
 
       // Si está pendiente o es reciente, actualizarla
@@ -107,19 +110,21 @@ export async function getPendingCodeRequestsFirestore(minutes: number = 15): Pro
   }
 
   try {
-    const thresholdDate = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+    const thresholdMs = Date.now() - minutes * 60 * 1000;
     const reqsRef = collection(db, COLLECTION_NAME);
 
+    // Consulta simple por estado (no requiere índice compuesto)
     const q = query(
       reqsRef,
-      where("status", "==", "pendiente"),
-      where("created_at", ">=", thresholdDate),
-      orderBy("created_at", "desc"),
-      limit(10)
+      where("status", "==", "pendiente")
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreCodeRequest));
+    return snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() } as FirestoreCodeRequest))
+      .filter(d => new Date(d.created_at || 0).getTime() >= thresholdMs)
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 10);
   } catch (error: any) {
     console.warn("[FIRESTORE] Advertencia consultando pendientes:", error?.message);
     return [];
@@ -138,32 +143,37 @@ export async function getRecentCodeFromFirestore(accountEmail: string, actionTyp
     const cleanEmail = accountEmail.toLowerCase().trim();
     const reqsRef = collection(db, COLLECTION_NAME);
 
+    // Consulta por correo (no requiere índice compuesto)
     const q = query(
       reqsRef,
-      where("account_email", "==", cleanEmail),
-      orderBy("created_at", "desc"),
-      limit(5)
+      where("account_email", "==", cleanEmail)
     );
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
 
     const now = Date.now();
-    const MAX_AGE_MS = 15 * 60 * 1000; // Máximo 15 minutos de antigüedad para evitar códigos viejos
+    const MAX_AGE_MS = 15 * 60 * 1000; // Máximo 15 minutos de antigüedad
 
-    const matched = snapshot.docs
+    const sorted = snapshot.docs
       .map(d => ({ id: d.id, ...d.data() } as FirestoreCodeRequest))
-      .find(r => {
-        if (!r.extracted_code || r.status !== "completado") return false;
-        // Solo aceptar si la acción solicitada coincide con la acción del código (ej: reset_password no debe recibir un login_code)
-        if (actionType && r.action_type && r.action_type !== actionType) return false;
-        const timeStr = r.updated_at || r.created_at;
-        if (timeStr) {
-          const age = now - new Date(timeStr).getTime();
-          if (age > MAX_AGE_MS) return false; // Descartar códigos expirados
-        }
-        return true;
+      .sort((a, b) => {
+        const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+        const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+        return timeB - timeA;
       });
+
+    const matched = sorted.find(r => {
+      if (!r.extracted_code || r.status !== "completado") return false;
+      // Solo aceptar si la acción solicitada coincide con la acción del código
+      if (actionType && r.action_type && r.action_type !== actionType) return false;
+      const timeStr = r.updated_at || r.created_at;
+      if (timeStr) {
+        const age = now - new Date(timeStr).getTime();
+        if (age > MAX_AGE_MS) return false; // Descartar códigos expirados
+      }
+      return true;
+    });
 
     return matched || null;
   } catch (error: any) {
