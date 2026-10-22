@@ -65,6 +65,8 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import LatamPhoneInput from "@/components/LatamPhoneInput";
+import HogarProEmailInput from "@/components/HogarProEmailInput";
 import { 
   getStoredAccounts, 
   saveStoredAccounts, 
@@ -1561,12 +1563,18 @@ export default function OwnerDashboard() {
     e.preventDefault();
     if (!newSellerName.trim() || !newSellerEmail.trim()) return;
 
+    // Asegurar siempre dominio @hogarpro.com
+    const cleanPrefix = newSellerEmail.trim().toLowerCase();
+    const finalEmail = cleanPrefix.includes("@") 
+      ? (cleanPrefix.endsWith("@hogarpro.com") ? cleanPrefix : `${cleanPrefix.split("@")[0]}@hogarpro.com`)
+      : `${cleanPrefix}@hogarpro.com`;
+
     if (editingSellerId) {
       // Editar vendedor existente
       const updatedUser: SystemUser = {
         id: editingSellerId,
         name: newSellerName.trim(),
-        email: newSellerEmail.trim().toLowerCase(),
+        email: finalEmail,
         password: newSellerPassword.trim() || "Ventas2026*",
         phone: newSellerPhone.trim() || "Sin teléfono",
         role: "seller",
@@ -1578,7 +1586,7 @@ export default function OwnerDashboard() {
       const newSellerUser: SystemUser = {
         id: `s-${Date.now().toString().slice(-4)}`,
         name: newSellerName.trim(),
-        email: newSellerEmail.trim().toLowerCase(),
+        email: finalEmail,
         password: newSellerPassword.trim() || "Ventas2026*",
         phone: newSellerPhone.trim() || "Sin teléfono",
         role: "seller",
@@ -5411,15 +5419,16 @@ export default function OwnerDashboard() {
                 </div>
 
                 <div>
-                  <label className="block font-medium text-zinc-300 mb-1">Correo Electrónico (Para Iniciar Sesión)</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="andres@ventas.com"
+                  <label className="block font-medium text-zinc-300 mb-1">Usuario / Correo Electrónico (Para Iniciar Sesión)</label>
+                  <HogarProEmailInput
                     value={newSellerEmail}
-                    onChange={(e) => setNewSellerEmail(e.target.value)}
-                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                    onChange={(email) => setNewSellerEmail(email)}
+                    placeholder="ej: andres"
+                    required
                   />
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Correo oficial de acceso: <span className="text-red-400 font-mono font-medium">{newSellerEmail || "usuario@hogarpro.com"}</span>
+                  </p>
                 </div>
 
                 <div>
@@ -5435,13 +5444,11 @@ export default function OwnerDashboard() {
                 </div>
 
                 <div>
-                  <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp</label>
-                  <input
-                    type="text"
-                    placeholder="+58 412 0001122"
+                  <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp (LATAM)</label>
+                  <LatamPhoneInput
                     value={newSellerPhone}
-                    onChange={(e) => setNewSellerPhone(e.target.value)}
-                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                    onChange={(phone) => setNewSellerPhone(phone)}
+                    placeholder="412 000 1122"
                   />
                 </div>
 

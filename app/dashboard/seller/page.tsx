@@ -46,6 +46,7 @@ import {
 } from "@/lib/account-manager";
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 import { updatePasswordInFirebase } from "@/lib/firebase/auth-service";
+import LatamPhoneInput from "@/components/LatamPhoneInput";
 
 export type CodeAction = 
   | "actualizar" 
@@ -734,16 +735,12 @@ export default function SellerLiveCodesPage() {
                   </div>
 
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="+57 300 1234567"
-                        value={profilePhone}
-                        onChange={(e) => setProfilePhone(e.target.value)}
-                        className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
-                      />
-                    </div>
+                    <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp (LATAM)</label>
+                    <LatamPhoneInput
+                      value={profilePhone}
+                      onChange={(phone) => setProfilePhone(phone)}
+                      placeholder="300 123 4567"
+                    />
                   </div>
                 </div>
 

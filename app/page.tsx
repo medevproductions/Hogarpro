@@ -36,6 +36,8 @@ import {
 } from "@/lib/account-manager";
 import { authenticateWithFirebase, registerSellerWithFirebase } from "@/lib/firebase/auth-service";
 import { formatCurrency } from "@/lib/utils";
+import LatamPhoneInput from "@/components/LatamPhoneInput";
+import HogarProEmailInput from "@/components/HogarProEmailInput";
 
 export default function HomeOrSellerCatalogPage() {
   const router = useRouter();
@@ -94,7 +96,9 @@ export default function HomeOrSellerCatalogPage() {
     setLoggingIn(true);
 
     try {
-      const result = await authenticateWithFirebase(loginEmail, loginPassword);
+      const cleanInput = loginEmail.trim().toLowerCase();
+      const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@hogarpro.com`;
+      const result = await authenticateWithFirebase(targetEmail, loginPassword);
       if (result.success && result.user) {
         if (result.user.role === "owner" || (result.user.role as string) === "admin") {
           router.push("/dashboard/owner");
@@ -224,16 +228,16 @@ export default function HomeOrSellerCatalogPage() {
               <form onSubmit={handleSellerLogin} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                    Correo de Vendedor
+                    Correo o Usuario de Vendedor
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5" />
                     <input
-                      type="email"
+                      type="text"
                       required
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="tucorreo@ventas.com"
+                      placeholder="usuario o usuario@hogarpro.com"
                       className="w-full bg-[#161616] border border-[#333333] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] transition font-mono"
                     />
                   </div>
@@ -290,29 +294,28 @@ export default function HomeOrSellerCatalogPage() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
-                    Correo Electrónico
+                    Usuario / Dirección de Correo
                   </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="juan@ventas.com"
+                  <HogarProEmailInput
                     value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="w-full bg-[#161616] border border-[#333333] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] font-mono transition"
+                    onChange={(email) => setRegEmail(email)}
+                    placeholder="ej: juanperez"
+                    required
                   />
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Tu correo oficial será: <span className="text-red-400 font-mono font-medium">{regEmail || "usuario@hogarpro.com"}</span>
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
-                    Número de Teléfono / WhatsApp
+                    Número de Teléfono / WhatsApp (LATAM)
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="+58 412 1234567"
+                  <LatamPhoneInput
                     value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full bg-[#161616] border border-[#333333] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] transition"
+                    onChange={(phone) => setRegPhone(phone)}
+                    required
+                    placeholder="300 123 4567"
                   />
                 </div>
 

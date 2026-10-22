@@ -23,7 +23,10 @@ export async function authenticateWithFirebase(
   email: string, 
   password: string
 ): Promise<AuthResult> {
-  const cleanEmail = (email || "").trim().toLowerCase();
+  let cleanEmail = (email || "").trim().toLowerCase();
+  if (cleanEmail && !cleanEmail.includes("@")) {
+    cleanEmail = `${cleanEmail}@hogarpro.com`;
+  }
   const cleanPass = (password || "").trim();
 
   if (!cleanEmail || !cleanPass) {
@@ -157,7 +160,12 @@ export async function registerSellerWithFirebase(data: {
   password: string;
   phone?: string;
 }): Promise<AuthResult> {
-  const cleanEmail = (data.email || "").trim().toLowerCase();
+  let cleanEmail = (data.email || "").trim().toLowerCase();
+  if (cleanEmail && !cleanEmail.includes("@")) {
+    cleanEmail = `${cleanEmail}@hogarpro.com`;
+  } else if (cleanEmail.includes("@") && !cleanEmail.endsWith("@hogarpro.com")) {
+    cleanEmail = `${cleanEmail.split("@")[0]}@hogarpro.com`;
+  }
   const cleanPass = (data.password || "").trim();
   const cleanName = (data.name || "").trim();
   const cleanPhone = (data.phone || "").trim() || "Sin teléfono";
