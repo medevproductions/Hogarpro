@@ -59,21 +59,41 @@ export function extractNetflixLinkOrCode(text: string, actionType?: string): str
 
   // 2. Si no es una acción de enlace (es decir, es login_code, temporal o no especificado), buscar dígitos numéricos (OTP)
   if (!isLinkRequested) {
-    // Códigos espaciados: "3 5 9 7"
-    const spaced = cleaned.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
-    if (spaced && spaced[1]) {
-      const cleanDigits = spaced[1].replace(/\s+/g, "");
-      if (cleanDigits.length >= 4 && cleanDigits.length <= 8) return cleanDigits;
+    // A. Códigos espaciados de 4 dígitos de Netflix: "3 5 9 7"
+    const spaced4 = cleaned.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
+    if (spaced4 && spaced4[1]) {
+      return spaced4[1].replace(/\s+/g, "");
     }
 
-    // Códigos con prefijo: "Código: 849201"
+    // B. Código de 4 dígitos con prefijo (Estándar Netflix para TV e Inicio de Sesión): "Código: 8492" o "8492 es tu código"
+    const prefixed4 = cleaned.match(/(?:código|code|pin|clave|acceso|verificación)[\s\:\-]+([0-9]{4})\b/i) ||
+                      cleaned.match(/\b([0-9]{4})[\s]+(?:es tu código|is your code)/i);
+    if (prefixed4 && prefixed4[1]) {
+      return prefixed4[1].trim();
+    }
+
+    // C. Si la acción es específicamente de Netflix (login_code o temporal), buscar el código de 4 dígitos exacto
+    if (actionType === "login_code" || actionType === "temporal") {
+      const codeMatch4 = cleaned.match(/\b([0-9]{4})\b/);
+      if (codeMatch4 && codeMatch4[1]) {
+        return codeMatch4[1];
+      }
+    }
+
+    // D. Códigos con prefijo general (4 a 8 dígitos para otros servicios como Disney+ o Max)
     const prefixed = cleaned.match(/(?:código|code|pin|clave|acceso|verificación)[\s\:\-]+([0-9]{4,8})/i) ||
                      cleaned.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i);
     if (prefixed && prefixed[1]) {
       return prefixed[1].trim();
     }
 
-    // Cualquier secuencia de 4 a 8 dígitos aislada
+    // E. Secuencia aislada de 4 dígitos (prioridad estándar)
+    const codeMatch4 = cleaned.match(/\b([0-9]{4})\b/);
+    if (codeMatch4 && codeMatch4[1]) {
+      return codeMatch4[1];
+    }
+
+    // F. Cualquier secuencia de 4 a 8 dígitos aislada
     const codeMatch = cleaned.match(/\b([0-9]{4,8})\b/);
     if (codeMatch && codeMatch[1]) {
       return codeMatch[1];

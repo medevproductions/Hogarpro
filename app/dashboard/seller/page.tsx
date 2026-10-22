@@ -40,6 +40,7 @@ import {
   saveSystemUser,
   getStoredAccounts, 
   checkAccountAuthorization, 
+  syncAccountsFromCloud,
   StoredStreamingAccount,
   SystemUser
 } from "@/lib/account-manager";
@@ -74,7 +75,7 @@ const ACTIONS: ActionConfig[] = [
   {
     id: "temporal",
     title: "Pedir Temporal",
-    subtitle: "Código TV fuera de casa (4-6 dígitos)",
+    subtitle: "Código TV fuera de casa (4 dígitos)",
     icon: <Clock className="w-5 h-5" />,
     color: "from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 border-amber-500/40",
     badge: "Código Viaje / Hogar"
@@ -82,10 +83,10 @@ const ACTIONS: ActionConfig[] = [
   {
     id: "login_code",
     title: "Código de Inicio",
-    subtitle: "OTP rápido para iniciar sesión",
+    subtitle: "Código de 4 dígitos para TV o inicio",
     icon: <Zap className="w-5 h-5" />,
     color: "from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border-emerald-500/40",
-    badge: "OTP Acceso"
+    badge: "Código 4 Dígitos"
   },
   {
     id: "login_confirm",
@@ -348,6 +349,8 @@ export default function SellerLiveCodesPage() {
     }
 
     reloadSellerAccounts();
+    // Sincronizar cuentas desde Firestore para que cualquier dispositivo nuevo las descargue
+    syncAccountsFromCloud(true).then(() => reloadSellerAccounts()).catch(console.warn);
 
     const handleUpdate = () => reloadSellerAccounts();
     window.addEventListener("storage", handleUpdate);
@@ -479,19 +482,13 @@ export default function SellerLiveCodesPage() {
       });
     } catch (e) {}
 
-    // Demo Fallback: Si no hay webhook enviando en 5.5 segundos
+    // Timeout de seguridad: Si tras 90 segundos no hay respuesta del correo, detener la espera limpiamente
     setTimeout(() => {
-      if (!receivedCode) {
-        if (action === "actualizar" || action === "login_confirm" || action === "reset_password") {
-          setReceivedCode(`https://netflix.com/account/verify-travel?token=${Math.random().toString(36).substring(2, 10)}`);
-        } else if (action === "temporal") {
-          setReceivedCode(`${Math.floor(1000 + Math.random() * 9000)}`);
-        } else {
-          setReceivedCode(`${Math.floor(100000 + Math.random() * 900000)}`);
-        }
-        setIsWaiting(false);
-      }
-    }, 5500);
+      setIsWaiting((prev) => {
+        if (prev) return false;
+        return false;
+      });
+    }, 90000);
   };
 
   const handleCopy = () => {

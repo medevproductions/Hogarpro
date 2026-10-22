@@ -183,6 +183,11 @@ export default function CodePortalClient({
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
       return trimmed;
     }
+    // Si contiene código de 4 dígitos (estándar Netflix), priorizar 4 dígitos
+    const match4 = trimmed.match(/\b([0-9]{4})\b/);
+    if (match4 && match4[1]) {
+      return match4[1];
+    }
     const digitMatch = trimmed.match(/\b([0-9]{4,8})\b/);
     if (digitMatch && digitMatch[1]) {
       return digitMatch[1];

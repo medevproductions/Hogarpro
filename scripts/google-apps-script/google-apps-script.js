@@ -112,10 +112,26 @@ function extractCodeFromContent(subject, body, from, htmlBody, codeType) {
     }
   }
 
-  // 2. Si no es enlace o no se halló, buscar dígitos numéricos (4 a 8 dígitos)
+  // 2. Si no es enlace o no se halló, buscar dígitos numéricos (priorizando 4 dígitos de Netflix)
+  const spaced4 = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
+  if (spaced4 && spaced4[1]) {
+    return spaced4[1].replace(/\s+/g, "");
+  }
+
+  const netflix4 = fullText.match(/(?:código|code|pin|clave|acceso|verificación)[\s\:\-]+([0-9]{4})\b/i) ||
+                   fullText.match(/\b([0-9]{4})[\s]+(?:es tu código|is your code)/i);
+  if (netflix4 && netflix4[1]) {
+    return netflix4[1].trim();
+  }
+
+  const fourDigit = fullText.match(/\b([0-9]{4})\b/);
+  if (fourDigit && fourDigit[1]) {
+    return fourDigit[1].trim();
+  }
+
   const digitMatches = fullText.match(/(?:código|code|pin|clave|acceso|verificación)[\s\:\-]+([0-9]{4,8})/i) ||
                        fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
-                       fullText.match(/\b([0-9]{4,6})\b/);
+                       fullText.match(/\b([0-9]{4,8})\b/);
 
   if (digitMatches && digitMatches[1]) {
     return digitMatches[1].trim();

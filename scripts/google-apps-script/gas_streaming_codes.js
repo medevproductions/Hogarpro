@@ -171,16 +171,30 @@ function extraerCodigoOEnlace(subject, body, htmlBody, actionType) {
   // 2. Si no es una acción de enlace, buscar dígitos numéricos (OTP)
   if (!isLinkAction || actionType === "login_code" || actionType === "temporal") {
     // Dígitos espaciados de Netflix: "3 5 9 7"
-    const spaced = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9])?(?:\s+[0-9])?)\b/);
-    if (spaced && spaced[1]) {
-      const clean = spaced[1].replace(/\s+/g, "");
-      if (clean.length >= 4 && clean.length <= 8) return clean;
+    const spaced4 = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
+    if (spaced4 && spaced4[1]) {
+      return spaced4[1].replace(/\s+/g, "");
     }
 
-    // Dígitos continuos (4 a 8 dígitos)
+    // Código de 4 dígitos con prefijo de Netflix (ej: "Código: 8492" o "8492 es tu código")
+    const netflix4 = fullText.match(/(?:código|code|pin|clave|acceso|verificación)[\s\:\-]+([0-9]{4})\b/i) ||
+                     fullText.match(/\b([0-9]{4})[\s]+(?:es tu código|is your code)/i);
+    if (netflix4 && netflix4[1]) {
+      return netflix4[1].trim();
+    }
+
+    // Código de 4 dígitos exacto para Netflix (login_code o temporal)
+    if (actionType === "login_code" || actionType === "temporal") {
+      const fourDigit = fullText.match(/\b([0-9]{4})\b/);
+      if (fourDigit && fourDigit[1]) {
+        return fourDigit[1].trim();
+      }
+    }
+
+    // Dígitos continuos (4 a 8 dígitos para otros servicios como Disney/Max/Prime)
     const continuous = fullText.match(/(?:código|code|pin|clave)[\s\:\-]+([0-9]{4,8})/i) ||
                        fullText.match(/([0-9]{4,8})[\s]+(?:es tu código|is your code)/i) ||
-                       fullText.match(/\b([0-9]{4,6})\b/);
+                       fullText.match(/\b([0-9]{4,8})\b/);
     if (continuous && continuous[1]) {
       return continuous[1].trim();
     }

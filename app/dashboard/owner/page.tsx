@@ -85,6 +85,8 @@ import {
   addCalendarReminder,
   deleteCalendarReminder,
   toggleCalendarReminder,
+  syncAccountsFromCloud,
+  syncUsersFromCloud,
   CalendarReminder,
   SaleRecord,
   ExpenseRecord,
@@ -452,6 +454,10 @@ export default function OwnerDashboard() {
     }
 
     reloadData();
+
+    // Sincronizar inmediatamente desde Cloud Firestore para asegurar que cualquier dispositivo tenga todas las cuentas
+    syncAccountsFromCloud(true).then(() => reloadData()).catch(console.warn);
+    syncUsersFromCloud(true).then(() => reloadData()).catch(console.warn);
 
     // Escuchar cambios entre pestañas o eventos locales
     const handleStorageChange = () => reloadData();

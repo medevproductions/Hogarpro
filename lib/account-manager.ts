@@ -277,9 +277,6 @@ const DEFAULT_ACCOUNTS: StoredStreamingAccount[] = [
   }
 ];
 
-let hasTriggeredInitialAccountsSync = false;
-let hasTriggeredInitialUsersSync = false;
-
 export async function syncAccountsFromCloud(force: boolean = false): Promise<StoredStreamingAccount[]> {
   if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
   try {
@@ -292,13 +289,17 @@ export async function syncAccountsFromCloud(force: boolean = false): Promise<Sto
       window.dispatchEvent(new Event("streamhub_accounts_updated"));
       return cloudAccounts;
     } else if (local && local.length > 0) {
-      // Si la nube está vacía pero localmente ya había cuentas (ej. importadas en esta PC), subirlas a la nube
-      saveAccountsToFirestore(local).catch(console.warn);
+      // Subir a la nube SOLO si no son las 2 cuentas dummy
+      const isDummyOnly = local.length <= 2 && local.every((a: any) => a.id === "acc-1" || a.id === "acc-2");
+      if (!isDummyOnly) {
+        saveAccountsToFirestore(local).catch(console.warn);
+      }
     }
     return local.length > 0 ? local : DEFAULT_ACCOUNTS;
   } catch (err) {
     console.warn("[SYNC] Error sincronizando cuentas desde Firestore:", err);
-    return getStoredAccounts();
+    const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+    return stored ? JSON.parse(stored) : DEFAULT_ACCOUNTS;
   }
 }
 
@@ -314,28 +315,27 @@ export async function syncUsersFromCloud(force: boolean = false): Promise<System
       window.dispatchEvent(new Event("streamhub_users_updated"));
       return cloudUsers;
     } else if (local && local.length > 0) {
-      // Subir usuarios locales a la nube
-      saveUsersBatchToFirestore(local).catch(console.warn);
+      const isDummyOnly = local.length <= 3 && local.every((u: any) => u.id === "s-1" || u.id === "s-2" || u.id === "s-3");
+      if (!isDummyOnly) {
+        saveUsersBatchToFirestore(local).catch(console.warn);
+      }
     }
     return local.length > 0 ? local : DEFAULT_SELLERS;
   } catch (err) {
     console.warn("[SYNC] Error sincronizando usuarios desde Firestore:", err);
-    return getSystemUsers();
+    const stored = localStorage.getItem(STORAGE_KEY_USERS);
+    return stored ? JSON.parse(stored) : DEFAULT_SELLERS;
   }
 }
 
 export function getSystemUsers(): SystemUser[] {
   if (typeof window === "undefined") return DEFAULT_SELLERS;
 
-  // Disparar sincronización asíncrona en segundo plano con la nube
-  if (!hasTriggeredInitialUsersSync) {
-    hasTriggeredInitialUsersSync = true;
-    syncUsersFromCloud().catch(console.warn);
-  }
+  // Disparar sincronización con la nube
+  syncUsersFromCloud().catch(console.warn);
 
   const stored = localStorage.getItem(STORAGE_KEY_USERS);
   if (!stored) {
-    localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(DEFAULT_SELLERS));
     return DEFAULT_SELLERS;
   }
   try {
@@ -390,15 +390,11 @@ export function deleteSystemUser(userId: string) {
 export function getStoredAccounts(): StoredStreamingAccount[] {
   if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
 
-  // Disparar sincronización asíncrona en segundo plano con la nube
-  if (!hasTriggeredInitialAccountsSync) {
-    hasTriggeredInitialAccountsSync = true;
-    syncAccountsFromCloud().catch(console.warn);
-  }
+  // Sincronizar en segundo plano con la nube
+  syncAccountsFromCloud().catch(console.warn);
 
   const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
   if (!stored) {
-    localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(DEFAULT_ACCOUNTS));
     return DEFAULT_ACCOUNTS;
   }
   try {

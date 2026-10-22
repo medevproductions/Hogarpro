@@ -72,8 +72,8 @@ export default function HomeOrSellerCatalogPage() {
     setLoadingSession(false);
 
     // Sincronizar usuarios y cuentas desde la nube en segundo plano
-    syncUsersFromCloud().catch(console.warn);
-    syncAccountsFromCloud().catch(console.warn);
+    syncUsersFromCloud(true).catch(console.warn);
+    syncAccountsFromCloud(true).catch(console.warn);
 
     const handleCatalogUpdate = () => {
       setCatalogPlatforms(getCatalogPlatforms());
@@ -106,7 +106,7 @@ export default function HomeOrSellerCatalogPage() {
         setLoggingIn(false);
       }
     } catch (err: any) {
-      setLoginError(err?.message || "Error al autenticar contra Firebase.");
+      setLoginError(err?.message || "Error al autenticar. Por favor verifica tus datos.");
       setLoggingIn(false);
     }
   };
@@ -132,7 +132,7 @@ export default function HomeOrSellerCatalogPage() {
         setLoggingIn(false);
       }
     } catch (err: any) {
-      setLoginError(err?.message || "Error al registrarse contra Firebase.");
+      setLoginError(err?.message || "Error al registrarse. Por favor verifica los datos ingresados.");
       setLoggingIn(false);
     }
   };

@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
         setLoading(false);
       }
     } catch (err: any) {
-      setError(err?.message || "Error al autenticar con Firebase.");
+      setError(err?.message || "Error al autenticar. Por favor verifica tus credenciales.");
       setLoading(false);
     }
   };

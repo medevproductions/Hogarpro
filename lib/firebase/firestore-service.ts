@@ -45,7 +45,7 @@ export async function saveIncomingCodeToFirestore(payload: {
   raw_body?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   if (!db || !isFirebaseConfigured()) {
-    return { success: false, error: "Firebase no está configurado aún en las variables de entorno." };
+    return { success: false, error: "Servicio de base de datos no disponible temporalmente." };
   }
 
   try {

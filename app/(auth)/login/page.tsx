@@ -37,7 +37,7 @@ export default function LoginPage() {
         setLoading(false);
       }
     } catch (err: any) {
-      setError(err?.message || "Error al autenticar contra Firebase.");
+      setError(err?.message || "Error al autenticar. Por favor verifica tus datos.");
       setLoading(false);
     }
   };
