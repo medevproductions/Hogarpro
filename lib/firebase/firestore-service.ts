@@ -7,10 +7,14 @@ import {
   getDocs, 
   addDoc, 
   updateDoc, 
+  setDoc,
+  deleteDoc,
+  writeBatch,
   doc, 
   serverTimestamp 
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "./config";
+import type { StoredStreamingAccount, SystemUser, SaleRecord } from "@/lib/account-manager";
 
 export interface FirestoreCodeRequest {
   id?: string;
@@ -26,6 +30,9 @@ export interface FirestoreCodeRequest {
 }
 
 const COLLECTION_NAME = "code_requests";
+const COLLECTION_ACCOUNTS = "streaming_accounts";
+const COLLECTION_USERS = "system_users";
+const COLLECTION_SALES = "sales_records";
 
 /**
  * Guarda o actualiza un código recibido en Firestore
@@ -194,3 +201,201 @@ export async function createPendingCodeRequestFirestore(payload: {
     return { success: false };
   }
 }
+
+// ==========================================
+// CUENTAS DE STREAMING (streaming_accounts)
+// ==========================================
+
+export async function getAccountsFromFirestore(): Promise<StoredStreamingAccount[]> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured()) return [];
+  try {
+    const colRef = collection(firestore, COLLECTION_ACCOUNTS);
+    const snap = await getDocs(colRef);
+    if (snap.empty) return [];
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data
+      } as StoredStreamingAccount;
+    });
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia consultando streaming_accounts:", error?.message);
+    return [];
+  }
+}
+
+export async function saveAccountsToFirestore(accounts: StoredStreamingAccount[]): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !accounts || accounts.length === 0) return false;
+  try {
+    const BATCH_SIZE = 450;
+    for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
+      const batch = writeBatch(firestore);
+      const chunk = accounts.slice(i, i + BATCH_SIZE);
+      chunk.forEach(acc => {
+        const docId = acc.id || `acc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        const docRef = doc(firestore, COLLECTION_ACCOUNTS, docId);
+        batch.set(docRef, { ...acc, id: docId, updated_at: new Date().toISOString() }, { merge: true });
+      });
+      await batch.commit();
+    }
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia guardando streaming_accounts:", error?.message);
+    return false;
+  }
+}
+
+export async function saveSingleAccountToFirestore(account: StoredStreamingAccount): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !account) return false;
+  try {
+    const docId = account.id || `acc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const docRef = doc(firestore, COLLECTION_ACCOUNTS, docId);
+    await setDoc(docRef, { ...account, id: docId, updated_at: new Date().toISOString() }, { merge: true });
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia guardando cuenta individual:", error?.message);
+    return false;
+  }
+}
+
+export async function deleteAccountFromFirestore(accountId: string): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !accountId) return false;
+  try {
+    await deleteDoc(doc(firestore, COLLECTION_ACCOUNTS, accountId));
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia eliminando cuenta:", error?.message);
+    return false;
+  }
+}
+
+export async function deleteAccountsBatchFromFirestore(batchId: string): Promise<number> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !batchId) return 0;
+  try {
+    const colRef = collection(firestore, COLLECTION_ACCOUNTS);
+    const q = query(colRef, where("importBatchId", "==", batchId));
+    const snap = await getDocs(q);
+    if (snap.empty) return 0;
+    
+    const batch = writeBatch(firestore);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    return snap.docs.length;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia eliminando lote de cuentas:", error?.message);
+    return 0;
+  }
+}
+
+// ==========================================
+// REVENDEDORES Y USUARIOS (system_users)
+// ==========================================
+
+export async function getUsersFromFirestore(): Promise<SystemUser[]> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured()) return [];
+  try {
+    const colRef = collection(firestore, COLLECTION_USERS);
+    const snap = await getDocs(colRef);
+    if (snap.empty) return [];
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data
+      } as SystemUser;
+    });
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia consultando system_users:", error?.message);
+    return [];
+  }
+}
+
+export async function saveUserToFirestore(user: SystemUser): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !user) return false;
+  try {
+    const docId = user.id || `s-${Date.now().toString().slice(-4)}`;
+    const docRef = doc(firestore, COLLECTION_USERS, docId);
+    await setDoc(docRef, { ...user, id: docId, updated_at: new Date().toISOString() }, { merge: true });
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia guardando usuario:", error?.message);
+    return false;
+  }
+}
+
+export async function saveUsersBatchToFirestore(users: SystemUser[]): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !users || users.length === 0) return false;
+  try {
+    const batch = writeBatch(firestore);
+    users.forEach(u => {
+      const docId = u.id || `s-${Date.now().toString().slice(-4)}`;
+      const docRef = doc(firestore, COLLECTION_USERS, docId);
+      batch.set(docRef, { ...u, id: docId, updated_at: new Date().toISOString() }, { merge: true });
+    });
+    await batch.commit();
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia guardando lote de usuarios:", error?.message);
+    return false;
+  }
+}
+
+export async function deleteUserFromFirestore(userId: string): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !userId) return false;
+  try {
+    await deleteDoc(doc(firestore, COLLECTION_USERS, userId));
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia eliminando usuario:", error?.message);
+    return false;
+  }
+}
+
+// ==========================================
+// REGISTROS DE VENTAS (sales_records)
+// ==========================================
+
+export async function getSalesFromFirestore(): Promise<SaleRecord[]> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured()) return [];
+  try {
+    const colRef = collection(firestore, COLLECTION_SALES);
+    const snap = await getDocs(colRef);
+    if (snap.empty) return [];
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data
+      } as SaleRecord;
+    });
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia consultando sales_records:", error?.message);
+    return [];
+  }
+}
+
+export async function saveSaleToFirestore(sale: SaleRecord): Promise<boolean> {
+  const firestore = db;
+  if (!firestore || !isFirebaseConfigured() || !sale) return false;
+  try {
+    const docId = sale.id || `sale-${Date.now()}`;
+    const docRef = doc(firestore, COLLECTION_SALES, docId);
+    await setDoc(docRef, { ...sale, id: docId, updated_at: new Date().toISOString() }, { merge: true });
+    return true;
+  } catch (error: any) {
+    console.warn("[FIRESTORE] Advertencia guardando venta:", error?.message);
+    return false;
+  }
+}
+

@@ -29,6 +29,8 @@ import {
   StoredStreamingAccount,
   getSystemUsers,
   saveSystemUser,
+  syncUsersFromCloud,
+  syncAccountsFromCloud,
   getCatalogPlatforms,
   CatalogPlatform
 } from "@/lib/account-manager";
@@ -68,6 +70,10 @@ export default function HomeOrSellerCatalogPage() {
     setCatalogPlatforms(getCatalogPlatforms());
     setLoadingSession(false);
 
+    // Sincronizar usuarios y cuentas desde la nube en segundo plano
+    syncUsersFromCloud().catch(console.warn);
+    syncAccountsFromCloud().catch(console.warn);
+
     const handleCatalogUpdate = () => {
       setCatalogPlatforms(getCatalogPlatforms());
     };
@@ -81,48 +87,57 @@ export default function HomeOrSellerCatalogPage() {
   }, [router]);
 
   // Manejador de Login de Vendedor
-  const handleSellerLogin = (e: React.FormEvent) => {
+  const handleSellerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoggingIn(true);
 
-    setTimeout(() => {
-      const cleanEmail = loginEmail.trim().toLowerCase();
-      const cleanPass = loginPassword.trim();
-      const allUsers = getSystemUsers();
-      const found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    const cleanPass = loginPassword.trim();
+    
+    let allUsers = getSystemUsers();
+    let found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
 
-      // Si existe y tiene contraseña asignada, validarla (sin fallas por espacios accidentales)
-      if (found && found.password && cleanPass && found.password.trim() !== cleanPass) {
-        setLoginError("Contraseña incorrecta. Por favor verifica tus datos.");
-        setLoggingIn(false);
-        return;
+    // Si no se encuentra en el caché local, consultar Cloud Firestore en tiempo real
+    if (!found) {
+      try {
+        const cloudUsers = await syncUsersFromCloud(true);
+        found = cloudUsers.find(u => u.email.toLowerCase() === cleanEmail);
+      } catch (err) {
+        // Fallback
       }
+    }
 
-      if (found && found.status === "suspended") {
-        setLoginError("Tu cuenta de revendedor se encuentra suspendida. Contacta al administrador.");
-        setLoggingIn(false);
-        return;
-      }
-
-      const sellerUser: SystemUser = found || {
-        id: `s-${Date.now().toString().slice(-4)}`,
-        email: cleanEmail,
-        name: cleanEmail.split("@")[0].toUpperCase(),
-        role: "seller",
-        status: "active"
-      };
-
-      // Si no existía localmente, registrarlo para que quede guardado
-      if (!found) {
-        saveSystemUser(sellerUser);
-      }
-
-      // Guardar sesión con cookie de seguridad y redirigir
-      setCurrentUser(sellerUser);
-      router.push("/dashboard/seller");
+    // Si existe y tiene contraseña asignada, validarla (sin fallas por espacios accidentales)
+    if (found && found.password && cleanPass && found.password.trim() !== cleanPass) {
+      setLoginError("Contraseña incorrecta. Por favor verifica tus datos.");
       setLoggingIn(false);
-    }, 500);
+      return;
+    }
+
+    if (found && found.status === "suspended") {
+      setLoginError("Tu cuenta de revendedor se encuentra suspendida. Contacta al administrador.");
+      setLoggingIn(false);
+      return;
+    }
+
+    const sellerUser: SystemUser = found || {
+      id: `s-${Date.now().toString().slice(-4)}`,
+      email: cleanEmail,
+      name: cleanEmail.split("@")[0].toUpperCase(),
+      role: "seller",
+      status: "active"
+    };
+
+    // Si no existía localmente, registrarlo para que quede guardado
+    if (!found) {
+      saveSystemUser(sellerUser);
+    }
+
+    // Guardar sesión con cookie de seguridad y redirigir
+    setCurrentUser(sellerUser);
+    router.push("/dashboard/seller");
+    setLoggingIn(false);
   };
 
   // Manejador de Registro de Nuevo Vendedor

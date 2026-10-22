@@ -1,3 +1,15 @@
+import {
+  getAccountsFromFirestore,
+  saveAccountsToFirestore,
+  deleteAccountsBatchFromFirestore,
+  getUsersFromFirestore,
+  saveUserToFirestore,
+  saveUsersBatchToFirestore,
+  deleteUserFromFirestore,
+  getSalesFromFirestore,
+  saveSaleToFirestore
+} from "./firebase/firestore-service";
+
 export interface SystemUser {
   id: string;
   email: string;
@@ -265,8 +277,62 @@ const DEFAULT_ACCOUNTS: StoredStreamingAccount[] = [
   }
 ];
 
+let hasTriggeredInitialAccountsSync = false;
+let hasTriggeredInitialUsersSync = false;
+
+export async function syncAccountsFromCloud(force: boolean = false): Promise<StoredStreamingAccount[]> {
+  if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
+  try {
+    const cloudAccounts = await getAccountsFromFirestore();
+    const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+    const local = stored ? JSON.parse(stored) : [];
+
+    if (cloudAccounts && cloudAccounts.length > 0) {
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(cloudAccounts));
+      window.dispatchEvent(new Event("streamhub_accounts_updated"));
+      return cloudAccounts;
+    } else if (local && local.length > 0) {
+      // Si la nube está vacía pero localmente ya había cuentas (ej. importadas en esta PC), subirlas a la nube
+      saveAccountsToFirestore(local).catch(console.warn);
+    }
+    return local.length > 0 ? local : DEFAULT_ACCOUNTS;
+  } catch (err) {
+    console.warn("[SYNC] Error sincronizando cuentas desde Firestore:", err);
+    return getStoredAccounts();
+  }
+}
+
+export async function syncUsersFromCloud(force: boolean = false): Promise<SystemUser[]> {
+  if (typeof window === "undefined") return DEFAULT_SELLERS;
+  try {
+    const cloudUsers = await getUsersFromFirestore();
+    const stored = localStorage.getItem(STORAGE_KEY_USERS);
+    const local = stored ? JSON.parse(stored) : [];
+
+    if (cloudUsers && cloudUsers.length > 0) {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(cloudUsers));
+      window.dispatchEvent(new Event("streamhub_users_updated"));
+      return cloudUsers;
+    } else if (local && local.length > 0) {
+      // Subir usuarios locales a la nube
+      saveUsersBatchToFirestore(local).catch(console.warn);
+    }
+    return local.length > 0 ? local : DEFAULT_SELLERS;
+  } catch (err) {
+    console.warn("[SYNC] Error sincronizando usuarios desde Firestore:", err);
+    return getSystemUsers();
+  }
+}
+
 export function getSystemUsers(): SystemUser[] {
   if (typeof window === "undefined") return DEFAULT_SELLERS;
+
+  // Disparar sincronización asíncrona en segundo plano con la nube
+  if (!hasTriggeredInitialUsersSync) {
+    hasTriggeredInitialUsersSync = true;
+    syncUsersFromCloud().catch(console.warn);
+  }
+
   const stored = localStorage.getItem(STORAGE_KEY_USERS);
   if (!stored) {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(DEFAULT_SELLERS));
@@ -283,6 +349,10 @@ export function saveSystemUsers(users: SystemUser[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
     window.dispatchEvent(new Event("streamhub_users_updated"));
+    // Guardar en Cloud Firestore
+    saveUsersBatchToFirestore(users).catch(err => {
+      console.warn("[CLOUD] Error guardando usuarios en Firestore:", err);
+    });
   }
 }
 
@@ -297,6 +367,10 @@ export function saveSystemUser(user: SystemUser) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(users));
     window.dispatchEvent(new Event("streamhub_users_updated"));
+    // Guardar en Cloud Firestore
+    saveUserToFirestore(user).catch(err => {
+      console.warn("[CLOUD] Error guardando usuario en Firestore:", err);
+    });
   }
 }
 
@@ -306,11 +380,22 @@ export function deleteSystemUser(userId: string) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(filtered));
     window.dispatchEvent(new Event("streamhub_users_updated"));
+    // Eliminar de Cloud Firestore
+    deleteUserFromFirestore(userId).catch(err => {
+      console.warn("[CLOUD] Error eliminando usuario en Firestore:", err);
+    });
   }
 }
 
 export function getStoredAccounts(): StoredStreamingAccount[] {
   if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
+
+  // Disparar sincronización asíncrona en segundo plano con la nube
+  if (!hasTriggeredInitialAccountsSync) {
+    hasTriggeredInitialAccountsSync = true;
+    syncAccountsFromCloud().catch(console.warn);
+  }
+
   const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
   if (!stored) {
     localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(DEFAULT_ACCOUNTS));
@@ -327,6 +412,10 @@ export function saveStoredAccounts(accounts: StoredStreamingAccount[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
     window.dispatchEvent(new Event("streamhub_accounts_updated"));
+    // Guardar en Cloud Firestore
+    saveAccountsToFirestore(accounts).catch(err => {
+      console.warn("[CLOUD] Error guardando cuentas en Firestore:", err);
+    });
   }
 }
 
@@ -335,6 +424,7 @@ export function deleteImportBatch(batchId: string): number {
   const toKeep = accounts.filter(a => a.importBatchId !== batchId);
   const deletedCount = accounts.length - toKeep.length;
   saveStoredAccounts(toKeep);
+  deleteAccountsBatchFromFirestore(batchId).catch(console.warn);
   return deletedCount;
 }
 
