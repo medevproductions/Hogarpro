@@ -1,76 +1,80 @@
-# 🚀 StreamHub Pro - Guía de Configuración y Despliegue Rápido
+# 🚀 HogarPro - Plataforma de Streaming y Gestión en la Nube
 
-Plataforma integral de administración y venta de cuentas de streaming (Netflix, Disney+, Max, etc.) con sincronización de códigos en tiempo real.
+Plataforma integral de administración y venta de cuentas de streaming (Netflix, Disney+, Max, Prime Video, Spotify, Crunchyroll) con sincronización de códigos en tiempo real y persistencia en la nube con Google Cloud Firebase.
 
 ---
 
 ## 🛠️ Tecnologías y Arquitectura
 
 - **Frontend / Fullstack**: [Next.js 15 (App Router)](https://nextjs.org/) + [Tailwind CSS](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/)
-- **Base de Datos & Auth**: [Supabase](https://supabase.com/) (PostgreSQL con Row Level Security y Realtime WebSockets)
-- **Automatización de Códigos**: Google Apps Script / IMAP Worker -> Webhook API en Next.js
-- **Despliegue Recomendado**: [Vercel](https://vercel.com/) (Frontend/API) + [Supabase](https://supabase.com/) (Capa gratuita)
+- **Base de Datos & Auth**: [Google Cloud Firebase Firestore](https://firebase.google.com/)
+- **Automatización de Códigos**: Google Apps Script -> Webhook API en Next.js
+- **Despliegue**: [Vercel](https://vercel.com/)
 
 ---
 
 ## 📦 Estructura de Roles del Sistema
 
-1. **👑 Dueño (Owner)**:
+1. **👑 Dueño (Owner / Administrador)**:
    - Panel Financiero (Ingresos brutos, costos de cuentas, utilidad neta y márgenes).
-   - CRUD de cuentas maestras con asignación a vendedores.
-   - Control de vencimientos y métricas de vendedores.
+   - CRUD e importación masiva en Excel de cuentas maestras con asignación a vendedores.
+   - Gestión de revendedores y permisos de acceso.
+   - Sincronización automática con Firebase Cloud Firestore.
 
-2. **💼 Vendedor (Seller)**:
-   - Vista exclusiva de sus cuentas asignadas y estado de clientes.
-   - **Terminal de Códigos en Vivo**: Botón de solicitud de códigos (OTP, Hogar, Restablecimiento) con refresco automático en pantalla.
+2. **💼 Vendedor (Seller / Revendedor)**:
+   - Portal dedicado con cuentas asignadas.
+   - **Terminal de Códigos en Vivo**: Botón de solicitud de códigos (OTP, Hogar, Restablecimiento) con refresco en tiempo real mediante Firestore.
+   - Autenticación segura de contraseñas contra Firebase.
 
 3. **🛍️ Cliente (Tienda Pública)**:
-   - Catálogo interactivo con precios, stock en tiempo real y métodos de pago (Binance Pay, Pago Móvil, Zelle).
+   - Catálogo interactivo con stock y estado en tiempo real.
 
 ---
 
-## ⚡ Paso 1: Configurar Supabase
+## ⚡ Configuración de Firebase Firestore
 
-1. Crea un proyecto en [Supabase](https://supabase.com/).
-2. Ve a **SQL Editor** y ejecuta todo el contenido de [`supabase/schema.sql`](file:///c:/Users/Admin/Documents/Pagina%20streaming/supabase/schema.sql).
-3. Obtén tus claves en **Project Settings -> API**:
-   - `Project URL`
-   - `anon public key`
-   - `service_role secret key`
-
----
-
-## ⚡ Paso 2: Configuración Local (.env.local)
-
-Copia `.env.example` a `.env.local` y completa los valores:
-
-```bash
-cp .env.example .env.local
+1. Abre tu proyecto en [Firebase Console](https://console.firebase.google.com/).
+2. Ve a **Firestore Database** -> Pestaña **Reglas (Rules)**.
+3. Pega las reglas de [`firestore.rules`](file:///c:/Users/Admin/Documents/Pagina%20streaming/firestore.rules) y pulsa **Publicar**:
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
 ```
 
-Instala las dependencias y ejecuta el servidor de desarrollo:
+---
+
+## ⚡ Configuración Local (.env.local)
+
+Completa tus credenciales de Firebase en `.env.local`:
+
+```bash
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+WEBHOOK_SECRET=...
+NEXT_PUBLIC_SITE_URL=https://hogarpro-xrhd.vercel.app
+```
+
+Instala las dependencias y ejecuta el servidor:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) para ver la aplicación.
-
 ---
 
-## ⚡ Paso 3: Configurar Google Apps Script para los Códigos
+## ⚡ Scripts de Google Apps Script
 
-1. Abre [Google Apps Script](https://script.google.com/).
-2. Crea un nuevo proyecto y copia el código de [`supabase/google-apps-script.js`](file:///c:/Users/Admin/Documents/Pagina%20streaming/supabase/google-apps-script.js).
-3. Ajusta `WEBHOOK_URL` con tu dominio de Vercel y define tu `WEBHOOK_SECRET`.
-4. Crea un activador (Trigger) basado en tiempo para que se ejecute cada 1 minuto.
-
----
-
-## 🚀 Despliegue en Vercel
-
-1. Sube este repositorio a GitHub.
-2. Importa el proyecto en [Vercel](https://vercel.com/).
-3. Configura las variables de entorno (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WEBHOOK_SECRET`).
-4. Haz clic en **Deploy**.
+En la carpeta [`scripts/google-apps-script/`](file:///c:/Users/Admin/Documents/Pagina%20streaming/scripts/google-apps-script/) encontrarás:
+- `gas_streaming_codes.js`: Script de búsqueda bajo demanda y WebApp para Gmail.
+- `google-apps-script.js`: Script periódico para webhooks de códigos entrantes.

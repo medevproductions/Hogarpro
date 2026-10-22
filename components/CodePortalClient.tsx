@@ -17,7 +17,6 @@ import {
   AlertCircle,
   ShieldAlert
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { getCurrentUser, checkAccountAuthorization } from "@/lib/account-manager";
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 

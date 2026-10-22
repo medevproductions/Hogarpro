@@ -32,7 +32,8 @@ import {
   X,
   CheckCircle2
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 import { 
   getCurrentUser, 
   setCurrentUser,
@@ -43,6 +44,7 @@ import {
   SystemUser
 } from "@/lib/account-manager";
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
+import { updatePasswordInFirebase } from "@/lib/firebase/auth-service";
 
 export type CodeAction = 
   | "actualizar" 
@@ -244,6 +246,7 @@ export default function SellerLiveCodesPage() {
     };
 
     saveSystemUser(updatedUser);
+    updatePasswordInFirebase(currentUser.id, newPasswordInput.trim()).catch(console.warn);
     setCurrentUser(updatedUser);
     setCurrentUserState(updatedUser);
 
@@ -371,57 +374,56 @@ export default function SellerLiveCodesPage() {
     return () => clearInterval(timer);
   }, [isWaiting]);
 
-  // SUSCRIPCIÓN EN TIEMPO REAL & POLLING (FALLBACK CADA 2 SEGUNDOS)
+  // SUSCRIPCIÓN EN TIEMPO REAL CON FIREBASE FIRESTORE & POLLING DE RESPALDO
   useEffect(() => {
     if (!isWaiting || !currentRequestId) return;
 
-    // 1. Configurar Supabase Realtime
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`code_req_${currentRequestId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "code_requests",
-          filter: `id=eq.${currentRequestId}`
-        },
-        (payload: any) => {
-          if (payload.new && payload.new.status === "completado" && payload.new.extracted_code) {
-            setReceivedCode(payload.new.extracted_code);
-            setIsWaiting(false);
+    // 1. Escuchar actualizaciones en tiempo real de Firebase Firestore
+    let unsub: (() => void) | null = null;
+    if (db) {
+      try {
+        unsub = onSnapshot(doc(db, "code_requests", currentRequestId), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.status === "completado" && data.extracted_code) {
+              setReceivedCode(data.extracted_code);
+              setIsWaiting(false);
+            }
           }
-        }
-      )
-      .subscribe();
+        }, (err) => {
+          console.warn("[FIRESTORE REALTIME] Listener error:", err?.message);
+        });
+      } catch (e) {
+        console.warn("[FIRESTORE] Error inicializando listener:", e);
+      }
+    }
 
-    // 2. Polling cada 2 segundos como respaldo automático
+    // 2. Polling cada 3 segundos como respaldo automático
     const pollingInterval = setInterval(async () => {
       try {
-        const { data } = await (supabase as any)
-          .from("code_requests")
-          .select("status, extracted_code")
-          .eq("id", currentRequestId)
-          .maybeSingle();
-
-        if (data && data.status === "completado" && data.extracted_code) {
-          setReceivedCode(data.extracted_code);
-          setIsWaiting(false);
-          clearInterval(pollingInterval);
+        const cleanEmail = selectedAccount.trim().toLowerCase();
+        if (!cleanEmail) return;
+        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&actionType=${encodeURIComponent(activeAction || "temporal")}&t=${Date.now()}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.code) {
+            setReceivedCode(json.code);
+            setIsWaiting(false);
+            clearInterval(pollingInterval);
+          }
         }
       } catch (err) {
-        // En caso de que no haya conexión Supabase en local
+        // Silencioso
       }
-    }, 2000);
+    }, 3000);
 
     pollingIntervalRef.current = pollingInterval;
 
     return () => {
-      supabase.removeChannel(channel);
+      if (unsub) unsub();
       clearInterval(pollingInterval);
     };
-  }, [isWaiting, currentRequestId]);
+  }, [isWaiting, currentRequestId, selectedAccount, activeAction]);
 
   // DISPARAR SOLICITUD DE ACCIÓN CON VALIDACIÓN ESTRICTA DE VENDEDOR
   const handleTriggerAction = async (action: CodeAction) => {

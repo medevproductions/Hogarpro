@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, User, Sparkles, AlertCircle } from "lucide-react";
 import { setCurrentUser, SystemUser, getSystemUsers } from "@/lib/account-manager";
 
+import { authenticateWithFirebase } from "@/lib/firebase/auth-service";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -14,62 +16,30 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDemoRole, setSelectedDemoRole] = useState<"owner" | "seller">("owner");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    setTimeout(() => {
-      const cleanEmail = email.trim().toLowerCase();
-      const cleanPass = password.trim();
+    try {
+      const targetEmail = email.trim() || (selectedDemoRole === "owner" ? "admin@hogarpro.com" : "carlos@ventas.com");
+      const targetPass = password.trim() || (selectedDemoRole === "owner" ? "admin2026" : "Ventas2026*");
 
-      // 1. Buscar primero en los usuarios registrados del sistema
-      if (cleanEmail) {
-        const allUsers = getSystemUsers();
-        const found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
-
-        if (found) {
-          if (found.password && cleanPass && found.password.trim() !== cleanPass) {
-            setError("Contraseña incorrecta. Por favor verifica tus datos.");
-            setLoading(false);
-            return;
-          }
-
-          if (found.status === "suspended") {
-            setError("Tu cuenta se encuentra suspendida. Contacta al administrador.");
-            setLoading(false);
-            return;
-          }
-
-          setCurrentUser(found);
-          if (found.role === "owner" || (found.role as string) === "admin") {
-            router.push("/dashboard/owner");
-          } else {
-            router.push("/dashboard/seller");
-          }
-          setLoading(false);
-          return;
+      const result = await authenticateWithFirebase(targetEmail, targetPass);
+      if (result.success && result.user) {
+        if (result.user.role === "owner" || (result.user.role as string) === "admin") {
+          router.push("/dashboard/owner");
+        } else {
+          router.push("/dashboard/seller");
         }
-      }
-
-      // 2. Fallback de roles rápidos de demo si no se especificó un usuario registrado
-      const fallbackEmail = cleanEmail || (selectedDemoRole === "owner" ? "owner@hogarpro.com" : "carlos@ventas.com");
-      const loggedUser: SystemUser = {
-        id: selectedDemoRole === "owner" ? "owner-1" : "s-1",
-        email: fallbackEmail,
-        name: selectedDemoRole === "owner" ? "Owner Administrador" : "Carlos Vendedor",
-        role: selectedDemoRole,
-        status: "active"
-      };
-
-      setCurrentUser(loggedUser);
-
-      if (selectedDemoRole === "owner") {
-        router.push("/dashboard/owner");
       } else {
-        router.push("/dashboard/seller");
+        setError(result.error || "Credenciales incorrectas.");
+        setLoading(false);
       }
-    }, 600);
+    } catch (err: any) {
+      setError(err?.message || "Error al autenticar contra Firebase.");
+      setLoading(false);
+    }
   };
 
   return (

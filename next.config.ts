@@ -28,12 +28,12 @@ const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: [
-      "default-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.supabase.co https://script.google.com https://script.googleusercontent.com",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.firebaseio.com https://*.googleapis.com https://*.supabase.co https://script.google.com",
+      "default-src 'self' https://*.firebaseio.com https://*.googleapis.com https://script.google.com https://script.googleusercontent.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.firebaseio.com https://*.googleapis.com https://script.google.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://*.supabase.co wss://*.supabase.co https://script.google.com https://script.googleusercontent.com https://hogarpro-xrhd.vercel.app http://localhost:3000",
+      "connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://script.google.com https://script.googleusercontent.com https://hogarpro-xrhd.vercel.app http://localhost:3000",
       "frame-src 'self' https://script.google.com https://script.googleusercontent.com",
       "frame-ancestors 'self'",
       "object-src 'none'",

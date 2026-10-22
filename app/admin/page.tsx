@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, ShieldCheck, AlertCircle } from "lucide-react";
 import { setCurrentUser, SystemUser } from "@/lib/account-manager";
+import { authenticateWithFirebase } from "@/lib/firebase/auth-service";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -13,37 +14,28 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Validación segura de Owner
-    setTimeout(() => {
-      const cleanEmail = email.trim().toLowerCase();
-      const cleanPass = password.trim();
-
-      // Credenciales de administración autorizadas
-      const isValidAdmin = 
-        (cleanEmail === "admin@hogarpro.com" && cleanPass === "admin2026") ||
-        (cleanEmail === "owner@hogarpro.com" && cleanPass === "owner123") ||
-        (cleanEmail.includes("admin") && cleanPass.length >= 6);
-
-      if (isValidAdmin) {
-        const ownerUser: SystemUser = {
-          id: "owner-1",
-          email: cleanEmail,
-          name: "Administrador",
-          role: "owner",
-          status: "active"
-        };
-        setCurrentUser(ownerUser);
-        router.push("/dashboard/owner");
+    try {
+      const result = await authenticateWithFirebase(email, password);
+      if (result.success && result.user) {
+        if (result.user.role === "owner" || (result.user.role as string) === "admin") {
+          router.push("/dashboard/owner");
+        } else {
+          setError("Esta cuenta no tiene permisos de administrador.");
+          setLoading(false);
+        }
       } else {
-        setError("Credenciales inválidas. Acceso denegado.");
+        setError(result.error || "Credenciales inválidas. Acceso denegado.");
+        setLoading(false);
       }
+    } catch (err: any) {
+      setError(err?.message || "Error al autenticar con Firebase.");
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (

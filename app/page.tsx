@@ -34,6 +34,7 @@ import {
   getCatalogPlatforms,
   CatalogPlatform
 } from "@/lib/account-manager";
+import { authenticateWithFirebase, registerSellerWithFirebase } from "@/lib/firebase/auth-service";
 import { formatCurrency } from "@/lib/utils";
 
 export default function HomeOrSellerCatalogPage() {
@@ -86,99 +87,54 @@ export default function HomeOrSellerCatalogPage() {
     };
   }, [router]);
 
-  // Manejador de Login de Vendedor
+  // Manejador de Login de Vendedor con Firebase
   const handleSellerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoggingIn(true);
 
-    const cleanEmail = loginEmail.trim().toLowerCase();
-    const cleanPass = loginPassword.trim();
-    
-    let allUsers = getSystemUsers();
-    let found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
-
-    // Si no se encuentra en el caché local, consultar Cloud Firestore en tiempo real
-    if (!found) {
-      try {
-        const cloudUsers = await syncUsersFromCloud(true);
-        found = cloudUsers.find(u => u.email.toLowerCase() === cleanEmail);
-      } catch (err) {
-        // Fallback
+    try {
+      const result = await authenticateWithFirebase(loginEmail, loginPassword);
+      if (result.success && result.user) {
+        if (result.user.role === "owner" || (result.user.role as string) === "admin") {
+          router.push("/dashboard/owner");
+        } else {
+          router.push("/dashboard/seller");
+        }
+      } else {
+        setLoginError(result.error || "Credenciales incorrectas.");
+        setLoggingIn(false);
       }
-    }
-
-    // Si existe y tiene contraseña asignada, validarla (sin fallas por espacios accidentales)
-    if (found && found.password && cleanPass && found.password.trim() !== cleanPass) {
-      setLoginError("Contraseña incorrecta. Por favor verifica tus datos.");
+    } catch (err: any) {
+      setLoginError(err?.message || "Error al autenticar contra Firebase.");
       setLoggingIn(false);
-      return;
     }
-
-    if (found && found.status === "suspended") {
-      setLoginError("Tu cuenta de revendedor se encuentra suspendida. Contacta al administrador.");
-      setLoggingIn(false);
-      return;
-    }
-
-    const sellerUser: SystemUser = found || {
-      id: `s-${Date.now().toString().slice(-4)}`,
-      email: cleanEmail,
-      name: cleanEmail.split("@")[0].toUpperCase(),
-      role: "seller",
-      status: "active"
-    };
-
-    // Si no existía localmente, registrarlo para que quede guardado
-    if (!found) {
-      saveSystemUser(sellerUser);
-    }
-
-    // Guardar sesión con cookie de seguridad y redirigir
-    setCurrentUser(sellerUser);
-    router.push("/dashboard/seller");
-    setLoggingIn(false);
   };
 
-  // Manejador de Registro de Nuevo Vendedor
-  const handleSellerRegister = (e: React.FormEvent) => {
+  // Manejador de Registro de Nuevo Vendedor en Firebase Cloud Firestore
+  const handleSellerRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoggingIn(true);
 
-    setTimeout(() => {
-      const cleanEmail = regEmail.trim().toLowerCase();
-      if (!cleanEmail || !regName.trim() || !regPassword) {
-        setLoginError("Por favor completa todos los campos requeridos.");
-        setLoggingIn(false);
-        return;
-      }
-
-      const allUsers = getSystemUsers();
-      const exists = allUsers.some(u => u.email.toLowerCase() === cleanEmail);
-      if (exists) {
-        setLoginError("Este correo ya se encuentra registrado. Por favor inicia sesión.");
-        setLoggingIn(false);
-        return;
-      }
-
-      // Crear y guardar el nuevo vendedor con contraseña
-      const newSeller: SystemUser = {
-        id: `s-${Date.now().toString().slice(-4)}`,
-        name: regName.trim(),
-        email: cleanEmail,
+    try {
+      const result = await registerSellerWithFirebase({
+        name: regName,
+        email: regEmail,
         password: regPassword,
-        phone: regPhone.trim() || "Sin teléfono",
-        role: "seller",
-        status: "active",
-        activeAccountsCount: 0
-      };
+        phone: regPhone
+      });
 
-      saveSystemUser(newSeller);
-      setCurrentUser(newSeller);
-      router.push("/dashboard/seller");
+      if (result.success && result.user) {
+        router.push("/dashboard/seller");
+      } else {
+        setLoginError(result.error || "No se pudo registrar.");
+        setLoggingIn(false);
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || "Error al registrarse contra Firebase.");
       setLoggingIn(false);
-    }, 600);
+    }
   };
 
   const handleLogout = () => {

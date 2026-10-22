@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { verifyWebhookSecret, sanitizeInput, isValidEmail } from "@/lib/security";
 import { saveIncomingCodeToFirestore } from "@/lib/firebase/firestore-service";
 
@@ -182,24 +181,6 @@ export async function processIncomingCode(payload: ProcessCodePayload, authHeade
       }
     } catch (fsErr) {
       console.warn("[FIRESTORE] Error persistiendo en Firestore:", fsErr);
-    }
-
-    // Fallback secundario de respaldo en Supabase si está configurado
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        await supabase
-          .from("code_requests")
-          .insert({
-            account_email: cleanEmail,
-            action_type: action_type,
-            extracted_code: cleanCode,
-            status: "completado"
-          });
-      } catch {}
     }
 
     return NextResponse.json({

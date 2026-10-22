@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { memoryStore } from "@/lib/code-processor";
 import { 
   getCorsHeaders, 
@@ -183,52 +182,6 @@ export async function GET(req: NextRequest) {
     }
   } catch (fsErr) {
     console.warn("[FIRESTORE] Advertencia consultando Firestore:", fsErr);
-  }
-
-  // Fallback secundario de respaldo en Supabase si está configurado
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      const { data: list, error: queryErr } = await supabase
-        .from("code_requests")
-        .select("id, account_email, extracted_code, action_type, status, created_at")
-        .eq("account_email", cleanEmail)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (list && list.length > 0) {
-        const itemWithCode = list.find((item: any) => {
-          if (!item.extracted_code) return false;
-          if (actionType && item.action_type && item.action_type !== actionType) return false;
-          if (item.created_at) {
-            const age = Date.now() - new Date(item.created_at).getTime();
-            if (age > 15 * 60 * 1000) return false;
-          }
-          return true;
-        });
-
-        if (itemWithCode) {
-          let codeValue = String(itemWithCode.extracted_code).trim();
-          if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
-            const verified = sanitizeStreamingLink(codeValue);
-            if (verified) codeValue = verified;
-          }
-
-          return NextResponse.json({
-            success: true,
-            code: codeValue,
-            status: itemWithCode.status,
-            actionType: itemWithCode.action_type || actionType,
-            timestamp: itemWithCode.created_at,
-            source: "supabase"
-          }, { headers: corsHeaders });
-        }
-      }
-    } catch {}
   }
 
   return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
