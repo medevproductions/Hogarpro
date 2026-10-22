@@ -3,25 +3,60 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, User, Sparkles } from "lucide-react";
-import { setCurrentUser, SystemUser } from "@/lib/account-manager";
+import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, User, Sparkles, AlertCircle } from "lucide-react";
+import { setCurrentUser, SystemUser, getSystemUsers } from "@/lib/account-manager";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedDemoRole, setSelectedDemoRole] = useState<"owner" | "seller">("owner");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
 
     setTimeout(() => {
-      const cleanEmail = email.trim().toLowerCase() || (selectedDemoRole === "owner" ? "owner@hogarpro.com" : "carlos@ventas.com");
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPass = password.trim();
+
+      // 1. Buscar primero en los usuarios registrados del sistema
+      if (cleanEmail) {
+        const allUsers = getSystemUsers();
+        const found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
+        if (found) {
+          if (found.password && cleanPass && found.password.trim() !== cleanPass) {
+            setError("Contraseña incorrecta. Por favor verifica tus datos.");
+            setLoading(false);
+            return;
+          }
+
+          if (found.status === "suspended") {
+            setError("Tu cuenta se encuentra suspendida. Contacta al administrador.");
+            setLoading(false);
+            return;
+          }
+
+          setCurrentUser(found);
+          if (found.role === "owner" || (found.role as string) === "admin") {
+            router.push("/dashboard/owner");
+          } else {
+            router.push("/dashboard/seller");
+          }
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback de roles rápidos de demo si no se especificó un usuario registrado
+      const fallbackEmail = cleanEmail || (selectedDemoRole === "owner" ? "owner@hogarpro.com" : "carlos@ventas.com");
       const loggedUser: SystemUser = {
         id: selectedDemoRole === "owner" ? "owner-1" : "s-1",
-        email: cleanEmail,
+        email: fallbackEmail,
         name: selectedDemoRole === "owner" ? "Owner Administrador" : "Carlos Vendedor",
         role: selectedDemoRole,
         status: "active"
@@ -102,6 +137,12 @@ export default function LoginPage() {
         {/* Formulario */}
         <div className="bg-[#181818]/95 border border-[#2f2f2f] rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-950/70 border border-red-500/50 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{error}</span>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300 mb-1.5">
                 Correo Electrónico

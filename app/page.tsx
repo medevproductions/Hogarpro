@@ -88,12 +88,19 @@ export default function HomeOrSellerCatalogPage() {
 
     setTimeout(() => {
       const cleanEmail = loginEmail.trim().toLowerCase();
+      const cleanPass = loginPassword.trim();
       const allUsers = getSystemUsers();
       const found = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
 
-      // Si existe y tiene contraseña asignada, validarla
-      if (found && found.password && loginPassword && found.password !== loginPassword) {
+      // Si existe y tiene contraseña asignada, validarla (sin fallas por espacios accidentales)
+      if (found && found.password && cleanPass && found.password.trim() !== cleanPass) {
         setLoginError("Contraseña incorrecta. Por favor verifica tus datos.");
+        setLoggingIn(false);
+        return;
+      }
+
+      if (found && found.status === "suspended") {
+        setLoginError("Tu cuenta de revendedor se encuentra suspendida. Contacta al administrador.");
         setLoggingIn(false);
         return;
       }
@@ -105,6 +112,11 @@ export default function HomeOrSellerCatalogPage() {
         role: "seller",
         status: "active"
       };
+
+      // Si no existía localmente, registrarlo para que quede guardado
+      if (!found) {
+        saveSystemUser(sellerUser);
+      }
 
       // Guardar sesión con cookie de seguridad y redirigir
       setCurrentUser(sellerUser);
