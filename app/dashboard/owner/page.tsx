@@ -110,7 +110,7 @@ export interface StreamingAccount {
   maxProfiles: number;
   purchaseDate: string;
   expirationDate: string;
-  status: "assigned" | "available" | "expiring";
+  status: "assigned" | "available" | "expiring" | "expired";
   monthlyCost: number;
   monthlyIncome: number;
   notes?: string;
@@ -400,13 +400,15 @@ export default function OwnerDashboard() {
       };
 
       // Calcular status inteligente basado en vencimiento
-      let calculatedStatus: "assigned" | "available" | "expiring" = a.sellerId ? "assigned" : "available";
+      let calculatedStatus: "assigned" | "available" | "expiring" | "expired" = a.sellerId ? "assigned" : "available";
       if (a.expirationDate) {
         const exp = new Date(a.expirationDate);
         const today = new Date();
         today.setHours(0,0,0,0);
         const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 3600 * 24));
-        if (diffDays <= 5) {
+        if (diffDays <= 0) {
+          calculatedStatus = "expired";
+        } else if (diffDays <= 5) {
           calculatedStatus = "expiring";
         }
       }
@@ -557,45 +559,43 @@ export default function OwnerDashboard() {
     customerName: ""
   });
 
-  // FILTRADO DINÁMICO DE CUENTAS (Búsqueda + Plataforma + Estado)
+  // FILTRADO DINÁMICO DE CUENTAS (Búsqueda + Estado + Ordenamiento por Vencimiento)
   const filteredAccounts = useMemo(() => {
-    return accounts.filter((acc) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        acc.email.toLowerCase().includes(q) ||
-        acc.platform.toLowerCase().includes(q) ||
-        acc.seller.toLowerCase().includes(q) ||
-        (acc.country && acc.country.toLowerCase().includes(q)) ||
-        (acc.notes && acc.notes.toLowerCase().includes(q));
+    return accounts
+      .filter((acc) => {
+        const q = searchQuery.toLowerCase().trim();
+        const matchSearch =
+          !q ||
+          acc.email.toLowerCase().includes(q) ||
+          acc.platform.toLowerCase().includes(q) ||
+          acc.seller.toLowerCase().includes(q) ||
+          (acc.country && acc.country.toLowerCase().includes(q)) ||
+          (acc.notes && acc.notes.toLowerCase().includes(q));
 
-      // Coincidencia flexible de plataforma (ej. "Netflix Premium 4K" coincide con "Netflix", "Netflix 4K", etc.)
-      let matchPlatform = true;
-      if (platformFilter !== "all") {
-        const filterNorm = platformFilter.toLowerCase();
-        const accNorm = (acc.platform || "").toLowerCase();
-        matchPlatform = 
-          accNorm === filterNorm ||
-          accNorm.includes(filterNorm) ||
-          filterNorm.includes(accNorm) ||
-          (accNorm.includes("netflix") && filterNorm.includes("netflix"));
-      }
-
-      // Coincidencia inteligente de estado
-      let matchStatus = true;
-      if (statusFilter !== "all") {
-        if (statusFilter === "assigned") {
-          matchStatus = Boolean(acc.sellerId || (acc.seller && acc.seller !== "Sin Asignar (En Stock)"));
-        } else if (statusFilter === "available") {
-          matchStatus = !acc.sellerId && (!acc.seller || acc.seller === "Sin Asignar (En Stock)");
-        } else if (statusFilter === "expiring") {
-          matchStatus = acc.status === "expiring";
+        // Coincidencia inteligente de estado
+        let matchStatus = true;
+        if (statusFilter !== "all") {
+          if (statusFilter === "assigned") {
+            matchStatus = Boolean(acc.sellerId || (acc.seller && !acc.seller.includes("Sin Asignar")));
+          } else if (statusFilter === "available") {
+            matchStatus = !acc.sellerId && (!acc.seller || acc.seller.includes("Sin Asignar"));
+          } else if (statusFilter === "expiring") {
+            matchStatus = acc.status === "expiring" || acc.status === "expired";
+          }
         }
-      }
 
-      return matchSearch && matchPlatform && matchStatus;
-    });
-  }, [accounts, searchQuery, platformFilter, statusFilter]);
+        return matchSearch && matchStatus;
+      })
+      .sort((a, b) => {
+        // Cuentas por vencer (o ya vencidas) más arriba
+        const parseTime = (dateStr?: string) => {
+          if (!dateStr) return Number.MAX_SAFE_INTEGER;
+          const t = new Date(dateStr).getTime();
+          return isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+        };
+        return parseTime(a.expirationDate) - parseTime(b.expirationDate);
+      });
+  }, [accounts, searchQuery, statusFilter]);
 
   // CÁLCULO DE KPIs EN TIEMPO REAL
   const stats = useMemo(() => {
@@ -1832,25 +1832,6 @@ export default function OwnerDashboard() {
                   )}
                 </button>
 
-                <button
-                  onClick={() => {
-                    setActiveTab("catalogo");
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                    activeTab === "catalogo" 
-                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Catálogo & Tarifas</span>
-                  </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/60 text-[#ff6666] border border-[#E50914]/30 font-mono font-bold">
-                    {catalogPlatforms.length}
-                  </span>
-                </button>
 
                 <button
                   onClick={() => {
@@ -1901,17 +1882,7 @@ export default function OwnerDashboard() {
                 </div>
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
-              <Link
-                href="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-[#161616] text-zinc-400 font-medium hover:text-white hover:bg-zinc-800 transition"
-              >
-                <div className="flex items-center gap-2">
-                  <ExternalLink className="w-4 h-4" />
-                  <span>Ver Tienda Pública</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
+
             </div>
           </div>
         </div>
@@ -2020,22 +1991,6 @@ export default function OwnerDashboard() {
               )}
             </button>
 
-            <button
-              onClick={() => setActiveTab("catalogo")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                activeTab === "catalogo" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4" />
-                <span>Catálogo & Tarifas</span>
-              </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
-                {catalogPlatforms.length}
-              </span>
-            </button>
 
             <button
               onClick={() => setActiveTab("codigos")}
@@ -2069,10 +2024,6 @@ export default function OwnerDashboard() {
           <Link href="/dashboard/seller" className="flex items-center gap-1.5 text-[#E50914] hover:underline font-semibold">
             <ArrowLeftRight className="w-3.5 h-3.5" />
             <span>Cambiar a Vista Vendedor</span>
-          </Link>
-          <Link href="/" className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300">
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Tienda Pública</span>
           </Link>
         </div>
       </aside>
@@ -2194,17 +2145,6 @@ export default function OwnerDashboard() {
           >
             <Users className="w-3.5 h-3.5" />
             <span>Revendedores ({sellers.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("catalogo")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "catalogo" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Tarifario & Catálogo ({catalogPlatforms.length})</span>
           </button>
           <button
             onClick={() => setActiveTab("codigos")}
@@ -3233,8 +3173,8 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN CATÁLOGO DE SERVICIOS */}
-        {(activeTab === "catalogo" || activeTab === "todo") && (
+        {/* SECCIÓN CATÁLOGO DE SERVICIOS (Ocultada por solicitud) */}
+        {false && (
           <section id="catalogo" className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-3.5 sm:p-6 mb-8 shadow-2xl max-w-full overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#282828]">
               <div>
@@ -3411,18 +3351,6 @@ export default function OwnerDashboard() {
                   />
                 </div>
 
-                {/* Filtro por Plataforma */}
-                <select
-                  value={platformFilter}
-                  onChange={(e) => setPlatformFilter(e.target.value)}
-                  className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="all">Todas las Plataformas</option>
-                  {catalogPlatforms.map((p) => (
-                    <option key={p.name} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-
                 {/* Filtro por Estado */}
                 <select
                   value={statusFilter}
@@ -3432,7 +3360,7 @@ export default function OwnerDashboard() {
                   <option value="all">Todos los Estados</option>
                   <option value="assigned">En Venta (Asignadas)</option>
                   <option value="available">En Stock (Libres)</option>
-                  <option value="expiring">Por Vencer</option>
+                  <option value="expiring">Por Vencer / Vencidas</option>
                 </select>
               </div>
             </div>
@@ -3446,8 +3374,8 @@ export default function OwnerDashboard() {
                     <th className="py-3 px-4 text-center">Verificada</th>
                     <th className="py-3 px-4">Vendido a / Asignado</th>
                     <th className="py-3 px-4 text-center">Perfiles / Cupos</th>
-                    <th className="py-3 px-4">Vencimiento</th>
-                    <th className="py-3 px-4 text-center">Estado</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Vencimiento</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap min-w-[110px]">Estado</th>
                     <th className="py-3 px-4 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -3549,26 +3477,47 @@ export default function OwnerDashboard() {
                           <span className="font-black text-white">{acc.profilesOccupied}</span>
                           <span className="text-zinc-500 font-mono"> / {acc.maxProfiles}</span>
                         </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-1.5 font-medium text-zinc-300">
-                            <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className={`flex items-center gap-1.5 font-medium ${
+                            acc.status === "expired" 
+                              ? "text-red-400 font-bold" 
+                              : acc.status === "expiring" 
+                              ? "text-amber-300 font-bold" 
+                              : "text-zinc-300"
+                          }`}>
+                            <Clock className={`w-3.5 h-3.5 ${
+                              acc.status === "expired" 
+                                ? "text-red-400" 
+                                : acc.status === "expiring" 
+                                ? "text-amber-400" 
+                                : "text-zinc-500"
+                            }`} />
                             <span>{formatDate(acc.expirationDate)}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">
                           {acc.status === "assigned" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-500/20">
-                              En Venta
+                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-500/30 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              <span>En Venta</span>
                             </span>
                           )}
                           {acc.status === "available" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950/60 text-blue-400 border border-blue-500/20">
-                              En Stock
+                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-950/70 text-blue-400 border border-blue-500/30 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              <span>En Stock</span>
                             </span>
                           )}
                           {acc.status === "expiring" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/60 text-amber-400 border border-amber-500/20 animate-pulse">
-                              Por Vencer
+                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/40 shadow-sm animate-pulse">
+                              <Clock className="w-3 h-3 text-amber-400" />
+                              <span>Por Vencer</span>
+                            </span>
+                          )}
+                          {acc.status === "expired" && (
+                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-950/70 text-red-400 border border-red-500/40 shadow-sm">
+                              <AlertCircle className="w-3 h-3 text-red-400" />
+                              <span>Vencida</span>
                             </span>
                           )}
                         </td>

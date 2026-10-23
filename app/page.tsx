@@ -269,7 +269,7 @@ export default function HomeOrSellerCatalogPage() {
                     <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>Entrar al Catálogo</span>
+                      <span>Iniciar Sesión como Revendedor</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -368,144 +368,14 @@ export default function HomeOrSellerCatalogPage() {
   }
 
   // =========================================================================
-  // PANTALLA 2: USUARIO LOGUEADO -> MOSTRAR CATÁLOGO Y PANEL DE VENDEDOR
+  // PANTALLA 2: USUARIO LOGUEADO -> REDIRIGIR AL PANEL (CATÁLOGO OCULTO)
   // =========================================================================
   return (
-    <div className="min-h-screen flex flex-col bg-[#141414] text-white selection:bg-[#E50914] selection:text-white">
-      {/* NAVBAR AUTENTICADA */}
-      <header className="sticky top-0 z-40 border-b border-[#262626] bg-[#101010]/90 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center font-black text-xl text-white shadow-lg shadow-red-600/40">
-              H
-            </div>
-            <div>
-              <span className="text-2xl font-black tracking-wider text-white">
-                HOGAR<span className="text-[#E50914]">PRO</span>
-              </span>
-              <span className="hidden sm:inline-block ml-2 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-red-950/80 text-red-300 border border-red-500/30 rounded-full">
-                VENDEDOR ACTIVO
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/seller"
-              className="px-4 py-2 text-xs font-bold bg-[#E50914] hover:bg-[#b80710] text-white rounded-xl transition flex items-center gap-2 shadow-lg shadow-red-950/40"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Mis Códigos y Cuentas ({userAccounts.length})</span>
-            </Link>
-
-            <button
-              onClick={handleLogout}
-              className="p-2.5 rounded-xl bg-[#222222] border border-[#333333] text-zinc-400 hover:text-red-400 hover:border-red-500/40 transition"
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* BANNER DE BIENVENIDA HOGARPRO */}
-      <section className="relative overflow-hidden py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="rounded-3xl bg-gradient-to-r from-red-950/40 via-[#181818] to-[#121212] border border-[#2f2f2f] p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-2xl relative">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/70 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-[#E50914]" />
-              <span>Catálogo Mayorista Pro</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white">
-              Bienvenido, {currentUser.name}
-            </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-xl">
-              Explora los servicios disponibles para venta y solicita los códigos de acceso de tus cuentas autorizadas al instante.
-            </p>
-          </div>
-
-          <div className="flex gap-3 relative z-10">
-            <div className="bg-[#141414] border border-[#2f2f2f] rounded-2xl px-6 py-3.5 text-center shadow-lg">
-              <div className="text-2xl font-black text-[#E50914]">{userAccounts.length}</div>
-              <div className="text-[11px] text-zinc-400 uppercase font-bold tracking-wider">Cuentas Asignadas</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CATÁLOGO DE SERVICIOS */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
-            <div>
-              <h2 className="text-xl font-black text-white flex items-center gap-2">
-                <span>Catálogo de Servicios Disponibles</span>
-              </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Precios preferenciales y stock para revendedores</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {catalogPlatforms.map((s) => (
-            <div 
-              key={s.id}
-              className="bg-[#181818] border border-[#282828] hover:border-[#E50914]/50 rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between group shadow-xl"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[#242424] text-zinc-300 border border-[#333333]">
-                    {s.category || "Full HD • Streaming"}
-                  </span>
-                  {s.badge && (
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-950/70 text-red-300 border border-red-500/30">
-                      {s.badge}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="text-xl font-black text-white group-hover:text-[#E50914] transition">
-                  {s.name}
-                </h3>
-
-                <div className="my-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-white">{formatCurrency(s.price || s.defaultIncome || 3.5)}</span>
-                  <span className="text-xs text-zinc-500 line-through">{formatCurrency(Number(s.price || 3.5) * 1.8)}</span>
-                  <span className="text-[11px] text-emerald-400 font-semibold ml-auto">
-                    Cupos: {s.defaultProfiles || 4}
-                  </span>
-                </div>
-
-                <ul className="space-y-2 border-t border-[#262626] pt-4 mb-6">
-                  {(s.features || ["Calidad Garantizada 4K", "Perfil con PIN Privado", "Soporte Instantáneo"]).map((f, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-xs text-zinc-300">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#E50914] shrink-0" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <Link
-                href="/dashboard/seller"
-                className="w-full py-3 px-4 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs uppercase tracking-wider text-center transition flex items-center justify-center gap-2 shadow-md shadow-red-950/40"
-              >
-                <span>Ver Mis Cuentas de este Servicio</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </main>
-
-      {/* FOOTER */}
-      <footer className="py-8 text-center text-xs text-zinc-500 border-t border-[#262626] mt-12">
-        © 2026 HogarPro • Portal Privado de Distribución de Streaming
-      </footer>
+    <div className="min-h-screen flex items-center justify-center bg-[#141414] text-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-zinc-400">Ingresando a tu panel de revendedor...</p>
+      </div>
     </div>
   );
 }

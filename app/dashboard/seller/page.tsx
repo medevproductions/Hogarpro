@@ -322,6 +322,15 @@ export default function SellerLiveCodesPage() {
       });
     }
 
+    // Ordenar primero las cuentas que están por vencer
+    validAccs.sort((a, b) => {
+      const timeA = a.expirationDate ? new Date(a.expirationDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const timeB = b.expirationDate ? new Date(b.expirationDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const validA = !isNaN(timeA) ? timeA : Number.MAX_SAFE_INTEGER;
+      const validB = !isNaN(timeB) ? timeB : Number.MAX_SAFE_INTEGER;
+      return validA - validB;
+    });
+
     const formatted = validAccs.map((a) => ({
       id: a.id,
       service: a.platform,
@@ -513,9 +522,6 @@ export default function SellerLiveCodesPage() {
               <LogOut className="w-3 h-3" />
               <span>Salir</span>
             </button>
-            <Link href="/" className="px-2.5 py-1 text-[11px] text-zinc-300 bg-[#222222] border border-[#333333] rounded-lg font-medium hover:text-white">
-              Tienda
-            </Link>
           </div>
         </div>
 
@@ -633,10 +639,6 @@ export default function SellerLiveCodesPage() {
             <LogOut className="w-3.5 h-3.5" />
             <span>Cerrar Sesión</span>
           </button>
-          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1 transition">
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Ver Tienda Pública</span>
-          </Link>
         </div>
       </aside>
 
