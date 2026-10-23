@@ -49,10 +49,10 @@ import { updatePasswordInFirebase } from "@/lib/firebase/auth-service";
 import LatamPhoneInput from "@/components/LatamPhoneInput";
 
 export type CodeAction = 
-  | "actualizar" 
-  | "temporal" 
   | "login_code" 
-  | "login_confirm" 
+  | "verification_code" 
+  | "actualizar_hogar" 
+  | "acceso_temporal" 
   | "reset_password";
 
 interface ActionConfig {
@@ -66,44 +66,44 @@ interface ActionConfig {
 
 const ACTIONS: ActionConfig[] = [
   {
-    id: "actualizar",
-    title: "Pedir Actualización",
-    subtitle: "Actualizar red principal / hogar",
-    icon: <Home className="w-5 h-5" />,
-    color: "from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 border-blue-500/40",
-    badge: "Hogar Principal"
-  },
-  {
-    id: "temporal",
-    title: "Pedir Temporal",
-    subtitle: "Código TV fuera de casa (4 dígitos)",
-    icon: <Clock className="w-5 h-5" />,
-    color: "from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 border-amber-500/40",
-    badge: "Código Viaje / Hogar"
-  },
-  {
     id: "login_code",
-    title: "Código de Inicio",
+    title: "Código de Inicio de Sesión",
     subtitle: "Código de 4 dígitos para TV o inicio",
     icon: <Zap className="w-5 h-5" />,
     color: "from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border-emerald-500/40",
-    badge: "Código 4 Dígitos"
+    badge: "Código (4 Dígitos)"
   },
   {
-    id: "login_confirm",
-    title: "Confirmar Inicio",
-    subtitle: "Aceptar acceso / Enlace de confirmación",
+    id: "verification_code",
+    title: "Código de Verificación",
+    subtitle: "Código numérico OTP (dura 15 minutos)",
+    icon: <Clock className="w-5 h-5" />,
+    color: "from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border-cyan-500/40",
+    badge: "Dura 15 Minutos"
+  },
+  {
+    id: "actualizar_hogar",
+    title: "Solicitar Actualizar Hogar Netflix",
+    subtitle: "Enlace directo para confirmar Hogar con Netflix",
+    icon: <Home className="w-5 h-5" />,
+    color: "from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 border-blue-500/40",
+    badge: "Link Hogar"
+  },
+  {
+    id: "acceso_temporal",
+    title: "Código de Acceso Temporal",
+    subtitle: "Enlace para autorizar viaje o TV fuera de casa",
     icon: <ShieldCheck className="w-5 h-5" />,
-    color: "from-purple-600 to-pink-700 hover:from-purple-500 hover:to-pink-600 border-purple-500/40",
-    badge: "Aceptar Acceso"
+    color: "from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 border-amber-500/40",
+    badge: "Link Viaje"
   },
   {
     id: "reset_password",
-    title: "Restablecer Clave",
-    subtitle: "Enlace o token para cambiar contraseña",
+    title: "Restablecer Contraseña",
+    subtitle: "Enlace oficial para cambiar la clave de Netflix",
     icon: <Lock className="w-5 h-5" />,
     color: "from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 border-rose-500/40",
-    badge: "Password Reset"
+    badge: "Link Contraseña"
   }
 ];
 
@@ -407,7 +407,7 @@ export default function SellerLiveCodesPage() {
       try {
         const cleanEmail = selectedAccount.trim().toLowerCase();
         if (!cleanEmail) return;
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&actionType=${encodeURIComponent(activeAction || "temporal")}&t=${Date.now()}`);
+        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&actionType=${encodeURIComponent(activeAction || "login_code")}&service=netflix&t=${Date.now()}`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.code) {
@@ -448,22 +448,9 @@ export default function SellerLiveCodesPage() {
     setReceivedCode(null);
     setCopied(false);
 
-    const generatedReqId = `req_${Date.now()}`;
-    setCurrentRequestId(generatedReqId);
-
-    // Detectar servicio de la plataforma (netflix, disney, max, prime, spotify, crunchyroll)
-    const platName = (authCheck.account?.platform || "").toLowerCase();
-    let serviceKey = "all";
-    if (platName.includes("netflix")) serviceKey = "netflix";
-    else if (platName.includes("disney") || platName.includes("star")) serviceKey = "disney";
-    else if (platName.includes("max") || platName.includes("hbo")) serviceKey = "max";
-    else if (platName.includes("prime") || platName.includes("amazon")) serviceKey = "prime";
-    else if (platName.includes("spotify")) serviceKey = "spotify";
-    else if (platName.includes("crunchy")) serviceKey = "crunchyroll";
-
-    // Consulta a través del proxy seguro del backend (protección de endpoint y rate limit)
+    // Consulta inicial inmediata a través del proxy seguro
     try {
-      fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(serviceKey)}&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
+      fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {
@@ -474,13 +461,16 @@ export default function SellerLiveCodesPage() {
         .catch(() => {});
     } catch (e) {}
 
-    // Registrar solicitud pendiente en Cloud Firestore
+    // Registrar solicitud pendiente en Cloud Firestore y vincular el listener realtime al ID exacto
     try {
-      await createPendingCodeRequestFirestore({
+      const pendingRes = await createPendingCodeRequestFirestore({
         account_email: cleanEmail,
         action_type: action,
-        service: serviceKey
+        service: "netflix"
       });
+      if (pendingRes && pendingRes.success && pendingRes.id) {
+        setCurrentRequestId(pendingRes.id);
+      }
     } catch (e) {}
 
     // Timeout de seguridad: Si tras 90 segundos no hay respuesta del correo, detener la espera limpiamente
@@ -1291,52 +1281,78 @@ export default function SellerLiveCodesPage() {
                       ¡Código Recibido con Éxito!
                     </span>
 
-                    {/* VISUALIZACIÓN DEL CÓDIGO */}
+                    {/* VISUALIZACIÓN DEL CÓDIGO O ENLACE */}
                     {isUrl ? (
-                      <div className="mt-6 max-w-2xl mx-auto p-4 rounded-2xl bg-[#121212] border border-[#2f2f2f] text-left shadow-xl">
-                        <div className="text-xs text-zinc-400 font-semibold mb-1">Enlace de Confirmación / Restablecimiento:</div>
-                        <div className="font-mono text-xs text-[#E50914] break-all bg-black/60 p-3 rounded-xl border border-[#262626]">
+                      <div className="mt-6 max-w-2xl mx-auto p-5 rounded-2xl bg-[#121212] border border-[#2f2f2f] text-left shadow-xl">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <ExternalLink className="w-4 h-4 text-[#E50914]" />
+                            Enlace Oficial de Netflix:
+                          </span>
+                          <span className="text-[10px] text-zinc-400 bg-black/60 px-2 py-0.5 rounded font-mono">
+                            {activeAction === "actualizar_hogar" ? "Actualización Hogar" : activeAction === "acceso_temporal" ? "Acceso Temporal / Viaje" : "Restablecer Clave"}
+                          </span>
+                        </div>
+                        <div className="font-mono text-xs text-[#ff5555] break-all bg-black/70 p-3.5 rounded-xl border border-[#262626] select-all">
                           {receivedCode}
                         </div>
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                           <a
                             href={receivedCode}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex-1 py-2 px-3 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-md shadow-red-950/40"
+                            className="py-3 px-4 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-red-950/40"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            Abrir Enlace en Navegador
+                            <ExternalLink className="w-4 h-4" />
+                            <span>Abrir Enlace Oficial</span>
                           </a>
+                          <button
+                            onClick={handleCopy}
+                            className="py-3 px-4 bg-[#262626] hover:bg-[#333333] border border-[#383838] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                          >
+                            {copied ? (
+                              <>
+                                <Check className="w-4 h-4 text-emerald-400" />
+                                <span className="text-emerald-400">¡Enlace Copiado!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4" />
+                                <span>Copiar Enlace</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-6 inline-block bg-[#121212] border-2 border-[#E50914]/60 rounded-3xl px-8 py-6 shadow-2xl shadow-red-950/40">
-                        <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest text-white select-all">
-                          {receivedCode}
-                        </span>
-                      </div>
-                    )}
+                      <>
+                        <div className="mt-6 inline-block bg-[#121212] border-2 border-[#E50914]/60 rounded-3xl px-8 py-6 shadow-2xl shadow-red-950/40">
+                          <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest text-white select-all">
+                            {receivedCode}
+                          </span>
+                        </div>
 
-                    {/* BOTÓN DE COPIADO RÁPIDO */}
-                    <div className="mt-6 flex justify-center">
-                      <button
-                        onClick={handleCopy}
-                        className="py-3.5 px-8 rounded-2xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-sm shadow-xl shadow-red-950/50 flex items-center gap-2 transition transform hover:scale-105 active:scale-95"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="w-5 h-5 text-white" />
-                            <span>¡Copiado al Portapapeles!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-5 h-5" />
-                            <span>Copiar al Portapapeles</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                        {/* BOTÓN DE COPIADO RÁPIDO */}
+                        <div className="mt-6 flex justify-center">
+                          <button
+                            onClick={handleCopy}
+                            className="py-3.5 px-8 rounded-2xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-sm shadow-xl shadow-red-950/50 flex items-center gap-2 transition transform hover:scale-105 active:scale-95"
+                          >
+                            {copied ? (
+                              <>
+                                <Check className="w-5 h-5 text-white" />
+                                <span>¡Copiado al Portapapeles!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-5 h-5" />
+                                <span>Copiar Código</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="py-12 text-zinc-500 flex flex-col items-center justify-center">

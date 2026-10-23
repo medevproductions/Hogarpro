@@ -130,93 +130,6 @@ export const DEFAULT_PLATFORMS: CatalogPlatform[] = [
       "Códigos de acceso al instante 24/7",
       "Garantía total de 30 días"
     ]
-  },
-  { 
-    id: "plat-disney",
-    name: "Disney+ Standard", 
-    color: "text-blue-400 bg-blue-950/40 border-blue-500/30", 
-    defaultProfiles: 4, 
-    defaultCost: 1.50, 
-    defaultIncome: 10.00,
-    price: 2.50,
-    category: "Full HD • 1 Pantalla",
-    stock: 8,
-    features: [
-      "Catálogo Disney, Marvel, Star & ESPN",
-      "Sin interrupciones ni caídas",
-      "Descargas offline disponibles",
-      "Soporte inmediato por WhatsApp"
-    ]
-  },
-  { 
-    id: "plat-max",
-    name: "Max (HBO Max)", 
-    color: "text-indigo-400 bg-indigo-950/40 border-indigo-500/30", 
-    defaultProfiles: 5, 
-    defaultCost: 1.20, 
-    defaultIncome: 12.50,
-    price: 2.80,
-    category: "4K UHD • 3 Dispositivos",
-    stock: 12,
-    badge: "Estreno House of Dragon",
-    features: [
-      "Series HBO, Warner Bros, Discovery & DC",
-      "Perfiles simultáneos activos",
-      "Audio Dolby Atmos envolvente",
-      "Activación inmediata al pagar"
-    ]
-  },
-  { 
-    id: "plat-prime",
-    name: "Prime Video", 
-    color: "text-sky-400 bg-sky-950/40 border-sky-500/30", 
-    defaultProfiles: 3, 
-    defaultCost: 1.00, 
-    defaultIncome: 6.00,
-    price: 1.80,
-    category: "4K HDR • 2 Pantallas",
-    stock: 20,
-    features: [
-      "Envíos Prime + Video streaming",
-      "Contenido original exclusivo Amazon",
-      "Modo niños y control parental",
-      "Acceso garantizado mes a mes"
-    ]
-  },
-  { 
-    id: "plat-spotify",
-    name: "Spotify Familiar", 
-    color: "text-emerald-400 bg-emerald-950/40 border-emerald-500/30", 
-    defaultProfiles: 6, 
-    defaultCost: 0.90, 
-    defaultIncome: 12.00,
-    price: 2.20,
-    category: "Música Sin Límites",
-    stock: 15,
-    badge: "A tu propio correo",
-    features: [
-      "Sin anuncios, música offline",
-      "Máxima calidad de audio (320kbps)",
-      "Saltos de canción ilimitados",
-      "Renovación limpia mes a mes"
-    ]
-  },
-  { 
-    id: "plat-crunchyroll",
-    name: "Crunchyroll Mega Fan", 
-    color: "text-amber-500 bg-amber-950/40 border-amber-500/30", 
-    defaultProfiles: 4, 
-    defaultCost: 1.10, 
-    defaultIncome: 8.00,
-    price: 2.00,
-    category: "Anime HD • Sin Anuncios",
-    stock: 11,
-    features: [
-      "Simulcast estreno 1h después de Japón",
-      "Visionado sin anuncios ni restricciones",
-      "Acceso ilimitado a manga",
-      "Garantía mes completo"
-    ]
   }
 ];
 
@@ -228,7 +141,15 @@ export function getCatalogPlatforms(): CatalogPlatform[] {
     return DEFAULT_PLATFORMS;
   }
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    const onlyNetflix = Array.isArray(parsed) 
+      ? parsed.filter((p: CatalogPlatform) => (p.name || "").toLowerCase().includes("netflix") || (p.id || "").includes("netflix"))
+      : [];
+    if (onlyNetflix.length === 0) {
+      localStorage.setItem(STORAGE_KEY_CATALOG, JSON.stringify(DEFAULT_PLATFORMS));
+      return DEFAULT_PLATFORMS;
+    }
+    return onlyNetflix;
   } catch {
     return DEFAULT_PLATFORMS;
   }
@@ -444,14 +365,14 @@ export const DEFAULT_SALES: SaleRecord[] = [
     id: "sale-102",
     date: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
     type: "detal",
-    platform: "Disney+ Standard",
-    accountEmail: "disney.family.plus@hogarpro.com",
+    platform: "Netflix Premium 4K",
+    accountEmail: "netflix.family.plus@hogarpro.com",
     customerName: "Mateo Pérez (En Persona)",
     customerContact: "Entregado en persona",
     paymentMethod: "efectivo",
-    costPrice: 1.5,
-    salePrice: 3.5,
-    profit: 2.0,
+    costPrice: 2.0,
+    salePrice: 4.5,
+    profit: 2.5,
     notes: "Pago en efectivo en mano",
     isPhysicalSale: true
   },
@@ -459,8 +380,8 @@ export const DEFAULT_SALES: SaleRecord[] = [
     id: "sale-103",
     date: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
     type: "mayor",
-    platform: "Max (HBO Max)",
-    accountEmail: "max.hbo.latam@hogarpro.com",
+    platform: "Netflix Premium 4K",
+    accountEmail: "netflix.mayorista.latam@hogarpro.com",
     customerName: "Andrés Mayorista (Revendedor)",
     customerContact: "+57 312 987 6543",
     paymentMethod: "transferencia",
@@ -563,7 +484,7 @@ export function getStoredReminders(): CalendarReminder[] {
       {
         id: "rem-2",
         date: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
-        title: "Cobrar mensualidad a revendedor de lote Disney+",
+        title: "Cobrar mensualidad a revendedor de cuentas Netflix",
         category: "cobro",
         priority: "normal",
         completed: false,

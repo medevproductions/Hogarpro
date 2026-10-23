@@ -578,12 +578,7 @@ export default function OwnerDashboard() {
           accNorm === filterNorm ||
           accNorm.includes(filterNorm) ||
           filterNorm.includes(accNorm) ||
-          (accNorm.includes("netflix") && filterNorm.includes("netflix")) ||
-          (accNorm.includes("disney") && filterNorm.includes("disney")) ||
-          (accNorm.includes("max") && filterNorm.includes("max")) ||
-          (accNorm.includes("prime") && filterNorm.includes("prime")) ||
-          (accNorm.includes("spotify") && filterNorm.includes("spotify")) ||
-          (accNorm.includes("crunchy") && filterNorm.includes("crunchy"));
+          (accNorm.includes("netflix") && filterNorm.includes("netflix"));
       }
 
       // Coincidencia inteligente de estado
@@ -1510,25 +1505,25 @@ export default function OwnerDashboard() {
       },
       {
         "País": "México",
-        "Plataforma": "Disney+ Standard",
-        "Correo": "ejemplo.disney2@correo.com",
-        "Clave": "DisneyPass2026#",
+        "Plataforma": "Netflix Premium 4K",
+        "Correo": "ejemplo.netflix2@hogarpro.com",
+        "Clave": "NetflixPass2026#",
         "Verificada (Sí/No)": "Sí",
         "Fecha Vencimiento": "2026-11-20",
         "Vendido a / Asignado a": "Cliente Juan Pérez",
-        "Perfiles": 4,
+        "Perfiles": 5,
         "Notas": "Garantía de 30 días"
       },
       {
         "País": "Global",
-        "Plataforma": "Max (HBO Max)",
-        "Correo": "ejemplo.max3@correo.com",
-        "Clave": "MaxPassword778!",
-        "Verificada (Sí/No)": "No",
+        "Plataforma": "Netflix Premium 4K",
+        "Correo": "ejemplo.netflix3@hogarpro.com",
+        "Clave": "NetflixPass778!",
+        "Verificada (Sí/No)": "Sí",
         "Fecha Vencimiento": "2026-12-01",
         "Vendido a / Asignado a": "",
         "Perfiles": 5,
-        "Notas": "En Stock sin vender"
+        "Notas": "En Stock disponible"
       }
     ];
 
@@ -3605,13 +3600,7 @@ export default function OwnerDashboard() {
                           <button
                             onClick={() => {
                               setTestEmail(acc.email);
-                              const platLower = acc.platform.toLowerCase();
-                              if (platLower.includes("netflix")) setTestService("netflix");
-                              else if (platLower.includes("disney") || platLower.includes("star")) setTestService("disney");
-                              else if (platLower.includes("max") || platLower.includes("hbo")) setTestService("max");
-                              else if (platLower.includes("prime")) setTestService("prime");
-                              else if (platLower.includes("spotify")) setTestService("spotify");
-                              else if (platLower.includes("crunchy")) setTestService("crunchyroll");
+                              setTestService("netflix");
                               const codigosEl = document.getElementById("codigos-owner");
                               codigosEl?.scrollIntoView({ behavior: "smooth" });
                             }}
@@ -3949,13 +3938,7 @@ export default function OwnerDashboard() {
                                 <button
                                   onClick={() => {
                                     setTestEmail(acc.email);
-                                    const platLower = acc.platform.toLowerCase();
-                                    if (platLower.includes("netflix")) setTestService("netflix");
-                                    else if (platLower.includes("disney") || platLower.includes("star")) setTestService("disney");
-                                    else if (platLower.includes("max") || platLower.includes("hbo")) setTestService("max");
-                                    else if (platLower.includes("prime")) setTestService("prime");
-                                    else if (platLower.includes("spotify")) setTestService("spotify");
-                                    else if (platLower.includes("crunchy")) setTestService("crunchyroll");
+                                    setTestService("netflix");
                                     const codigosEl = document.getElementById("codigos-owner");
                                     codigosEl?.scrollIntoView({ behavior: "smooth" });
                                   }}
@@ -4416,7 +4399,7 @@ export default function OwnerDashboard() {
 
                             <input
                               type="text"
-                              placeholder="Ej: Cobrar mensualidad a Juan, renovar Disney con proveedor..."
+                              placeholder="Ej: Cobrar mensualidad a Juan, renovar cuentas Netflix con proveedor..."
                               value={newReminderTitle}
                               onChange={(e) => setNewReminderTitle(e.target.value)}
                               required
@@ -4702,30 +4685,24 @@ export default function OwnerDashboard() {
                   onChange={(e) => setTestService(e.target.value)}
                   className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 >
-                  <option value="all">Todas las Plataformas (Global)</option>
                   <option value="netflix">Netflix</option>
-                  <option value="disney">Disney+</option>
-                  <option value="max">Max (HBO)</option>
-                  <option value="prime">Prime Video</option>
-                  <option value="spotify">Spotify</option>
-                  <option value="crunchyroll">Crunchyroll</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  Acción Requerida
+                  Acción Requerida (Netflix)
                 </label>
                 <select
                   value={testAction}
                   onChange={(e) => setTestAction(e.target.value)}
                   className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                 >
-                  <option value="temporal">Temporal (4-6 dígitos)</option>
-                  <option value="actualizar">Actualizar Hogar</option>
-                  <option value="login_code">Código Inicio OTP</option>
-                  <option value="login_confirm">Confirmar Inicio (Link)</option>
-                  <option value="reset_password">Restablecer Clave</option>
+                  <option value="login_code">Código de inicio de sesión (4 dígitos)</option>
+                  <option value="verification_code">Código de verificación (15 minutos)</option>
+                  <option value="actualizar_hogar">Solicitar actualizar hogar netflix (link)</option>
+                  <option value="acceso_temporal">Código de acceso temporal (link)</option>
+                  <option value="reset_password">Restablecer contraseña (link)</option>
                 </select>
               </div>
             </div>
@@ -5509,7 +5486,7 @@ export default function OwnerDashboard() {
                   <input
                     type="text"
                     required
-                    placeholder="ej: Disney+ & Star+ Combo"
+                    placeholder="ej: Netflix Premium 4K Pantallas Extra"
                     value={platformForm.name}
                     onChange={(e) => setPlatformForm({ ...platformForm, name: e.target.value })}
                     className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] font-medium"
@@ -6016,7 +5993,7 @@ export default function OwnerDashboard() {
                   <input
                     type="text"
                     required
-                    placeholder="ej: Lote 10 cuentas Disney+ a proveedor mayorista"
+                    placeholder="ej: Lote 10 cuentas Netflix Premium a proveedor mayorista"
                     value={expenseForm.title}
                     onChange={(e) => setExpenseForm({ ...expenseForm, title: e.target.value })}
                     className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-rose-500"

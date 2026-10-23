@@ -21,7 +21,7 @@ import { getCurrentUser, checkAccountAuthorization } from "@/lib/account-manager
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 
 interface CodePagePortalProps {
-  actionType: "actualizar" | "temporal" | "login_code" | "login_confirm" | "reset_password";
+  actionType: "actualizar" | "temporal" | "login_code" | "login_confirm" | "reset_password" | "verification_code" | "actualizar_hogar" | "acceso_temporal";
   title: string;
   badge: string;
   description: string;
@@ -60,66 +60,7 @@ export default function CodePortalClient({
           <path d="M5.5 2H9.5L18.5 22H14.5L5.5 2Z" fill="#E50914" />
         </svg>
       )
-    },
-    {
-      id: "disney",
-      name: "Disney+",
-      domain: "disneyplus.com",
-      accent: "#113CCF",
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M11.96 4C7.03 4 3 8.03 3 12.96c0 3.96 2.58 7.32 6.18 8.48-.08-.72-.15-1.83.03-2.62.16-.72 1.05-4.45 1.05-4.45s-.27-.54-.27-1.34c0-1.25.73-2.19 1.63-2.19.77 0 1.14.58 1.14 1.27 0 .77-.49 1.93-.75 3-.21.9.45 1.63 1.34 1.63 1.61 0 2.85-1.7 2.85-4.15 0-2.17-1.56-3.69-3.79-3.69-2.58 0-4.09 1.94-4.09 3.93 0 .78.3 1.62.68 2.07.07.09.08.17.06.26-.07.3-.23.95-.27 1.08-.04.18-.15.22-.34.13-1.25-.58-2.03-2.4-2.03-3.87 0-3.15 2.29-6.04 6.6-6.04 3.47 0 6.16 2.47 6.16 5.77 0 3.44-2.17 6.21-5.18 6.21-1.01 0-1.96-.53-2.29-1.15l-.62 2.37c-.23.87-.84 1.97-1.26 2.64 1.08.33 2.23.51 3.42.51 4.97 0 9-4.03 9-8.96C20.96 8.03 16.93 4 11.96 4z" fill="#3b82f6"/>
-        </svg>
-      )
-    },
-    {
-      id: "max",
-      name: "Max (HBO)",
-      domain: "max.com",
-      accent: "#002be7",
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-          <rect width="24" height="24" rx="4" fill="#002be7" />
-          <path d="M4.5 16V8h2.3l2.2 4 2.2-4h2.3v8h-2V11.2l-1.8 3.2h-1.4l-1.8-3.2V16h-2zm11 0l2.2-8h2.6l2.2 8h-2.1l-.4-1.6h-2.4l-.4 1.6h-1.7zm2.7-3.3h1.7l-.8-3.3-.9 3.3z" fill="#ffffff" />
-        </svg>
-      )
-    },
-    {
-      id: "prime",
-      name: "Prime Video",
-      domain: "primevideo.com",
-      accent: "#00A8E1",
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#00A8E1" />
-          <path d="M6 14.5c3.5 2.2 8.5 2.2 12 0-1 .7-2.5 1.3-4.5 1.5-2.5.2-5-.3-7.5-1.5z" fill="#ffffff" />
-          <path d="M17.5 13.8c.4.3.8.7 1.1 1.2-.6 0-1.3-.2-2-.5.3-.2.6-.4.9-.7z" fill="#ffffff" />
-        </svg>
-      )
-    },
-    {
-      id: "spotify",
-      name: "Spotify",
-      domain: "spotify.com",
-      accent: "#1ED760",
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1ED760">
-          <path d="M12 2C6.477 2 2 6.477 2 12c0 5.524 4.477 10 10 10 5.524 0 10-4.476 10-10 0-5.523-4.476-10-10-10zm4.586 14.424a.623.623 0 0 1-.859.206c-2.348-1.434-5.304-1.758-8.786-.963a.625.625 0 1 1-.278-1.218c3.811-.871 7.08-.505 9.717 1.116a.625.625 0 0 1 .206.859zm1.226-2.726a.783.783 0 0 1-1.077.257c-2.688-1.652-6.784-2.131-9.964-1.166a.782.782 0 1 1-.453-1.498c3.633-1.103 8.146-.572 11.237 1.33a.783.783 0 0 1 .257 1.077zm.106-2.836C14.693 8.93 9.4 8.755 6.326 9.689a.938.938 0 1 1-.54-1.8c3.528-1.071 9.38-.868 13.093 1.338a.938.938 0 0 1-.96 1.635z"/>
-        </svg>
-      )
-    },
-    {
-      id: "crunchyroll",
-      name: "Crunchyroll",
-      domain: "crunchyroll.com",
-      accent: "#F47521",
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#F47521">
-          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 17.5a7.5 7.5 0 0 1-5.3-12.8 7.37 7.37 0 0 1 1.9-1.27 8.35 8.35 0 0 0-1.1 4.07 8.5 8.5 0 0 0 8.5 8.5 8.35 8.35 0 0 0 4.07-1.1 7.37 7.37 0 0 1-1.27 1.9A7.44 7.44 0 0 1 12 19.5z"/>
-          <circle cx="15.5" cy="11.5" r="2.5" fill="#F47521"/>
-        </svg>
-      )
-    },
+    }
   ];
 
   // Contador de segundos en espera
@@ -405,10 +346,12 @@ export default function CodePortalClient({
                       className="w-full py-4 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-orange-950/50 flex items-center justify-center gap-2.5 transition transform hover:scale-[1.02] active:scale-98"
                     >
                       <span>
-                        {actionType === "actualizar" 
+                        {actionType === "actualizar" || actionType === "actualizar_hogar"
                           ? "Actualizar Hogar Ahora" 
-                          : actionType === "login_confirm"
+                          : actionType === "login_confirm" || actionType === "verification_code"
                           ? "Confirmar Inicio de Sesión"
+                          : actionType === "acceso_temporal" || actionType === "temporal"
+                          ? "Confirmar Acceso Temporal (Viaje)"
                           : actionType === "reset_password"
                           ? "Restablecer Contraseña"
                           : "Abrir Enlace Oficial en Netflix"}

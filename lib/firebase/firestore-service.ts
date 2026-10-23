@@ -165,12 +165,24 @@ export async function getRecentCodeFromFirestore(accountEmail: string, actionTyp
 
     const matched = sorted.find(r => {
       if (!r.extracted_code || r.status !== "completado") return false;
-      // Solo aceptar si la acción solicitada coincide con la acción del código
-      if (actionType && r.action_type && r.action_type !== actionType) return false;
+      // Solo aceptar si la acción solicitada coincide con la acción del registro (soporta aliases)
+      if (actionType && r.action_type) {
+        const reqA = actionType.toLowerCase().replace(/_/g, "");
+        const recA = r.action_type.toLowerCase().replace(/_/g, "");
+        const matches = reqA === recA ||
+          (reqA.includes("hogar") && recA.includes("actualizar")) ||
+          (reqA.includes("actualizar") && recA.includes("hogar")) ||
+          (reqA.includes("temporal") && recA.includes("temporal")) ||
+          (reqA.includes("login") && recA.includes("login")) ||
+          (reqA.includes("verific") && recA.includes("verific")) ||
+          (reqA.includes("pass") && recA.includes("pass")) ||
+          (reqA.includes("clave") && recA.includes("pass"));
+        if (!matches) return false;
+      }
       const timeStr = r.updated_at || r.created_at;
       if (timeStr) {
         const age = now - new Date(timeStr).getTime();
-        if (age > MAX_AGE_MS) return false; // Descartar códigos expirados
+        if (age > MAX_AGE_MS) return false; // Descartar códigos expirados (>15 min)
       }
       return true;
     });

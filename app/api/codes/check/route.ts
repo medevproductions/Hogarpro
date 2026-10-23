@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { memoryStore } from "@/lib/code-processor";
+import { memoryStore, normalizeActionType } from "@/lib/code-processor";
 import { 
   getCorsHeaders, 
   checkRateLimit, 
@@ -19,9 +19,9 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 /**
- * ENDPOINT GET: /api/codes/check?email=correo@ejemplo.com
- * Permite a la página web consultar el código de inmediato mediante un proxy seguro
- * Incluye Rate Limiting, CORS estricto, Anti-Hotlinking y sanitización de enlaces.
+ * ENDPOINT GET: /api/codes/check?email=correo@ejemplo.com&actionType=login_code
+ * Permite consultar el código o link de Netflix de inmediato mediante un proxy seguro
+ * Opciones: login_code, verification_code, actualizar_hogar, acceso_temporal, reset_password
  */
 export async function GET(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
@@ -48,8 +48,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   let rawEmail = searchParams.get("email");
-  const rawService = searchParams.get("service");
-  const rawActionType = searchParams.get("actionType") || "temporal";
+  const rawActionType = searchParams.get("actionType") || "login_code";
 
   if (!rawEmail) {
     return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
@@ -71,25 +70,26 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Sanitizar parámetros de consulta
-  const service = sanitizeInput(rawService || "all");
-  const allowedActions = ["actualizar", "temporal", "login_code", "login_confirm", "reset_password"];
-  const actionType = allowedActions.includes(rawActionType) ? rawActionType : "temporal";
+  // Normalizar la acción a una de las 5 opciones oficiales de Netflix
+  const actionType = normalizeActionType(rawActionType);
+  const service = "netflix"; // Exclusivo Netflix
 
   // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR (Rápido y Seguro con validación de acción y frescura)
   const MAX_CODE_AGE_MS = 15 * 60 * 1000; // Máximo 15 minutos de frescura
   const now = Date.now();
   const cacheKey = `${cleanEmail}:${actionType}`;
-  const cached = memoryStore.get(cacheKey) || memoryStore.get(cleanEmail);
+  const cached = memoryStore.get(cacheKey) || memoryStore.get(`${cleanEmail}:${rawActionType}`) || memoryStore.get(cleanEmail);
 
   if (cached) {
-    const isMatchingAction = !cached.actionType || cached.actionType === actionType;
+    const isMatchingAction = !cached.actionType || 
+      cached.actionType === actionType || 
+      normalizeActionType(cached.actionType) === actionType;
     const isFresh = (now - cached.timestamp) <= MAX_CODE_AGE_MS;
 
     if (isMatchingAction && isFresh) {
       const isLink = cached.code.startsWith("http://") || cached.code.startsWith("https://");
       
-      // Si es enlace, verificar que sea un dominio de streaming legítimo
+      // Si es enlace, verificar que sea un dominio oficial de Netflix
       if (isLink) {
         const safeLink = sanitizeStreamingLink(cached.code);
         if (safeLink) {
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
             success: true,
             code: safeLink,
             status: "completado",
-            actionType: cached.actionType || actionType,
+            actionType: actionType,
             timestamp: new Date(cached.timestamp).toISOString(),
             source: "instant_cache"
           }, { headers: corsHeaders });
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
           success: true,
           code: cached.code,
           status: "completado",
-          actionType: cached.actionType || actionType,
+          actionType: actionType,
           timestamp: new Date(cached.timestamp).toISOString(),
           source: "instant_cache"
         }, { headers: corsHeaders });
@@ -115,6 +115,7 @@ export async function GET(req: NextRequest) {
     } else if (!isFresh) {
       // Limpiar memoria si el código ya expiró
       memoryStore.delete(cacheKey);
+      memoryStore.delete(`${cleanEmail}:${rawActionType}`);
       memoryStore.delete(cleanEmail);
     }
   }
