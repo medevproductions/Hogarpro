@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 3. Proxy Seguro hacia Google Apps Script (Upstream protegido detrás del backend)
-  const GAS_URL = process.env.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbwEbSZ2nmh_b2-pczfAx1-00kt4b3vrPOEPMyUYbwH3VqqgwEU4Q5Ru8jUGSqTSgj3l7Q/exec";
+  const GAS_URL = process.env.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbw8e69kUHigPwMYqBxXP5t-HNVW0EA6HIpNR2K6E6f8wG_VYefMXb8V7mnQHF72Wh2lGg/exec";
   try {
     const gasRes = await fetch(
       `${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`,
