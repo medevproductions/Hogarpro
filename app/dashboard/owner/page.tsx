@@ -115,7 +115,7 @@ export interface StreamingAccount {
   monthlyIncome: number;
   notes?: string;
   country?: string; // ej: Colombia, México, Global
-  isVerified?: boolean; // si la cuenta sirve o no
+  isVerified?: boolean | "verified" | "payment_failed" | "unreviewed"; // estado de verificación (verde=verificada, roja=caída por pago, amarilla=sin revisar)
   customerName?: string; // cliente o a quién se le vendió (opcional)
   importBatchId?: string; // id del lote de importación
   importedAt?: string; // fecha ISO de importación
@@ -189,6 +189,23 @@ function getTimeAgo(dateString?: string): string {
   if (hours < 24) return `Hace ${hours} h`;
   const days = Math.floor(hours / 24);
   return `Hace ${days} d`;
+}
+
+// Helper para normalizar el estado de verificación de las cuentas
+function getVerificationStatus(val: any): "verified" | "payment_failed" | "unreviewed" {
+  if (val === "verified" || val === "funciona" || val === "comprobada" || val === true) {
+    return "verified";
+  }
+  if (val === "payment_failed" || val === "caida_pago" || val === "caida" || val === false) {
+    return "payment_failed";
+  }
+  if (val === "unreviewed" || val === "sin_revisar") {
+    return "unreviewed";
+  }
+  if (val === undefined || val === null) {
+    return "unreviewed";
+  }
+  return "verified";
 }
 
 export default function OwnerDashboard() {
@@ -430,7 +447,7 @@ export default function OwnerDashboard() {
         monthlyIncome: a.monthlyIncome || platObj.defaultIncome,
         notes: a.notes || "",
         country: a.country || "Global",
-        isVerified: a.isVerified !== undefined ? a.isVerified : true,
+        isVerified: a.isVerified !== undefined ? a.isVerified : "verified",
         customerName: a.customerName || "",
         importBatchId: a.importBatchId,
         importedAt: a.importedAt
@@ -541,8 +558,39 @@ export default function OwnerDashboard() {
     alert(`¡Se eliminaron exitosamente las ${count} cuentas de la lista seleccionada!`);
   };
 
+  // Alternar rápidamente el estado de verificación de una cuenta (Verificada -> Caída por pago -> Sin revisar)
+  const handleToggleVerification = (acc: StreamingAccount) => {
+    const current = getVerificationStatus(acc.isVerified);
+    let next: "verified" | "payment_failed" | "unreviewed" = "verified";
+    if (current === "verified") {
+      next = "payment_failed";
+    } else if (current === "payment_failed") {
+      next = "unreviewed";
+    } else {
+      next = "verified";
+    }
+
+    const updated = accounts.map(a => a.id === acc.id ? { ...a, isVerified: next } : a);
+    persistAccounts(updated);
+  };
+
   // Estado del Formulario de Cuenta
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    platform: string;
+    email: string;
+    password: string;
+    maxProfiles: number;
+    profilesOccupied: number;
+    seller: string;
+    purchaseDate: string;
+    expirationDate: string;
+    monthlyCost: number;
+    monthlyIncome: number;
+    notes: string;
+    country: string;
+    isVerified: "verified" | "payment_failed" | "unreviewed";
+    customerName: string;
+  }>({
     platform: "Netflix Premium 4K",
     email: "",
     password: "",
@@ -555,7 +603,7 @@ export default function OwnerDashboard() {
     monthlyIncome: 14.00,
     notes: "",
     country: "Global",
-    isVerified: true,
+    isVerified: "verified",
     customerName: ""
   });
 
@@ -581,6 +629,12 @@ export default function OwnerDashboard() {
             matchStatus = !acc.sellerId && (!acc.seller || acc.seller.includes("Sin Asignar"));
           } else if (statusFilter === "expiring") {
             matchStatus = acc.status === "expiring" || acc.status === "expired";
+          } else if (statusFilter === "verified") {
+            matchStatus = getVerificationStatus(acc.isVerified) === "verified";
+          } else if (statusFilter === "payment_failed") {
+            matchStatus = getVerificationStatus(acc.isVerified) === "payment_failed";
+          } else if (statusFilter === "unreviewed") {
+            matchStatus = getVerificationStatus(acc.isVerified) === "unreviewed";
           }
         }
 
@@ -1204,7 +1258,7 @@ export default function OwnerDashboard() {
       monthlyIncome: firstPlat.defaultIncome,
       notes: "",
       country: "Global",
-      isVerified: true,
+      isVerified: "verified",
       customerName: ""
     });
     setIsAccountModalOpen(true);
@@ -1226,7 +1280,7 @@ export default function OwnerDashboard() {
       monthlyIncome: acc.monthlyIncome,
       notes: acc.notes || "",
       country: acc.country || "Global",
-      isVerified: acc.isVerified !== undefined ? acc.isVerified : true,
+      isVerified: getVerificationStatus(acc.isVerified),
       customerName: acc.customerName || ""
     });
     setIsAccountModalOpen(true);
@@ -1381,9 +1435,16 @@ export default function OwnerDashboard() {
         const password = String(row["Clave"] || row["Contraseña"] || row["Password"] || "Password2026*").trim();
         const country = String(row["País"] || row["Pais"] || row["Country"] || "Global").trim();
 
-        // Verificada: Si sirve o no (detecta sí, si, true, 1, funciona vs no, false, 0, caida)
-        const rawVerified = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || row["Estado"] || "Sí").toLowerCase().trim();
-        const isVerified = !(rawVerified.includes("no") || rawVerified === "0" || rawVerified === "false" || rawVerified.includes("falla") || rawVerified.includes("caida"));
+        // Verificada: 3 estados (funciona/comprobada=verified, caida por pago=payment_failed, sin revisar=unreviewed)
+        const rawVerified = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || row["Estado de Verificación"] || "Sí").toLowerCase().trim();
+        let isVerified: "verified" | "payment_failed" | "unreviewed" = "verified";
+        if (rawVerified.includes("caida") || rawVerified.includes("pago") || rawVerified.includes("no") || rawVerified === "false" || rawVerified === "0" || rawVerified.includes("falla")) {
+          isVerified = "payment_failed";
+        } else if (rawVerified.includes("sin") || rawVerified.includes("revisar") || rawVerified.includes("pendiente") || rawVerified.includes("amarill")) {
+          isVerified = "unreviewed";
+        } else {
+          isVerified = "verified";
+        }
 
         const maxProfiles = Number(row["Perfiles"] || row["Cupos"] || platObj.defaultProfiles) || platObj.defaultProfiles;
 
@@ -3361,6 +3422,9 @@ export default function OwnerDashboard() {
                   <option value="assigned">En Venta (Asignadas)</option>
                   <option value="available">En Stock (Libres)</option>
                   <option value="expiring">Por Vencer / Vencidas</option>
+                  <option value="verified">🟢 Verificadas (Funcionan)</option>
+                  <option value="payment_failed">🔴 Caídas por pago</option>
+                  <option value="unreviewed">🟡 Sin revisar</option>
                 </select>
               </div>
             </div>
@@ -3371,7 +3435,7 @@ export default function OwnerDashboard() {
                   <tr>
                     <th className="py-3 px-4">Plataforma & País</th>
                     <th className="py-3 px-4">Correo & Contraseña</th>
-                    <th className="py-3 px-4 text-center">Verificada</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap min-w-[130px]">Verificada</th>
                     <th className="py-3 px-4">Vendido a / Asignado</th>
                     <th className="py-3 px-4 text-center">Perfiles / Cupos</th>
                     <th className="py-3 px-4 whitespace-nowrap">Vencimiento</th>
@@ -3436,18 +3500,47 @@ export default function OwnerDashboard() {
                             </div>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-center">
-                          {acc.isVerified !== false ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-500/30">
-                              <Check className="w-3 h-3 text-emerald-400" />
-                              <span>Sirve</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/40">
-                              <AlertCircle className="w-3 h-3 text-[#E50914]" />
-                              <span>Caída</span>
-                            </span>
-                          )}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {(() => {
+                            const verStatus = getVerificationStatus(acc.isVerified);
+                            if (verStatus === "verified") {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVerification(acc)}
+                                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400 hover:scale-105 shadow-sm shadow-emerald-950/40 transition cursor-pointer"
+                                  title="Verificada / Funciona (Clic para cambiar estado)"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/90 animate-pulse"></span>
+                                  <span>Verificada</span>
+                                </button>
+                              );
+                            }
+                            if (verStatus === "payment_failed") {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVerification(acc)}
+                                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-950/70 text-rose-300 border border-rose-500/30 hover:border-rose-400 hover:scale-105 shadow-sm shadow-rose-950/40 transition cursor-pointer"
+                                  title="Caída por pago (Clic para cambiar estado)"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/90"></span>
+                                  <span>Caída por pago</span>
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleVerification(acc)}
+                                className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/30 hover:border-amber-400 hover:scale-105 shadow-sm shadow-amber-950/40 transition cursor-pointer"
+                                title="Sin revisar (Clic para cambiar estado)"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm shadow-amber-400/90"></span>
+                                <span>Sin revisar</span>
+                              </button>
+                            );
+                          })()}
                         </td>
                         <td className="py-3.5 px-4">
                           {acc.customerName ? (
@@ -4812,14 +4905,15 @@ export default function OwnerDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">¿Está Verificada? (Sirve)</label>
+                    <label className="block font-medium text-zinc-300 mb-1">¿Está Verificada?</label>
                     <select
-                      value={formData.isVerified !== false ? "true" : "false"}
-                      onChange={(e) => setFormData({ ...formData, isVerified: e.target.value === "true" })}
+                      value={formData.isVerified}
+                      onChange={(e) => setFormData({ ...formData, isVerified: e.target.value as any })}
                       className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     >
-                      <option value="true">Sí (Funciona / Comprobada)</option>
-                      <option value="false">No (Caída / Falla)</option>
+                      <option value="verified">🟢 Funciona (Comprobada / Verificada)</option>
+                      <option value="payment_failed">🔴 Caída por pago</option>
+                      <option value="unreviewed">🟡 Sin revisar</option>
                     </select>
                   </div>
                   <div>
@@ -5219,8 +5313,13 @@ export default function OwnerDashboard() {
                       </thead>
                       <tbody className="divide-y divide-[#262626]">
                         {excelPreviewData.slice(0, 20).map((row: any, i) => {
-                          const rawVer = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || "Sí").toLowerCase();
-                          const isVer = !(rawVer.includes("no") || rawVer === "0" || rawVer === "false" || rawVer.includes("falla") || rawVer.includes("caida"));
+                          const rawVer = String(row["Verificada (Sí/No)"] || row["Verificada"] || row["Verificado"] || row["Sirve"] || row["Estado de Verificación"] || "Sí").toLowerCase();
+                          let verStatus: "verified" | "payment_failed" | "unreviewed" = "verified";
+                          if (rawVer.includes("caida") || rawVer.includes("pago") || rawVer.includes("no") || rawVer === "false" || rawVer === "0" || rawVer.includes("falla")) {
+                            verStatus = "payment_failed";
+                          } else if (rawVer.includes("sin") || rawVer.includes("revisar") || rawVer.includes("pendiente") || rawVer.includes("amarill")) {
+                            verStatus = "unreviewed";
+                          }
                           const platDisplay = selectedImportPlatform !== "auto" 
                             ? selectedImportPlatform 
                             : (row["Plataforma"] || row["Servicio"] || "Netflix");
@@ -5243,14 +5342,23 @@ export default function OwnerDashboard() {
                               <td className="py-2 px-3 font-mono text-zinc-400">
                                 {row["Clave"] || row["Contraseña"] || "••••••••"}
                               </td>
-                              <td className="py-2 px-3 text-center">
-                                {isVer ? (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded font-semibold">
-                                    <Check className="w-2.5 h-2.5" /> Funciona
+                              <td className="py-2 px-3 text-center whitespace-nowrap">
+                                {verStatus === "verified" && (
+                                  <span className="inline-flex items-center gap-1.5 text-[10px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/80 animate-pulse"></span>
+                                    <span>Verificada</span>
                                   </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-rose-300 bg-rose-950/60 border border-rose-500/30 px-1.5 py-0.5 rounded font-semibold">
-                                    <X className="w-2.5 h-2.5" /> Falla
+                                )}
+                                {verStatus === "payment_failed" && (
+                                  <span className="inline-flex items-center gap-1.5 text-[10px] text-rose-300 bg-rose-950/60 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/80"></span>
+                                    <span>Caída por pago</span>
+                                  </span>
+                                )}
+                                {verStatus === "unreviewed" && (
+                                  <span className="inline-flex items-center gap-1.5 text-[10px] text-amber-300 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/80"></span>
+                                    <span>Sin revisar</span>
                                   </span>
                                 )}
                               </td>

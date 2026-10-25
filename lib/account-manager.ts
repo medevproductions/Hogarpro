@@ -36,10 +36,28 @@ export interface StoredStreamingAccount {
   monthlyIncome?: number;
   notes?: string;
   country?: string; // ej: Colombia, México, Global
-  isVerified?: boolean; // si la cuenta sirve / está comprobada
+  isVerified?: boolean | "verified" | "payment_failed" | "unreviewed"; // estado de verificación (verde=verificada, roja=caída por pago, amarilla=sin revisar)
   customerName?: string; // cliente o a quién se le vendió (opcional)
   importBatchId?: string; // identificador único del lote importado
   importedAt?: string; // fecha ISO de cuando se importó
+}
+
+export type VerificationStatus = "verified" | "payment_failed" | "unreviewed";
+
+export function getVerificationStatus(val: any): VerificationStatus {
+  if (val === "verified" || val === "funciona" || val === "comprobada" || val === true) {
+    return "verified";
+  }
+  if (val === "payment_failed" || val === "caida_pago" || val === "caida" || val === false) {
+    return "payment_failed";
+  }
+  if (val === "unreviewed" || val === "sin_revisar") {
+    return "unreviewed";
+  }
+  if (val === undefined || val === null) {
+    return "unreviewed";
+  }
+  return "verified";
 }
 
 export interface ImportBatchRecord {
