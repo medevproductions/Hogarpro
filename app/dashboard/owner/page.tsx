@@ -1350,7 +1350,7 @@ export default function OwnerDashboard() {
     setIsAssignModalOpen(true);
   };
 
-  // GUARDAR ASIGNACIÓN DE VENDEDOR (ASIGNAR / REASIGNAR / DESASIGNAR)
+  // GUARDAR ASIGNACIÓN DE VENDEDOR (VENDER / ASIGNAR A REVENDEDOR)
   const handleSaveAssignment = () => {
     if (!assigningAccount) return;
     const selectedSeller = sellers.find((s) => s.id === selectedSellerToAssign);
@@ -1361,11 +1361,48 @@ export default function OwnerDashboard() {
             ...acc,
             seller: selectedSeller ? selectedSeller.name : "Sin Asignar (En Stock)",
             sellerId: selectedSeller ? selectedSeller.id : undefined,
-            status: (selectedSeller ? "assigned" : "available") as any
+            customerName: selectedSeller ? selectedSeller.name : undefined,
+            status: (selectedSeller ? "assigned" : "available") as any,
+            notes: selectedSeller
+              ? (acc.notes ? acc.notes + " • " : "") + `Vendida a revendedor ${selectedSeller.name} el ${new Date().toLocaleDateString()}`
+              : acc.notes
           }
         : acc
     );
     persistAccounts(updated);
+
+    // Si se asignó a un revendedor, registrar de inmediato la venta al mayor en el Libro de Ventas
+    if (selectedSeller) {
+      const platObj = catalogPlatforms.find(p => p.name.toLowerCase().includes(assigningAccount.platform.toLowerCase())) || catalogPlatforms[0];
+      const costPrice = Number(assigningAccount.monthlyCost) || Number(platObj?.defaultCost) || 2.0;
+      const salePrice = Number(platObj?.wholesalePrice) || Number(platObj?.price ? platObj.price * 0.8 : 3.0);
+      const profit = Math.max(0, salePrice - costPrice);
+
+      const newRecord: SaleRecord = {
+        id: `sale-${Date.now()}`,
+        date: new Date().toISOString(),
+        type: "mayor",
+        platform: assigningAccount.platform,
+        accountId: assigningAccount.id,
+        accountEmail: assigningAccount.email,
+        customerName: selectedSeller.name,
+        customerContact: (selectedSeller.phone && selectedSeller.phone !== "Sin teléfono") ? selectedSeller.phone : undefined,
+        paymentMethod: "efectivo",
+        costPrice,
+        salePrice,
+        profit,
+        notes: `Venta automática al asignar al revendedor ${selectedSeller.name}`,
+        isPhysicalSale: false
+      };
+
+      const updatedSales = [newRecord, ...sales];
+      setSales(updatedSales);
+      saveStoredSales(updatedSales);
+
+      setSaleSuccessMessage(`¡Cuenta vendida y asignada a ${selectedSeller.name}! Se registró la venta por ${formatCurrency(salePrice)} en el Libro de Ventas.`);
+      setTimeout(() => setSaleSuccessMessage(null), 4000);
+    }
+
     setIsAssignModalOpen(false);
     setAssigningAccount(null);
   };
@@ -3422,7 +3459,7 @@ export default function OwnerDashboard() {
                   className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="all">Todos los Estados</option>
-                  <option value="assigned">Asignadas a Revendedor</option>
+                  <option value="assigned">Cuentas Vendidas (Revendedor)</option>
                   <option value="available">En Stock (Libres)</option>
                   <option value="expiring">Por Vencer / Vencidas</option>
                   <option value="verified">🟢 Verde: Funciona (Verificada)</option>
@@ -3439,7 +3476,7 @@ export default function OwnerDashboard() {
                     <th className="py-3 px-4">Plataforma & País</th>
                     <th className="py-3 px-4">Correo & Contraseña</th>
                     <th className="py-3 px-4 text-center whitespace-nowrap min-w-[130px]">Verificada</th>
-                    <th className="py-3 px-4">Revendedor / Asignado a</th>
+                    <th className="py-3 px-4">Vendido a / Revendedor</th>
                     <th className="py-3 px-4 text-center">Perfiles / Cupos</th>
                     <th className="py-3 px-4 whitespace-nowrap">Vencimiento</th>
                     <th className="py-3 px-4 text-center whitespace-nowrap min-w-[110px]">Estado</th>
@@ -3593,9 +3630,9 @@ export default function OwnerDashboard() {
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">
                           {acc.status === "assigned" && (
-                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-950/70 text-purple-300 border border-purple-500/30 shadow-sm">
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                              <span>Asignada</span>
+                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-500/30 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              <span>Vendida</span>
                             </span>
                           )}
                           {acc.status === "available" && (
@@ -3638,9 +3675,9 @@ export default function OwnerDashboard() {
                           <button
                             onClick={() => handleOpenAssignModal(acc)}
                             className="px-2.5 py-1 text-xs text-zinc-200 hover:text-white bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg transition"
-                            title="Asignar o cambiar vendedor"
+                            title="Vender a revendedor o cambiar asignación"
                           >
-                            {acc.sellerId ? "Cambiar" : "Asignar"}
+                            {acc.sellerId ? "Reasignar" : "Vender / Asignar"}
                           </button>
                           <button
                             onClick={() => {
@@ -5055,7 +5092,7 @@ export default function OwnerDashboard() {
                   <UserCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white">Asignar Cuenta a Vendedor</h3>
+                  <h3 className="text-lg font-black text-white">Vender / Asignar Cuenta a Revendedor</h3>
                   <p className="text-xs text-zinc-400">{assigningAccount.platform} • {assigningAccount.email}</p>
                 </div>
               </div>
@@ -5100,6 +5137,13 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
+              <div className="mb-4 p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>
+                  Al seleccionar un revendedor y confirmar, la cuenta pasará a estado <strong>Vendida</strong> y se registrará automáticamente en el <strong>Libro de Ventas</strong> con el precio mayorista.
+                </span>
+              </div>
+
               <div className="pt-3 border-t border-[#262626] flex justify-end gap-2 text-xs">
                 <button
                   type="button"
@@ -5113,7 +5157,7 @@ export default function OwnerDashboard() {
                   onClick={handleSaveAssignment}
                   className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
                 >
-                  Confirmar Asignación
+                  Confirmar Venta y Asignación
                 </button>
               </div>
             </div>
