@@ -30,7 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Globe
 } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -120,7 +121,7 @@ export default function SellerLiveCodesPage() {
 
   const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string }>>([]);
+  const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string; country: string }>>([]);
   const [rawSellerAccounts, setRawSellerAccounts] = useState<StoredStreamingAccount[]>([]);
 
   const router = useRouter();
@@ -335,7 +336,8 @@ export default function SellerLiveCodesPage() {
       id: a.id,
       service: a.platform,
       email: a.email,
-      profiles: `${a.occupiedProfiles || 0}/${a.maxProfiles || 5}`
+      profiles: `${a.occupiedProfiles || 0}/${a.maxProfiles || 5}`,
+      country: a.country || "Global"
     }));
 
     setAssignedAccounts(formatted);
@@ -1085,10 +1087,16 @@ export default function SellerLiveCodesPage() {
                             >
                               <div>
                                 <div className="flex items-center justify-between gap-2 mb-2">
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/30 truncate max-w-[160px]">
-                                    {acc.platform}
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-950 text-red-400 border border-red-500/40 uppercase">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff6666] border border-[#E50914]/30 truncate max-w-[120px]">
+                                      {acc.platform}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-300 bg-black/60 border border-zinc-700 shrink-0">
+                                      <Globe className="w-2.5 h-2.5 text-[#E50914]" />
+                                      <span>{acc.country || "Global"}</span>
+                                    </span>
+                                  </div>
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-950 text-red-400 border border-red-500/40 uppercase shrink-0">
                                     {isExpired ? "Vencida" : "Vence este día"}
                                   </span>
                                 </div>
@@ -1193,7 +1201,18 @@ export default function SellerLiveCodesPage() {
                             {acc.profiles}
                           </span>
                         </div>
-                        <div className="font-mono text-xs text-zinc-200 truncate">{acc.email}</div>
+                        <div className="font-mono text-xs text-zinc-200 truncate mb-1.5">{acc.email}</div>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-[#262626] text-[10px]">
+                          <span className="inline-flex items-center gap-1 text-zinc-400 font-mono">
+                            <Globe className="w-2.5 h-2.5 text-[#E50914]" />
+                            <span>País: <strong className="text-zinc-200">{acc.country}</strong></span>
+                          </span>
+                          {isSelected && (
+                            <span className="text-[#ff6666] font-bold text-[9px] uppercase tracking-wider">
+                              Seleccionada
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

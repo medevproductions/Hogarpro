@@ -115,7 +115,7 @@ export interface StreamingAccount {
   monthlyIncome: number;
   notes?: string;
   country?: string; // ej: Colombia, México, Global
-  isVerified?: boolean | "verified" | "payment_failed" | "unreviewed"; // estado de verificación (verde=verificada, roja=caída por pago, amarilla=sin revisar)
+  isVerified?: boolean | "verified" | "payment_failed" | "failed" | "unreviewed"; // estado de verificación (verde=funciona, amarillo=caída por pago o revisar, rojo=caída o falla)
   customerName?: string; // cliente o a quién se le vendió (opcional)
   importBatchId?: string; // id del lote de importación
   importedAt?: string; // fecha ISO de importación
@@ -192,18 +192,15 @@ function getTimeAgo(dateString?: string): string {
 }
 
 // Helper para normalizar el estado de verificación de las cuentas
-function getVerificationStatus(val: any): "verified" | "payment_failed" | "unreviewed" {
+function getVerificationStatus(val: any): "verified" | "payment_failed" | "failed" {
   if (val === "verified" || val === "funciona" || val === "comprobada" || val === true) {
     return "verified";
   }
-  if (val === "payment_failed" || val === "caida_pago" || val === "caida" || val === false) {
+  if (val === "failed" || val === "caida" || val === "falla" || val === false) {
+    return "failed";
+  }
+  if (val === "payment_failed" || val === "caida_pago" || val === "revisar" || val === "unreviewed" || val === "sin_revisar") {
     return "payment_failed";
-  }
-  if (val === "unreviewed" || val === "sin_revisar") {
-    return "unreviewed";
-  }
-  if (val === undefined || val === null) {
-    return "unreviewed";
   }
   return "verified";
 }
@@ -558,14 +555,14 @@ export default function OwnerDashboard() {
     alert(`¡Se eliminaron exitosamente las ${count} cuentas de la lista seleccionada!`);
   };
 
-  // Alternar rápidamente el estado de verificación de una cuenta (Verificada -> Caída por pago -> Sin revisar)
+  // Alternar rápidamente el estado de verificación de una cuenta (Verde: Funciona -> Amarillo: Caída por pago / Revisar -> Rojo: Caída / Falla)
   const handleToggleVerification = (acc: StreamingAccount) => {
     const current = getVerificationStatus(acc.isVerified);
-    let next: "verified" | "payment_failed" | "unreviewed" = "verified";
+    let next: "verified" | "payment_failed" | "failed" = "verified";
     if (current === "verified") {
       next = "payment_failed";
     } else if (current === "payment_failed") {
-      next = "unreviewed";
+      next = "failed";
     } else {
       next = "verified";
     }
@@ -588,7 +585,7 @@ export default function OwnerDashboard() {
     monthlyIncome: number;
     notes: string;
     country: string;
-    isVerified: "verified" | "payment_failed" | "unreviewed";
+    isVerified: "verified" | "payment_failed" | "failed";
     customerName: string;
   }>({
     platform: "Netflix Premium 4K",
@@ -633,8 +630,8 @@ export default function OwnerDashboard() {
             matchStatus = getVerificationStatus(acc.isVerified) === "verified";
           } else if (statusFilter === "payment_failed") {
             matchStatus = getVerificationStatus(acc.isVerified) === "payment_failed";
-          } else if (statusFilter === "unreviewed") {
-            matchStatus = getVerificationStatus(acc.isVerified) === "unreviewed";
+          } else if (statusFilter === "failed") {
+            matchStatus = getVerificationStatus(acc.isVerified) === "failed";
           }
         }
 
@@ -3422,9 +3419,9 @@ export default function OwnerDashboard() {
                   <option value="assigned">En Venta (Asignadas)</option>
                   <option value="available">En Stock (Libres)</option>
                   <option value="expiring">Por Vencer / Vencidas</option>
-                  <option value="verified">🟢 Verificadas (Funcionan)</option>
-                  <option value="payment_failed">🔴 Caídas por pago</option>
-                  <option value="unreviewed">🟡 Sin revisar</option>
+                  <option value="verified">🟢 Verde: Funciona (Verificada)</option>
+                  <option value="payment_failed">🟡 Amarillo: Caída por pago / Revisar</option>
+                  <option value="failed">🔴 Rojo: Caída o falla</option>
                 </select>
               </div>
             </div>
@@ -3509,10 +3506,10 @@ export default function OwnerDashboard() {
                                   type="button"
                                   onClick={() => handleToggleVerification(acc)}
                                   className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400 hover:scale-105 shadow-sm shadow-emerald-950/40 transition cursor-pointer"
-                                  title="Verificada / Funciona (Clic para cambiar estado)"
+                                  title="🟢 Funciona / Verificada (Clic para cambiar a Caída por pago)"
                                 >
                                   <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/90 animate-pulse"></span>
-                                  <span>Verificada</span>
+                                  <span>Funciona</span>
                                 </button>
                               );
                             }
@@ -3521,10 +3518,10 @@ export default function OwnerDashboard() {
                                 <button
                                   type="button"
                                   onClick={() => handleToggleVerification(acc)}
-                                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-950/70 text-rose-300 border border-rose-500/30 hover:border-rose-400 hover:scale-105 shadow-sm shadow-rose-950/40 transition cursor-pointer"
-                                  title="Caída por pago (Clic para cambiar estado)"
+                                  className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/30 hover:border-amber-400 hover:scale-105 shadow-sm shadow-amber-950/40 transition cursor-pointer"
+                                  title="🟡 Caída por pago / Revisar (Clic para cambiar a Caída o falla)"
                                 >
-                                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/90"></span>
+                                  <span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm shadow-amber-400/90"></span>
                                   <span>Caída por pago</span>
                                 </button>
                               );
@@ -3533,11 +3530,11 @@ export default function OwnerDashboard() {
                               <button
                                 type="button"
                                 onClick={() => handleToggleVerification(acc)}
-                                className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/30 hover:border-amber-400 hover:scale-105 shadow-sm shadow-amber-950/40 transition cursor-pointer"
-                                title="Sin revisar (Clic para cambiar estado)"
+                                className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-950/70 text-rose-300 border border-rose-500/30 hover:border-rose-400 hover:scale-105 shadow-sm shadow-rose-950/40 transition cursor-pointer"
+                                title="🔴 Caída o falla (Clic para cambiar a Funciona)"
                               >
-                                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm shadow-amber-400/90"></span>
-                                <span>Sin revisar</span>
+                                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/90"></span>
+                                <span>Caída / Falla</span>
                               </button>
                             );
                           })()}
@@ -4912,8 +4909,8 @@ export default function OwnerDashboard() {
                       className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
                     >
                       <option value="verified">🟢 Funciona (Comprobada / Verificada)</option>
-                      <option value="payment_failed">🔴 Caída por pago</option>
-                      <option value="unreviewed">🟡 Sin revisar</option>
+                      <option value="payment_failed">🟡 Caída por pago o revisar</option>
+                      <option value="failed">🔴 Caída o falla</option>
                     </select>
                   </div>
                   <div>
