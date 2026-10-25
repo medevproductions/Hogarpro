@@ -978,24 +978,30 @@ export default function OwnerDashboard() {
       ? catalogPlatforms.find((p) => p.name === preselectedAccount.platform) || catalogPlatforms[0]
       : catalogPlatforms[0];
 
+    const isResellerAccount = Boolean(
+      preselectedAccount && (preselectedAccount.sellerId || (preselectedAccount.seller && !preselectedAccount.seller.includes("Sin Asignar")))
+    );
+    const saleType: "detal" | "mayor" = isResellerAccount ? "mayor" : "detal";
     const defCost = preselectedAccount ? (preselectedAccount.monthlyCost || 2.0) : (firstPlat?.defaultCost || 2.0);
-    const defPrice = firstPlat?.price || 3.5;
+    const defPrice = isResellerAccount
+      ? (firstPlat?.wholesalePrice || 3.0)
+      : (firstPlat?.retailPrice || firstPlat?.price || 3.5);
     const defProfit = Math.max(0, defPrice - defCost);
 
     setSaleForm({
       id: `sale-${Date.now()}`,
-      type: "detal",
+      type: saleType,
       platform: preselectedAccount ? preselectedAccount.platform : (firstPlat?.name || "Netflix Premium 4K"),
       selectedAccountId: preselectedAccount ? preselectedAccount.id : "manual",
       accountEmail: preselectedAccount ? preselectedAccount.email : "",
-      customerName: preselectedAccount?.customerName || "",
+      customerName: (isResellerAccount && preselectedAccount?.seller) ? preselectedAccount.seller : (preselectedAccount?.customerName || ""),
       customerContact: "",
       paymentMethod: "efectivo",
       costPrice: defCost,
       salePrice: defPrice,
       profit: defProfit,
-      notes: preselectedAccount ? `Venta desde inventario: ${preselectedAccount.email}` : "Venta directa en persona",
-      isPhysicalSale: true
+      notes: preselectedAccount ? `Venta manual a revendedor: ${preselectedAccount.email}` : "Venta directa en persona",
+      isPhysicalSale: false
     });
     setIsSaleModalOpen(true);
   };
@@ -3416,7 +3422,7 @@ export default function OwnerDashboard() {
                   className="bg-[#141414] border border-[#2a2a2a] text-xs text-zinc-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-[#E50914]"
                 >
                   <option value="all">Todos los Estados</option>
-                  <option value="assigned">En Venta (Asignadas)</option>
+                  <option value="assigned">Asignadas a Revendedor</option>
                   <option value="available">En Stock (Libres)</option>
                   <option value="expiring">Por Vencer / Vencidas</option>
                   <option value="verified">🟢 Verde: Funciona (Verificada)</option>
@@ -3433,7 +3439,7 @@ export default function OwnerDashboard() {
                     <th className="py-3 px-4">Plataforma & País</th>
                     <th className="py-3 px-4">Correo & Contraseña</th>
                     <th className="py-3 px-4 text-center whitespace-nowrap min-w-[130px]">Verificada</th>
-                    <th className="py-3 px-4">Vendido a / Asignado</th>
+                    <th className="py-3 px-4">Revendedor / Asignado a</th>
                     <th className="py-3 px-4 text-center">Perfiles / Cupos</th>
                     <th className="py-3 px-4 whitespace-nowrap">Vencimiento</th>
                     <th className="py-3 px-4 text-center whitespace-nowrap min-w-[110px]">Estado</th>
@@ -3587,9 +3593,9 @@ export default function OwnerDashboard() {
                         </td>
                         <td className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">
                           {acc.status === "assigned" && (
-                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-500/30 shadow-sm">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                              <span>En Venta</span>
+                            <span className="whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-950/70 text-purple-300 border border-purple-500/30 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              <span>Asignada</span>
                             </span>
                           )}
                           {acc.status === "available" && (
