@@ -594,8 +594,8 @@ export function checkAccountAuthorization(accountEmail: string, user: SystemUser
 } {
   const cleanEmail = accountEmail.trim().toLowerCase();
 
-  // El Owner tiene acceso maestro e irrestricto
-  if (user?.role === "owner") {
+  // El Owner o Admin tiene acceso maestro e irrestricto
+  if (user?.role === "owner" || (user?.role as string) === "admin") {
     return { authorized: true };
   }
 
@@ -638,9 +638,18 @@ export function checkAccountAuthorization(accountEmail: string, user: SystemUser
 
   // Verificar si la fecha de expiración/renovación ya pasó
   if (match.expirationDate) {
-    const expDate = new Date(match.expirationDate);
+    const cleanExp = match.expirationDate.split("T")[0];
+    const parts = cleanExp.split("-").map(Number);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    let expDate: Date;
+    if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+      expDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+    } else {
+      expDate = new Date(match.expirationDate);
+      expDate.setHours(23, 59, 59, 999);
+    }
 
     if (expDate < today) {
       return {

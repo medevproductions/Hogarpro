@@ -1728,14 +1728,16 @@ export default function OwnerDashboard() {
   };
 
   // PROBAR CÓDIGO DIRECTO DESDE PANEL OWNER (BYPASS TOTAL)
-  const handleExecuteCodeTest = async () => {
+  const handleExecuteCodeTest = async (overrideAction?: string) => {
     if (!testEmail.trim()) return;
+    const actionToUse = overrideAction || testAction;
+    if (overrideAction) setTestAction(overrideAction);
     setIsTestingCode(true);
     setTestResult(null);
     setCopiedTestCode(false);
 
     try {
-      const res = await fetch(`/api/codes/check?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(testAction)}&t=${Date.now()}`);
+      const res = await fetch(`/api/codes/check?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(actionToUse)}&t=${Date.now()}`);
       const data = await res.json();
       if (data && data.success && data.code) {
         setTestResult(data.code);
@@ -3681,10 +3683,13 @@ export default function OwnerDashboard() {
                           </button>
                           <button
                             onClick={() => {
-                              setTestEmail(acc.email);
+                              setActiveTab("codigos");
+                              setTestEmail(acc.email.trim());
                               setTestService("netflix");
-                              const codigosEl = document.getElementById("codigos-owner");
-                              codigosEl?.scrollIntoView({ behavior: "smooth" });
+                              setTimeout(() => {
+                                const codigosEl = document.getElementById("codigos-owner");
+                                codigosEl?.scrollIntoView({ behavior: "smooth" });
+                              }, 100);
                             }}
                             className="px-2 py-1 text-xs text-[#ff6666] hover:text-white bg-[#E50914]/20 hover:bg-[#E50914]/40 border border-[#E50914]/30 rounded-lg transition"
                             title="Extraer códigos de esta cuenta"
@@ -4019,10 +4024,13 @@ export default function OwnerDashboard() {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => {
-                                    setTestEmail(acc.email);
+                                    setActiveTab("codigos");
+                                    setTestEmail(acc.email.trim());
                                     setTestService("netflix");
-                                    const codigosEl = document.getElementById("codigos-owner");
-                                    codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                    setTimeout(() => {
+                                      const codigosEl = document.getElementById("codigos-owner");
+                                      codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                    }, 100);
                                   }}
                                   className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 shadow-sm transition"
                                   title="Extraer código en vivo de esta cuenta"
@@ -4361,9 +4369,13 @@ export default function OwnerDashboard() {
                                   <div className="mt-3 pt-2.5 border-t border-[#222222] flex items-center justify-end gap-2">
                                     <button
                                       onClick={() => {
-                                        setTestEmail(acc.email);
-                                        const codigosEl = document.getElementById("codigos-owner");
-                                        codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                        setActiveTab("codigos");
+                                        setTestEmail(acc.email.trim());
+                                        setTestService("netflix");
+                                        setTimeout(() => {
+                                          const codigosEl = document.getElementById("codigos-owner");
+                                          codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                        }, 100);
                                       }}
                                       className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 transition"
                                       title="Extraer código de esta cuenta"
@@ -4579,9 +4591,13 @@ export default function OwnerDashboard() {
                           <div className="mt-3 pt-3 border-t border-[#262626] flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
-                                setTestEmail(acc.email);
-                                const codigosEl = document.getElementById("codigos-owner");
-                                codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                setActiveTab("codigos");
+                                setTestEmail(acc.email.trim());
+                                setTestService("netflix");
+                                setTimeout(() => {
+                                  const codigosEl = document.getElementById("codigos-owner");
+                                  codigosEl?.scrollIntoView({ behavior: "smooth" });
+                                }, 100);
                               }}
                               className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 transition"
                             >
@@ -4739,93 +4755,243 @@ export default function OwnerDashboard() {
                   Consulta directa e instantánea de cualquier correo o servicio sin restricciones de vendedor ni expiración
                 </p>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-              <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  Correo de la Cuenta
-                </label>
-                <input
-                  type="text"
-                  inputMode="email"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="ej: hogaryutu+acido@gmail.com"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  Servicio
-                </label>
-                <select
-                  value={testService}
-                  onChange={(e) => setTestService(e.target.value)}
-                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="netflix">Netflix</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-1">
-                  Acción Requerida (Netflix)
-                </label>
-                <select
-                  value={testAction}
-                  onChange={(e) => setTestAction(e.target.value)}
-                  className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
-                >
-                  <option value="login_code">Código de inicio de sesión (4 dígitos)</option>
-                  <option value="verification_code">Código de verificación (15 minutos)</option>
-                  <option value="actualizar_hogar">Solicitar actualizar hogar netflix (link)</option>
-                  <option value="acceso_temporal">Código de acceso temporal (link)</option>
-                  <option value="reset_password">Restablecer contraseña (link)</option>
-                </select>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-zinc-400 bg-[#222222] px-3 py-1 rounded-lg border border-zinc-700">
+                  {accounts.length} Cuentas en Inventario
+                </span>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <button
-                onClick={handleExecuteCodeTest}
-                disabled={isTestingCode || !testEmail.trim()}
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-red-950/60 transition active:scale-95 disabled:opacity-50"
-              >
-                {isTestingCode ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Consultando Gmail / GAS...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Extraer Código / Enlace Ahora</span>
-                  </>
+            {/* PASO 1: SELECCIONAR CUENTA */}
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#E50914] text-white flex items-center justify-center text-[10px] font-black">1</span>
+                  <span>Seleccionar Cuenta para Extraer Códigos</span>
+                </label>
+                {testEmail && (
+                  <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[220px]">{testEmail}</span>
+                  </span>
                 )}
-              </button>
+              </div>
 
-              {/* Accesos rápidos con correos del inventario */}
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="text-zinc-500 text-[11px] font-medium">Rápido:</span>
-                {accounts.slice(0, 3).map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() => setTestEmail(a.email)}
-                    className="px-2 py-1 bg-[#222222] hover:bg-zinc-700 text-zinc-300 rounded-lg text-[10px] font-mono truncate max-w-[170px] border border-zinc-700"
+              {/* Selector desplegable de todas las cuentas */}
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                  Elige una cuenta de la lista:
+                </label>
+                <select
+                  value={testEmail}
+                  onChange={(e) => {
+                    setTestEmail(e.target.value);
+                    setTestService("netflix");
+                    setTestResult(null);
+                  }}
+                  className="w-full bg-[#141414] border border-[#2a2a2a] hover:border-[#E50914] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#E50914] transition cursor-pointer shadow-sm"
+                >
+                  <option value="">-- Selecciona una cuenta del inventario ({accounts.length}) --</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.email}>
+                      {a.email} — {(a.platform || "NETFLIX").toUpperCase()} {a.country ? `[${a.country}]` : ""} • Vence: {a.expirationDate || "N/A"} {a.seller ? `(Vendido a: ${a.seller})` : "(Libre en Stock)"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Input manual alternativo */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                    O escribe / pega el correo manualmente:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="email"
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder="ej: hogaryutu+acido@gmail.com"
+                      value={testEmail}
+                      onChange={(e) => {
+                        setTestEmail(e.target.value);
+                        setTestResult(null);
+                      }}
+                      className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] font-mono"
+                    />
+                    {testEmail && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTestEmail("");
+                          setTestResult(null);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white p-1 text-xs"
+                        title="Limpiar"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                    Servicio
+                  </label>
+                  <select
+                    value={testService}
+                    onChange={(e) => setTestService(e.target.value)}
+                    className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                   >
-                    {a.email}
-                  </button>
-                ))}
+                    <option value="netflix">Netflix</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                    Acción Seleccionada
+                  </label>
+                  <select
+                    value={testAction}
+                    onChange={(e) => setTestAction(e.target.value)}
+                    className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
+                  >
+                    <option value="login_code">Código de inicio de sesión (4 dígitos)</option>
+                    <option value="verification_code">Código de verificación (15 minutos)</option>
+                    <option value="actualizar_hogar">Solicitar actualizar hogar netflix (link)</option>
+                    <option value="acceso_temporal">Código de acceso temporal (link)</option>
+                    <option value="reset_password">Restablecer contraseña (link)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tarjetas interactivas de cuentas rápidas */}
+              {accounts.length > 0 && (
+                <div className="pt-2">
+                  <span className="block text-[11px] font-semibold text-zinc-400 mb-2">
+                    Cuentas de Netflix en Inventario (Haz clic en cualquiera para seleccionarla):
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                    {accounts.map((acc) => {
+                      const isSelected = testEmail.trim().toLowerCase() === acc.email.trim().toLowerCase();
+                      return (
+                        <div
+                          key={acc.id}
+                          onClick={() => {
+                            setTestEmail(acc.email.trim());
+                            setTestService("netflix");
+                            setTestResult(null);
+                          }}
+                          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                            isSelected
+                              ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 ring-1 ring-[#E50914]"
+                              : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#1a1a1a]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-[11px] font-bold ${isSelected ? "text-[#E50914]" : "text-zinc-300"}`}>
+                              {(acc.platform || "NETFLIX").toUpperCase()}
+                            </span>
+                            {isSelected ? (
+                              <span className="text-[9px] font-black uppercase text-white bg-[#E50914] px-1.5 py-0.5 rounded">
+                                Seleccionada
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-zinc-500 font-mono">
+                                {acc.profilesOccupied || 0}/{acc.maxProfiles || 5}
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-mono text-xs text-white truncate font-medium">{acc.email}</div>
+                          <div className="flex items-center justify-between pt-1 mt-1 border-t border-[#222222] text-[10px] text-zinc-400">
+                            <span className="truncate">País: <strong className="text-zinc-200">{acc.country || "N/A"}</strong></span>
+                            <span className="font-mono text-zinc-300">{acc.expirationDate || ""}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* PASO 2: BOTONES DE ACCIÓN DIRECTA DE NETFLIX */}
+            <div className="mb-5 pt-4 border-t border-[#262626]">
+              <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2.5 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-[#E50914] text-white flex items-center justify-center text-[10px] font-black">2</span>
+                <span>Pedir Código o Enlace Directo (Haz clic en la acción deseada)</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+                {[
+                  { id: "login_code", label: "Inicio de Sesión", desc: "Código 4 dígitos", icon: Zap },
+                  { id: "verification_code", label: "Verificación", desc: "Código 15 minutos", icon: Clock },
+                  { id: "actualizar_hogar", label: "Actualizar Hogar", desc: "Enlace confirmar hogar", icon: Home },
+                  { id: "acceso_temporal", label: "Acceso Temporal", desc: "Enlace temporal / viaje", icon: ExternalLink },
+                  { id: "reset_password", label: "Restablecer Clave", desc: "Enlace cambio de clave", icon: Lock },
+                ].map((action) => {
+                  const isCurrentAction = testAction === action.id;
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={() => handleExecuteCodeTest(action.id)}
+                      disabled={isTestingCode || !testEmail.trim()}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                        isCurrentAction
+                          ? "bg-[#E50914]/20 border-[#E50914] text-white shadow-md shadow-red-950/40"
+                          : "bg-[#141414] border-[#2a2a2a] hover:border-zinc-500 text-zinc-300 hover:text-white"
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <Icon className={`w-4 h-4 ${isCurrentAction ? "text-[#E50914]" : "text-zinc-400"}`} />
+                        {isTestingCode && isCurrentAction && (
+                          <RefreshCw className="w-3 h-3 animate-spin text-[#E50914]" />
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-white leading-tight">{action.label}</div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5 leading-tight">{action.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Botón principal de consulta */}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleExecuteCodeTest()}
+                  disabled={isTestingCode || !testEmail.trim()}
+                  className="px-5 py-2.5 bg-[#E50914] hover:bg-[#f40612] text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-red-950/60 transition active:scale-95 disabled:opacity-50"
+                >
+                  {isTestingCode ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Consultando Gmail / GAS...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Extraer Acción Seleccionada</span>
+                    </>
+                  )}
+                </button>
+
+                {!testEmail.trim() && (
+                  <span className="text-xs text-amber-400/90 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Selecciona una cuenta arriba para pedir códigos</span>
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Resultado de la extracción */}
             {testResult && (
-              <div className="mt-4 p-4 rounded-xl bg-[#141414] border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+              <div className="mt-4 p-4 rounded-xl bg-[#141414] border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner animate-in fade-in duration-200">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Resultado Obtenido:</span>
                   <div className="font-mono text-base font-black text-emerald-400 mt-0.5 break-all">

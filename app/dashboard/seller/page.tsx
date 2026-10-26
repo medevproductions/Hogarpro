@@ -343,9 +343,12 @@ export default function SellerLiveCodesPage() {
     setAssignedAccounts(formatted);
     setRawSellerAccounts(validAccs);
     if (formatted.length > 0) {
-      if (!selectedAccount || !formatted.some(f => f.email === selectedAccount)) {
-        setSelectedAccount(formatted[0].email);
-      }
+      setSelectedAccount((prev) => {
+        if (prev && formatted.some(f => f.email.toLowerCase().trim() === prev.toLowerCase().trim())) {
+          return prev;
+        }
+        return formatted[0].email;
+      });
     } else {
       setSelectedAccount("");
     }
@@ -1114,11 +1117,15 @@ export default function SellerLiveCodesPage() {
                               <div className="mt-3 pt-3 border-t border-[#262626] flex justify-end">
                                 <button
                                   onClick={() => {
-                                    setSelectedAccount(acc.email);
+                                    const targetEmail = acc.email.trim();
+                                    setSelectedAccount(targetEmail);
                                     setActiveTab("cuentas");
+                                    setAuthError(null);
+                                    setReceivedCode(null);
+                                    setIsWaiting(false);
                                     setTimeout(() => {
-                                      window.scrollTo({ top: 320, behavior: "smooth" });
-                                    }, 100);
+                                      window.scrollTo({ top: 280, behavior: "smooth" });
+                                    }, 80);
                                   }}
                                   className="w-full py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
                                 >
@@ -1175,47 +1182,73 @@ export default function SellerLiveCodesPage() {
                   No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas de streaming.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {assignedAccounts.map((acc) => {
-                    const isSelected = selectedAccount === acc.email;
-                    return (
-                      <div
-                        key={acc.id}
-                        onClick={() => {
-                          setSelectedAccount(acc.email);
-                          setAuthError(null);
-                          setReceivedCode(null);
-                          setIsWaiting(false);
-                        }}
-                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                          isSelected
-                            ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 transform scale-[1.02]"
-                            : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#181818]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className={`text-xs font-black ${isSelected ? "text-white" : "text-zinc-300"}`}>
-                            {acc.service}
-                          </span>
-                          <span className="text-[10px] text-zinc-400 bg-[#282828] px-2 py-0.5 rounded font-mono">
-                            {acc.profiles}
-                          </span>
-                        </div>
-                        <div className="font-mono text-xs text-zinc-200 truncate mb-1.5">{acc.email}</div>
-                        <div className="flex items-center justify-between pt-1.5 border-t border-[#262626] text-[10px]">
-                          <span className="inline-flex items-center gap-1 text-zinc-400 font-mono">
-                            <Globe className="w-2.5 h-2.5 text-[#E50914]" />
-                            <span>País: <strong className="text-zinc-200">{acc.country}</strong></span>
-                          </span>
-                          {isSelected && (
-                            <span className="text-[#ff6666] font-bold text-[9px] uppercase tracking-wider">
-                              Seleccionada
+                <div className="space-y-3">
+                  {/* Selector Desplegable Rápido */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      Selecciona una cuenta de la lista:
+                    </label>
+                    <select
+                      value={selectedAccount}
+                      onChange={(e) => {
+                        setSelectedAccount(e.target.value);
+                        setAuthError(null);
+                        setReceivedCode(null);
+                        setIsWaiting(false);
+                      }}
+                      className="w-full bg-[#121212] border border-[#333333] hover:border-[#E50914] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#E50914] transition cursor-pointer shadow-sm"
+                    >
+                      {assignedAccounts.map((a) => (
+                        <option key={a.id} value={a.email}>
+                          {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Cuadrícula de Tarjetas Clicables */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {assignedAccounts.map((acc) => {
+                      const isSelected = selectedAccount.toLowerCase().trim() === acc.email.toLowerCase().trim();
+                      return (
+                        <div
+                          key={acc.id}
+                          onClick={() => {
+                            setSelectedAccount(acc.email.trim());
+                            setAuthError(null);
+                            setReceivedCode(null);
+                            setIsWaiting(false);
+                          }}
+                          className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                            isSelected
+                              ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 transform scale-[1.02]"
+                              : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#181818]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className={`text-xs font-black ${isSelected ? "text-white" : "text-zinc-300"}`}>
+                              {acc.service}
                             </span>
-                          )}
+                            <span className="text-[10px] text-zinc-400 bg-[#282828] px-2 py-0.5 rounded font-mono">
+                              {acc.profiles}
+                            </span>
+                          </div>
+                          <div className="font-mono text-xs text-zinc-200 truncate mb-1.5">{acc.email}</div>
+                          <div className="flex items-center justify-between pt-1.5 border-t border-[#262626] text-[10px]">
+                            <span className="inline-flex items-center gap-1 text-zinc-400 font-mono">
+                              <Globe className="w-2.5 h-2.5 text-[#E50914]" />
+                              <span>País: <strong className="text-zinc-200">{acc.country}</strong></span>
+                            </span>
+                            {isSelected && (
+                              <span className="text-[#ff6666] font-bold text-[9px] uppercase tracking-wider">
+                                Seleccionada
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
