@@ -3,7 +3,7 @@
  * EXCLUSIVO NETFLIX - EXTRACTOR ESPECIALIZADO DE 5 ACCIONES
  * 
  * 1. Codigo de inicio de sesion (4 dígitos numéricos para TV / pantalla)
- * 2. Codigo de verificacion (dura 15 minutos - OTP numérico de 4 o 6 dígitos)
+ * 2. Codigo de verificacion (6 dígitos numéricos - OTP de verificación)
  * 3. Solicitar actualizar hogar netflix (link oficial directo HTTPS)
  * 4. Codigo de acceso temporal (link oficial de viaje / fuera de casa HTTPS)
  * 5. Reestablecer contraseña (link oficial directo para cambiar clave HTTPS)
