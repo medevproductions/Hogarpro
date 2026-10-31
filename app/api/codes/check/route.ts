@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
   const clientIp = getClientIp(req);
 
-  // 1. RATE LIMITING: Máximo 35 consultas por minuto por dirección IP
-  const rateLimitResult = checkRateLimit(`check:${clientIp}`, 35, 60 * 1000);
+  // 1. RATE LIMITING: Hasta 120 consultas por minuto por dirección IP (soporta polling legítimo)
+  const rateLimitResult = checkRateLimit(`check:${clientIp}`, 120, 60 * 1000);
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
       { 
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   const rawActionType = searchParams.get("actionType") || "login_code";
 
   if (!rawEmail) {
-    return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
+    return NextResponse.json({ success: false, code: null, message: "Parámetro 'email' requerido" }, { headers: corsHeaders });
   }
 
   // Si en la URL venía '+' sin escapar (ej: ?email=cuenta+embudo@gmail.com), URLSearchParams lo decodifica como espacio ' '
@@ -73,9 +73,11 @@ export async function GET(req: NextRequest) {
   // Normalizar la acción a una de las 5 opciones oficiales de Netflix
   const actionType = normalizeActionType(rawActionType);
   const service = "netflix"; // Exclusivo Netflix
+  const isLink = actionType === "actualizar_hogar" || actionType === "acceso_temporal" || actionType === "reset_password";
 
-  // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR (Rápido y Seguro con validación de acción y frescura)
-  const MAX_CODE_AGE_MS = 15 * 60 * 1000; // Máximo 15 minutos de frescura
+  // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR
+  // Para enlaces: 24 horas. Para códigos numéricos: 60 minutos
+  const MAX_CODE_AGE_MS = isLink ? (24 * 60 * 60 * 1000) : (60 * 60 * 1000);
   const now = Date.now();
   const cacheKey = `${cleanEmail}:${actionType}`;
   const cached = memoryStore.get(cacheKey) || memoryStore.get(`${cleanEmail}:${rawActionType}`) || memoryStore.get(cleanEmail);
@@ -87,10 +89,10 @@ export async function GET(req: NextRequest) {
     const isFresh = (now - cached.timestamp) <= MAX_CODE_AGE_MS;
 
     if (isMatchingAction && isFresh) {
-      const isLink = cached.code.startsWith("http://") || cached.code.startsWith("https://");
+      const codeIsUrl = cached.code.startsWith("http://") || cached.code.startsWith("https://");
       
-      // Si es enlace, verificar que sea un dominio oficial de Netflix
-      if (isLink) {
+      // Si la acción requería link y tenemos URL, sanitizarla
+      if (isLink && codeIsUrl) {
         const safeLink = sanitizeStreamingLink(cached.code);
         if (safeLink) {
           return NextResponse.json({
@@ -102,7 +104,8 @@ export async function GET(req: NextRequest) {
             source: "instant_cache"
           }, { headers: corsHeaders });
         }
-      } else {
+      } else if (!isLink && !codeIsUrl) {
+        // Código numérico
         return NextResponse.json({
           success: true,
           code: cached.code,
@@ -113,20 +116,28 @@ export async function GET(req: NextRequest) {
         }, { headers: corsHeaders });
       }
     } else if (!isFresh) {
-      // Limpiar memoria si el código ya expiró
       memoryStore.delete(cacheKey);
       memoryStore.delete(`${cleanEmail}:${rawActionType}`);
       memoryStore.delete(cleanEmail);
     }
   }
 
+  let gasErrorMessage: string | null = null;
+
   // 3. Proxy Seguro hacia Google Apps Script (Upstream protegido detrás del backend)
   const GAS_URL = process.env.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbw8e69kUHigPwMYqBxXP5t-HNVW0EA6HIpNR2K6E6f8wG_VYefMXb8V7mnQHF72Wh2lGg/exec";
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     const gasRes = await fetch(
       `${GAS_URL}?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(service)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`,
-      { next: { revalidate: 0 } }
+      { 
+        signal: controller.signal,
+        next: { revalidate: 0 } 
+      }
     );
+    clearTimeout(timeoutId);
 
     if (gasRes.ok) {
       const gasData = await gasRes.json();
@@ -156,10 +167,14 @@ export async function GET(req: NextRequest) {
           timestamp: new Date().toISOString(),
           source: "gas_direct"
         }, { headers: corsHeaders });
+      } else if (gasData && gasData.message) {
+        gasErrorMessage = gasData.message;
       }
     }
-  } catch (gasErr) {
-    // Si Google Apps Script demora, continuar con la consulta de base de datos
+  } catch (gasErr: any) {
+    gasErrorMessage = gasErr?.name === "AbortError" 
+      ? "La consulta a Google Apps Script tardó demasiado tiempo." 
+      : (gasErr?.message || null);
   }
 
   // 4. Consulta a Cloud Firestore (Base de datos primaria con filtro de acción y frescura)
@@ -167,23 +182,37 @@ export async function GET(req: NextRequest) {
     const firestoreCode = await getRecentCodeFromFirestore(cleanEmail, actionType);
     if (firestoreCode && firestoreCode.extracted_code) {
       let codeValue = String(firestoreCode.extracted_code).trim();
-      if (codeValue.startsWith("http://") || codeValue.startsWith("https://")) {
+      const codeIsUrl = codeValue.startsWith("http://") || codeValue.startsWith("https://");
+
+      if (isLink && codeIsUrl) {
         const verified = sanitizeStreamingLink(codeValue);
         if (verified) codeValue = verified;
+        return NextResponse.json({
+          success: true,
+          code: codeValue,
+          status: firestoreCode.status,
+          actionType: firestoreCode.action_type || actionType,
+          timestamp: firestoreCode.created_at,
+          source: "firestore"
+        }, { headers: corsHeaders });
+      } else if (!isLink && !codeIsUrl) {
+        return NextResponse.json({
+          success: true,
+          code: codeValue,
+          status: firestoreCode.status,
+          actionType: firestoreCode.action_type || actionType,
+          timestamp: firestoreCode.created_at,
+          source: "firestore"
+        }, { headers: corsHeaders });
       }
-
-      return NextResponse.json({
-        success: true,
-        code: codeValue,
-        status: firestoreCode.status,
-        actionType: firestoreCode.action_type || actionType,
-        timestamp: firestoreCode.created_at,
-        source: "firestore"
-      }, { headers: corsHeaders });
     }
   } catch (fsErr) {
     console.warn("[FIRESTORE] Advertencia consultando Firestore:", fsErr);
   }
 
-  return NextResponse.json({ success: false, code: null }, { headers: corsHeaders });
+  return NextResponse.json({ 
+    success: false, 
+    code: null, 
+    message: gasErrorMessage || `No se encontró ningún correo reciente para '${cleanEmail}'. Solicita el código desde Netflix primero.` 
+  }, { headers: corsHeaders });
 }

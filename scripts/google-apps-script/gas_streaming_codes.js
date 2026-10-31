@@ -3,37 +3,53 @@
  * EXCLUSIVO NETFLIX - EXTRACTOR ESPECIALIZADO DE 5 ACCIONES
  * 
  * 1. Codigo de inicio de sesion (4 dígitos numéricos para TV / pantalla)
- * 2. Codigo de verificacion (dura 15 minutos - OTP numérico)
- * 3. Solicitar actualizar hogar netflix (link oficial directo)
- * 4. Codigo de acceso temporal (link oficial de viaje / fuera de casa)
- * 5. Reestablecer contraseña (link oficial directo para cambiar clave)
+ * 2. Codigo de verificacion (dura 15 minutos - OTP numérico de 4 o 6 dígitos)
+ * 3. Solicitar actualizar hogar netflix (link oficial directo HTTPS)
+ * 4. Codigo de acceso temporal (link oficial de viaje / fuera de casa HTTPS)
+ * 5. Reestablecer contraseña (link oficial directo para cambiar clave HTTPS)
+ * 
+ * NOTA IMPORTANTE:
+ * - Solo 'login_code' y 'verification_code' son números.
+ * - 'actualizar_hogar', 'acceso_temporal' y 'reset_password' son enlaces (links).
  * 
  * Instrucciones:
- * - Pega este script en tu proyecto de Google Apps Script.
- * - Despliega como Aplicación Web (Acceso: 'Cualquiera').
+ * 1. Pega este código completo en tu proyecto de Google Apps Script (Editor de código).
+ * 2. Haz clic en "Implementar" > "Nueva implementación" > Tipo: "Aplicación web".
+ * 3. Ejecutar como: "Yo" (tu cuenta de Google donde llegan los correos de Netflix).
+ * 4. Quién tiene acceso: "Cualquiera" (para que el backend de HogarPro pueda consultar).
+ * 5. Haz clic en "Implementar" y confirma permisos si los solicita.
  */
 
 const CONFIG = {
   BASE_URL: "https://hogarpro-xrhd.vercel.app",
   API_SECRET: (typeof PropertiesService !== "undefined" && PropertiesService.getScriptProperties().getProperty("API_SECRET")) || "token_ultra_secreto_para_proteger_endpoint_de_codigos_2026",
-  NETFLIX_FROM: "from:account.netflix.com OR from:netflix.com OR from:mailer.netflix.com"
+  NETFLIX_FROM: "from:netflix.com OR from:account.netflix.com OR from:mailer.netflix.com"
 };
 
 /**
  * Punto de entrada HTTP GET para el backend de Next.js (/api/codes/check)
  */
 function doGet(e) {
-  const email = (e && e.parameter && e.parameter.email) ? e.parameter.email.trim().toLowerCase() : "";
-  const rawActionType = (e && e.parameter && e.parameter.actionType) ? e.parameter.actionType.trim().toLowerCase() : "login_code";
+  try {
+    const email = (e && e.parameter && e.parameter.email) ? e.parameter.email.trim().toLowerCase() : "";
+    const rawActionType = (e && e.parameter && e.parameter.actionType) ? e.parameter.actionType.trim().toLowerCase() : "login_code";
 
-  if (!email) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: "email requerido" }))
+    if (!email) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: false, 
+        error: "Parámetro 'email' es requerido" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const result = buscarCodigoNetflix(email, rawActionType);
+    return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      error: "Error interno en Google Apps Script: " + err.message 
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-
-  const result = buscarCodigoNetflix(email, rawActionType);
-  return ContentService.createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
@@ -46,11 +62,11 @@ function doPost(e) {
 function normalizarAccion(action) {
   if (!action) return "login_code";
   const a = action.toLowerCase().trim();
-  if (a === "actualizar" || a === "actualizar_hogar" || a === "hogar") return "actualizar_hogar";
-  if (a === "temporal" || a === "acceso_temporal" || a === "viaje") return "acceso_temporal";
-  if (a === "login_confirm" || a === "verification_code" || a === "verificacion") return "verification_code";
-  if (a === "reset_password" || a === "clave" || a === "password" || a === "restablecer") return "reset_password";
-  if (a === "login_code" || a === "login" || a === "inicio") return "login_code";
+  if (a === "actualizar" || a === "actualizar_hogar" || a === "hogar" || a === "household") return "actualizar_hogar";
+  if (a === "temporal" || a === "acceso_temporal" || a === "viaje" || a === "travel") return "acceso_temporal";
+  if (a === "login_confirm" || a === "verification_code" || a === "verificacion" || a === "verification" || a === "otp") return "verification_code";
+  if (a === "reset_password" || a === "clave" || a === "password" || a === "restablecer" || a === "reset") return "reset_password";
+  if (a === "login_code" || a === "login" || a === "inicio" || a === "signin") return "login_code";
   return a;
 }
 
@@ -60,9 +76,9 @@ function normalizarAccion(action) {
 function obtenerQueryKeywords(action) {
   switch (action) {
     case "login_code":
-      return '(subject:"iniciar sesión" OR subject:"iniciar sesion" OR subject:"sign-in" OR subject:"login code" OR subject:"código para iniciar")';
+      return '(subject:"iniciar sesión" OR subject:"iniciar sesion" OR subject:"sign-in" OR subject:"código" OR subject:"codigo" OR subject:"login")';
     case "verification_code":
-      return '(subject:"código de verificación" OR subject:"codigo de verificacion" OR subject:"verificación" OR subject:"verification" OR subject:"un solo uso")';
+      return '(subject:"código de verificación" OR subject:"codigo de verificacion" OR subject:"verificación" OR subject:"verification" OR subject:"código" OR subject:"codigo")';
     case "actualizar_hogar":
       return '(subject:"hogar" OR subject:"actualizar" OR subject:"household")';
     case "acceso_temporal":
@@ -80,31 +96,62 @@ function obtenerQueryKeywords(action) {
 function buscarCodigoNetflix(targetEmail, rawActionType) {
   const cleanTarget = targetEmail.trim().toLowerCase();
   const action = normalizarAccion(rawActionType);
+  const isNumberAction = (action === "login_code" || action === "verification_code");
   const keywords = obtenerQueryKeywords(action);
 
-  // 1. Búsqueda dirigida: to:correo (from:netflix...) (keywords de la acción)
-  let query = `to:${cleanTarget} (${CONFIG.NETFLIX_FROM}) ${keywords}`.trim();
-  Logger.log("Búsqueda dirigida en Gmail: " + query);
-  let threads = GmailApp.search(query, 0, 10);
+  // Manejo de alias con '+' (Plus-Addressing ej: hogaryutu+acido@gmail.com)
+  const baseEmail = cleanTarget.includes("+") 
+    ? (cleanTarget.split("+")[0] + "@" + cleanTarget.split("@")[1]) 
+    : cleanTarget;
 
-  // 2. Si no encuentra con keywords en el asunto, buscar todos los correos recientes de Netflix para ese destinatario
-  if (threads.length === 0) {
-    query = `to:${cleanTarget} (${CONFIG.NETFLIX_FROM})`;
-    Logger.log("Búsqueda general por destinatario: " + query);
-    threads = GmailApp.search(query, 0, 10);
+  let threads = [];
+
+  // Intento 1: Búsqueda exacta del correo con comillas + remitente Netflix
+  try {
+    const q1 = `("${cleanTarget}" OR to:"${cleanTarget}") (${CONFIG.NETFLIX_FROM})`.trim();
+    Logger.log("Búsqueda 1: " + q1);
+    threads = GmailApp.search(q1, 0, 10);
+  } catch (e1) {
+    Logger.log("Error búsqueda 1: " + e1.message);
   }
 
-  // 3. Respaldo por comillas exactas (para alias o menciones en el cuerpo)
-  if (threads.length === 0) {
-    query = `(${CONFIG.NETFLIX_FROM}) "${cleanTarget}"`;
-    Logger.log("Búsqueda con comillas: " + query);
-    threads = GmailApp.search(query, 0, 10);
+  // Intento 2: Si tiene '+' y no encontró nada, buscar en la casilla base
+  if ((!threads || threads.length === 0) && cleanTarget.includes("+")) {
+    try {
+      const q2 = `to:"${baseEmail}" (${CONFIG.NETFLIX_FROM}) ${keywords}`.trim();
+      Logger.log("Búsqueda 2 (base email): " + q2);
+      threads = GmailApp.search(q2, 0, 10);
+    } catch (e2) {
+      Logger.log("Error búsqueda 2: " + e2.message);
+    }
   }
 
-  if (threads.length === 0) {
+  // Intento 3: Búsqueda general de Netflix con keywords de la acción
+  if (!threads || threads.length === 0) {
+    try {
+      const q3 = `(${CONFIG.NETFLIX_FROM}) ${keywords}`.trim();
+      Logger.log("Búsqueda 3 (general con keywords): " + q3);
+      threads = GmailApp.search(q3, 0, 10);
+    } catch (e3) {
+      Logger.log("Error búsqueda 3: " + e3.message);
+    }
+  }
+
+  // Intento 4: Todos los correos recientes de Netflix
+  if (!threads || threads.length === 0) {
+    try {
+      const q4 = `(${CONFIG.NETFLIX_FROM})`.trim();
+      Logger.log("Búsqueda 4 (últimos correos Netflix): " + q4);
+      threads = GmailApp.search(q4, 0, 10);
+    } catch (e4) {
+      Logger.log("Error búsqueda 4: " + e4.message);
+    }
+  }
+
+  if (!threads || threads.length === 0) {
     return { 
       success: false, 
-      message: "No se encontraron correos de Netflix recientes para " + cleanTarget,
+      message: "No se encontraron correos de Netflix en la bandeja para " + cleanTarget + ". Asegúrate de haber solicitado el código desde Netflix.",
       actionType: action 
     };
   }
@@ -131,14 +178,23 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
   allMessages.sort((a, b) => b.getDate().getTime() - a.getDate().getTime());
 
   const now = new Date().getTime();
-  const MAX_MESSAGE_AGE_MS = 15 * 60 * 1000; // Estricto: últimos 15 minutos para evitar códigos obsoletos
+  const isNumberCode = (requestedAction === "login_code" || requestedAction === "verification_code");
+  
+  // Para enlaces: hasta 48 horas de vigencia. Para números: hasta 4 horas
+  const MAX_AGE_MS = isNumberCode ? (4 * 60 * 60 * 1000) : (48 * 60 * 60 * 1000);
 
+  const cleanTarget = targetEmail.trim().toLowerCase();
+  const baseEmail = cleanTarget.includes("+") 
+    ? (cleanTarget.split("+")[0] + "@" + cleanTarget.split("@")[1]) 
+    : cleanTarget;
+
+  // PASADA 1: Búsqueda en mensajes recientes
   for (let i = 0; i < allMessages.length; i++) {
     const message = allMessages[i];
     const msgDate = message.getDate().getTime();
 
-    // Descartar mensajes de más de 15 minutos
-    if (now - msgDate > MAX_MESSAGE_AGE_MS) {
+    // Descartar mensajes fuera de la ventana de tiempo
+    if (now - msgDate > MAX_AGE_MS) {
       continue;
     }
 
@@ -147,239 +203,219 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
     const htmlBody = message.getBody() || "";
     const subject = message.getSubject() || "";
 
-    // VALIDACIÓN ESTRICTA: Verificar que pertenezca al correo destinatario
-    const actualRecipient = extraerDestinatarioExacto(rawTo, body, htmlBody);
-    if (actualRecipient !== targetEmail && !rawTo.includes(targetEmail)) {
+    // Validación de destinatario flexible: To, Delivered-To, body o baseEmail
+    const matchesTarget = rawTo.includes(cleanTarget) || 
+                          body.toLowerCase().includes(cleanTarget) || 
+                          htmlBody.toLowerCase().includes(cleanTarget) ||
+                          (baseEmail && rawTo.includes(baseEmail)) ||
+                          (threads.length === 1); // Si fue el único hilo retornado
+
+    if (!matchesTarget) {
       continue;
     }
 
-    // Clasificar el mensaje de Netflix
-    const detectedAction = clasificarMensajeNetflix(subject, body, htmlBody);
-
-    // Si el mensaje actual es de OTRA acción distinta a la pedida, NO devolverlo
-    // (Ej: Si pidió login_code y llegó un email de reset de password, no confundirlos)
-    if (requestedAction && !accionesCoinciden(requestedAction, detectedAction)) {
-      continue;
-    }
-
-    const finalAction = requestedAction || detectedAction;
-    const codeOrLink = extraerPorAccionNetflix(subject, body, htmlBody, finalAction);
-
+    const codeOrLink = extraerPorAccionNetflix(subject, body, htmlBody, requestedAction);
     if (codeOrLink) {
-      const isLink = codeOrLink.startsWith("http://") || codeOrLink.startsWith("https://");
-      Logger.log(`[NETFLIX EXITO] ${targetEmail} | Acción: ${finalAction} -> ${codeOrLink}`);
-
-      // Enviar de fondo al webhook de la web para persistir en Firestore y memoria
-      enviarAlServidor(targetEmail, codeOrLink, finalAction, subject, body || htmlBody);
-
+      Logger.log(`[NETFLIX EXITO] ${cleanTarget} | Acción: ${requestedAction} -> ${codeOrLink}`);
+      enviarAlServidor(cleanTarget, codeOrLink, requestedAction, subject, body || htmlBody);
       return {
         success: true,
         code: codeOrLink,
-        email: targetEmail,
-        actionType: finalAction,
-        isLink: isLink
+        email: cleanTarget,
+        actionType: requestedAction,
+        isLink: !isNumberCode,
+        receivedAt: new Date(msgDate).toISOString()
+      };
+    }
+  }
+
+  // PASADA 2 (FALLBACK): Si no se encontró dentro de la ventana de tiempo, tomar el mensaje más reciente del hilo
+  for (let i = 0; i < allMessages.length; i++) {
+    const message = allMessages[i];
+    const body = message.getPlainBody() || "";
+    const htmlBody = message.getBody() || "";
+    const subject = message.getSubject() || "";
+    const msgDate = message.getDate().getTime();
+
+    const codeOrLink = extraerPorAccionNetflix(subject, body, htmlBody, requestedAction);
+    if (codeOrLink) {
+      Logger.log(`[NETFLIX FALLBACK EXITO] ${cleanTarget} | Acción: ${requestedAction} -> ${codeOrLink}`);
+      enviarAlServidor(cleanTarget, codeOrLink, requestedAction, subject, body || htmlBody);
+      return {
+        success: true,
+        code: codeOrLink,
+        email: cleanTarget,
+        actionType: requestedAction,
+        isLink: !isNumberCode,
+        receivedAt: new Date(msgDate).toISOString(),
+        note: "Extraído del correo más reciente disponible"
       };
     }
   }
 
   return { 
     success: false, 
-    message: "No se encontró ningún correo reciente (últimos 15 min) para la opción: " + requestedAction,
+    message: isNumberCode
+      ? "No se encontró ningún código numérico reciente para " + cleanTarget + ". Solicita el código en la pantalla de Netflix e inténtalo de nuevo."
+      : "No se encontró ningún enlace reciente para " + cleanTarget + ". Solicita la confirmación en Netflix e inténtalo de nuevo.",
     actionType: requestedAction 
   };
 }
 
 /**
- * Clasifica con precisión el mensaje de Netflix en una de las 5 opciones
- */
-function clasificarMensajeNetflix(subject, body, htmlBody) {
-  const combined = (subject + " " + body).toLowerCase();
-
-  // 1. Restablecer contraseña
-  if (combined.includes("restablece tu contraseña") || combined.includes("restablecer contraseña") || 
-      combined.includes("reset your password") || combined.includes("cambiar contraseña") ||
-      (combined.includes("contraseña") && combined.includes("netflix"))) {
-    return "reset_password";
-  }
-
-  // 2. Actualizar hogar
-  if (combined.includes("actualizar tu hogar") || combined.includes("actualizar hogar") || 
-      combined.includes("hogar con netflix") || combined.includes("update household") ||
-      combined.includes("update-household") || combined.includes("red del hogar")) {
-    return "actualizar_hogar";
-  }
-
-  // 3. Acceso temporal (Estoy de viaje / TV fuera de casa)
-  if (combined.includes("código de acceso temporal") || combined.includes("acceso temporal") || 
-      combined.includes("estás de viaje") || combined.includes("estoy de viaje") ||
-      combined.includes("temporary access") || combined.includes("travel/verify") || combined.includes("verify-travel")) {
-    return "acceso_temporal";
-  }
-
-  // 4. Código de verificación (dura 15 minutos)
-  if (combined.includes("código de verificación") || combined.includes("codigo de verificacion") || 
-      combined.includes("verificación") || combined.includes("verification code") ||
-      combined.includes("15 minutos") || combined.includes("un solo uso") || combined.includes("one-time code")) {
-    return "verification_code";
-  }
-
-  // 5. Código de inicio de sesión (TV / pantalla)
-  if (combined.includes("iniciar sesión") || combined.includes("iniciar sesion") || 
-      combined.includes("sign-in code") || combined.includes("código para iniciar") ||
-      combined.includes("tu código para iniciar")) {
-    return "login_code";
-  }
-
-  return "login_code";
-}
-
-/**
- * Comprueba si la acción solicitada es compatible con la acción clasificada del correo
- */
-function accionesCoinciden(requested, detected) {
-  const req = normalizarAccion(requested);
-  const det = normalizarAccion(detected);
-  return req === det;
-}
-
-/**
  * Extrae con exactitud el código o enlace según la acción requerida de Netflix
+ * - login_code y verification_code -> EXCLUSIVAMENTE NÚMEROS
+ * - actualizar_hogar, acceso_temporal y reset_password -> EXCLUSIVAMENTE ENLACES (LINKS)
  */
 function extraerPorAccionNetflix(subject, body, htmlBody, actionType) {
   const normAction = normalizarAccion(actionType);
+  if (normAction === "login_code" || normAction === "verification_code") {
+    return extraerCodigoNumericoNetflix(subject, body, htmlBody);
+  } else {
+    return extraerLinkNetflix(subject, body, htmlBody, normAction);
+  }
+}
+
+/**
+ * EXTRACTOR DE CÓDIGOS NUMÉRICOS (4 a 6 dígitos)
+ * Diseñado específicamente para códigos de Inicio de Sesión y Verificación de Netflix
+ */
+function extraerCodigoNumericoNetflix(subject, body, htmlBody) {
   const cleanBody = (body || "").replace(/=\r?\n/g, "");
-  const fullText = subject + "\n" + cleanBody;
+  const cleanHtml = (htmlBody || "").replace(/=\r?\n/g, "");
+  const combined = (subject || "") + "\n" + cleanBody;
 
-  // =========================================================================
-  // 1. SOLICITAR ACTUALIZAR HOGAR NETFLIX (LINK)
-  // =========================================================================
-  if (normAction === "actualizar_hogar") {
-    if (htmlBody) {
-      // Buscar botón de actualización de hogar en el HTML
-      const btn = htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:update-household|account\/update-household|email\/click|nmtr)[^"']*)["'][^>]*>[\s\S]*?(?:actualizar|hogar|sí|si|solicité|household)[\s\S]*?<\/a>/i) ||
-                  htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:update-household|account\/update-household)[^"']*)["']/i);
-      if (btn && btn[1]) {
-        return btn[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
+  // 1. Dígitos espaciados en HTML o texto (muy común en Netflix: "8 4 9 2" o "1 2 3 4 5 6")
+  const spacedHtml = cleanHtml.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\s*</);
+  if (spacedHtml && spacedHtml[1]) {
+    const code = spacedHtml[1].replace(/\s+/g, "");
+    if ((code.length === 4 || code.length === 6) && !esAnio(code)) return code;
+  }
+
+  const spacedText = combined.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\b/);
+  if (spacedText && spacedText[1]) {
+    const code = spacedText[1].replace(/\s+/g, "");
+    if ((code.length === 4 || code.length === 6) && !esAnio(code)) return code;
+  }
+
+  // 2. Elemento HTML con tamaño de fuente grande o contenedor de código OTP
+  const bigFontMatch = cleanHtml.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{4,8})\s*</i) ||
+                       cleanHtml.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{4,8})\s*</i) ||
+                       cleanHtml.match(/class=["'][^"']*(?:code|pin|otp|token)[^"']*["'][^>]*>\s*([0-9\s]{4,8})\s*</i);
+  if (bigFontMatch && bigFontMatch[1]) {
+    const code = bigFontMatch[1].replace(/\s+/g, "");
+    if ((code.length === 4 || code.length === 6) && !esAnio(code)) return code;
+  }
+
+  // 3. Dígitos en celdas de tabla consecutivas <td>8</td><td>4</td>...
+  const tableCells = cleanHtml.match(/(?:<td[^>]*>\s*([0-9])\s*<\/td>[\s\S]*?){4,6}/i);
+  if (tableCells) {
+    const digits = [];
+    const cellRegex = /<td[^>]*>\s*([0-9])\s*<\/td>/gi;
+    let cellMatch;
+    while ((cellMatch = cellRegex.exec(cleanHtml)) !== null) {
+      digits.push(cellMatch[1]);
+      if (digits.length === 6) break;
+    }
+    if (digits.length === 4 || digits.length === 6) {
+      const code = digits.join("");
+      if (!esAnio(code)) return code;
+    }
+  }
+
+  // 4. Código precedido por texto clave ("código para iniciar sesión: 8492", "código es: 8492")
+  const prefixedMatch = combined.match(/(?:código|code|pin|clave|acceso|iniciar\s+sesión|verificación|verification)[\s\:\-]+([0-9]{4,6})\b/i) ||
+                        combined.match(/\b([0-9]{4,6})\b[\s]+(?:es tu código|is your code|para iniciar|for sign-in)/i);
+  if (prefixedMatch && prefixedMatch[1]) {
+    const code = prefixedMatch[1].trim();
+    if (!esAnio(code)) return code;
+  }
+
+  // 5. Código presente en el asunto del correo (ej: "1234 es tu código de Netflix")
+  const subjectMatch = (subject || "").match(/\b([0-9]{4,6})\b/);
+  if (subjectMatch && subjectMatch[1]) {
+    const code = subjectMatch[1].trim();
+    if (!esAnio(code)) return code;
+  }
+
+  // 6. Secuencia aislada de exactamente 4 o 6 dígitos en el cuerpo (evitando años 2020-2030)
+  const allMatches = cleanBody.match(/\b([0-9]{4,6})\b/g);
+  if (allMatches) {
+    for (let k = 0; k < allMatches.length; k++) {
+      const cand = allMatches[k];
+      if ((cand.length === 4 || cand.length === 6) && !esAnio(cand) && !cand.startsWith("19") && !cand.startsWith("202")) {
+        return cand;
       }
-    }
-    // Buscar en texto
-    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:update-household|account\/update-household)[^\s"'<>]+)/i);
-    if (textLink && textLink[1]) {
-      return textLink[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
-    }
-  }
-
-  // =========================================================================
-  // 2. CÓDIGO DE ACCESO TEMPORAL (LINK)
-  // =========================================================================
-  if (normAction === "acceso_temporal") {
-    if (htmlBody) {
-      // Buscar botón de acceso temporal / viaje en el HTML
-      const btn = htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|travel\/verify|verify-travel|account\/travel|email\/click|nmtr)[^"']*)["'][^>]*>[\s\S]*?(?:obtener|enviar|código|codigo|viaje|temporal|acceso|confirmar|travel)[\s\S]*?<\/a>/i) ||
-                  htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|travel\/verify|verify-travel|account\/travel)[^"']*)["']/i);
-      if (btn && btn[1]) {
-        return btn[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
-      }
-    }
-    // Buscar en texto
-    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|travel\/verify|verify-travel|account\/travel)[^\s"'<>]+)/i);
-    if (textLink && textLink[1]) {
-      return textLink[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
-    }
-  }
-
-  // =========================================================================
-  // 3. REESTABLECER CONTRASEÑA (LINK)
-  // =========================================================================
-  if (normAction === "reset_password") {
-    if (htmlBody) {
-      // Buscar botón de restablecer contraseña en el HTML
-      const btn = htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/|email\/click|nmtr)[^"']*)["'][^>]*>[\s\S]*?(?:restablecer|cambiar|reset|password|contraseña)[\s\S]*?<\/a>/i) ||
-                  htmlBody.match(/<a[^>]+href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/)[^"']*)["']/i);
-      if (btn && btn[1]) {
-        return btn[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
-      }
-    }
-    // Buscar en texto
-    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/)[^\s"'<>]+)/i);
-    if (textLink && textLink[1]) {
-      return textLink[1].replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
-    }
-  }
-
-  // =========================================================================
-  // 4. CÓDIGO DE INICIO DE SESIÓN (4 DÍGITOS PARA TV O PANTALLA)
-  // =========================================================================
-  if (normAction === "login_code") {
-    // A. Dígitos espaciados: "8 4 9 2"
-    const spaced4 = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
-    if (spaced4 && spaced4[1]) {
-      return spaced4[1].replace(/\s+/g, "");
-    }
-
-    // B. Código con prefijo de inicio o TV
-    const prefixed4 = fullText.match(/(?:código|code|pin|clave|acceso|iniciar\s+sesión)[\s\:\-]+([0-9]{4})\b/i) ||
-                      fullText.match(/\b([0-9]{4})[\s]+(?:es tu código|is your code)/i);
-    if (prefixed4 && prefixed4[1]) {
-      return prefixed4[1].trim();
-    }
-
-    // C. Secuencia aislada de exactamente 4 dígitos
-    const codeMatch4 = fullText.match(/\b([0-9]{4})\b/);
-    if (codeMatch4 && codeMatch4[1]) {
-      return codeMatch4[1].trim();
-    }
-  }
-
-  // =========================================================================
-  // 5. CÓDIGO DE VERIFICACIÓN (DURA 15 MINUTOS - OTP NUMÉRICO)
-  // =========================================================================
-  if (normAction === "verification_code") {
-    // A. Código con prefijo de verificación
-    const prefixedOtp = fullText.match(/(?:verificación|verification|un\s+solo\s+uso|otp|código|code)[\s\:\-]+([0-9]{4,6})\b/i) ||
-                        fullText.match(/\b([0-9]{4,6})[\s]+(?:es tu código|is your verification code)/i);
-    if (prefixedOtp && prefixedOtp[1]) {
-      return prefixedOtp[1].trim();
-    }
-
-    // B. Dígitos espaciados
-    const spaced = fullText.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\b/);
-    if (spaced && spaced[1]) {
-      return spaced[1].replace(/\s+/g, "");
-    }
-
-    // C. Secuencia aislada de 4 a 6 dígitos
-    const otpMatch = fullText.match(/\b([0-9]{4,6})\b/);
-    if (otpMatch && otpMatch[1]) {
-      return otpMatch[1].trim();
     }
   }
 
   return null;
 }
 
-/**
- * Extrae el destinatario exacto del header o de alias plus-addressing
- */
-function extraerDestinatarioExacto(toHeader, body, htmlBody) {
-  const match = toHeader.match(/<([^>]+)>/) || [null, toHeader];
-  let email = (match[1] || toHeader).trim().toLowerCase();
-  email = email.replace(/['"<>\s]/g, "");
-
-  // Si el To no tiene alias pero el body sí lo menciona
-  if (!email.includes("+")) {
-    const combined = body + " " + htmlBody;
-    const aliasMatch = combined.match(/([a-zA-Z0-9._%+-]+\+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-    if (aliasMatch && aliasMatch[1]) {
-      return aliasMatch[1].trim().toLowerCase();
-    }
-  }
-
-  return email;
+function esAnio(val) {
+  const num = parseInt(val, 10);
+  return num >= 2020 && num <= 2030;
 }
 
 /**
- * Envía el código extraído al Webhook central de Next.js
+ * EXTRACTOR DE ENLACES OFICIALES (LINKS)
+ * Diseñado específicamente para Hogar, Acceso Temporal y Restablecer Contraseña
+ */
+function extraerLinkNetflix(subject, body, htmlBody, action) {
+  const cleanHtml = (htmlBody || "").replace(/=\r?\n/g, "");
+  const cleanBody = (body || "").replace(/=\r?\n/g, "");
+
+  // 1. ACTUALIZAR HOGAR NETFLIX (LINK)
+  if (action === "actualizar_hogar") {
+    // Buscar en HTML botón específico
+    const btn = cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:update-household|account\/update-household|email\/click|nmtr)[^"']*)["'][^>]*>[\s\S]*?(?:actualizar|hogar|sí|si|solicité|household|confirmar)[\s\S]*?<\/a>/i) ||
+                cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:update-household|account\/update-household)[^"']*)["']/i);
+    if (btn && btn[1]) return limpiarUrl(btn[1]);
+
+    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:update-household|account\/update-household)[^\s"'<>]+)/i);
+    if (textLink && textLink[1]) return limpiarUrl(textLink[1]);
+
+    // Enlace genérico de confirmación en correo de hogar
+    const anyNfLink = cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/[^\s"'>]+)["']/i);
+    if (anyNfLink && anyNfLink[1] && anyNfLink[1].length > 30) return limpiarUrl(anyNfLink[1]);
+  }
+
+  // 2. ACCESO TEMPORAL / VIAJE (LINK)
+  if (action === "acceso_temporal") {
+    const btn = cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|travel\/verify|verify-travel|account\/travel|email\/click|nmtr)[^"']*)["'][^>]*>[\s\S]*?(?:obtener|enviar|código|codigo|viaje|temporal|acceso|confirmar|travel|continuar)[\s\S]*?<\/a>/i) ||
+                cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|travel\/verify|verify-travel|account\/travel)[^"']*)["']/i);
+    if (btn && btn[1]) return limpiarUrl(btn[1]);
+
+    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:account\/travel\/verify|travel\/verify|verify-travel|account\/travel)[^\s"'<>]+)/i);
+    if (textLink && textLink[1]) return limpiarUrl(textLink[1]);
+
+    const anyNfLink = cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/[^\s"'>]+)["']/i);
+    if (anyNfLink && anyNfLink[1] && anyNfLink[1].length > 30) return limpiarUrl(anyNfLink[1]);
+  }
+
+  // 3. RESTABLECER CONTRASEÑA (LINK)
+  if (action === "reset_password") {
+    const btn = cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/|email\/click|nmtr)[^"']*)["'][^>]*>[\s\S]*?(?:restablecer|cambiar|reset|password|contraseña)[\s\S]*?<\/a>/i) ||
+                cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/)[^"']*)["']/i);
+    if (btn && btn[1]) return limpiarUrl(btn[1]);
+
+    const textLink = cleanBody.match(/(https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/(?:password\?|account\/password|password\/)[^\s"'<>]+)/i);
+    if (textLink && textLink[1]) return limpiarUrl(textLink[1]);
+
+    const anyNfLink = cleanHtml.match(/href=["'](https:\/\/(?:[a-zA-Z0-9-]+\.)*netflix\.com\/[^\s"'>]+)["']/i);
+    if (anyNfLink && anyNfLink[1] && anyNfLink[1].length > 30) return limpiarUrl(anyNfLink[1]);
+  }
+
+  return null;
+}
+
+function limpiarUrl(url) {
+  if (!url) return null;
+  return url.replace(/&amp;/g, "&").replace(/[).,;'"<>]+$/, "").trim();
+}
+
+/**
+ * Envía el código o enlace extraído al Webhook central de Next.js
  */
 function enviarAlServidor(email, codeOrLink, actionType, subject, body) {
   const targetUrl = CONFIG.BASE_URL + "/api/webhooks/incoming-code";

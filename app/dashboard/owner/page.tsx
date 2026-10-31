@@ -4991,37 +4991,107 @@ export default function OwnerDashboard() {
 
             {/* Resultado de la extracción */}
             {testResult && (
-              <div className="mt-4 p-4 rounded-xl bg-[#141414] border border-[#2a2a2a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner animate-in fade-in duration-200">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Resultado Obtenido:</span>
-                  <div className="font-mono text-base font-black text-emerald-400 mt-0.5 break-all">
-                    {testResult}
+              <div className="mt-5 animate-in fade-in duration-200">
+                {testResult.toLowerCase().includes("no se encontró") || testResult.toLowerCase().includes("error") || testResult.toLowerCase().includes("solicita") ? (
+                  /* Mensaje informativo / Error */
+                  <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3 shadow-lg">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-amber-300 uppercase tracking-wider text-[11px] mb-1">
+                        Aviso de Extracción:
+                      </div>
+                      <div className="text-zinc-200 leading-relaxed font-sans">
+                        {testResult}
+                      </div>
+                      <div className="text-[11px] text-zinc-400 mt-2">
+                        Tip: Si solicitaste el código hace un instante en Netflix, espera unos segundos a que Google lo reciba y vuelve a presionar el botón.
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(testResult);
-                      setCopiedTestCode(true);
-                      setTimeout(() => setCopiedTestCode(false), 2000);
-                    }}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition"
-                  >
-                    {copiedTestCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedTestCode ? "Copiado" : "Copiar"}</span>
-                  </button>
-                  {testResult.startsWith("http") && (
-                    <a
-                      href={testResult}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3.5 py-1.5 bg-[#E50914] hover:bg-[#f40612] text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Abrir</span>
-                    </a>
-                  )}
-                </div>
+                ) : testResult.startsWith("http://") || testResult.startsWith("https://") ? (
+                  /* ENLACE OFICIAL DE NETFLIX */
+                  <div className="p-5 rounded-2xl bg-[#121212] border border-[#2f2f2f] shadow-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <ExternalLink className="w-4 h-4 text-[#E50914]" />
+                        <span>Enlace Oficial de Netflix:</span>
+                      </span>
+                      <span className="text-[10px] text-zinc-400 bg-black/60 px-2 py-0.5 rounded font-mono">
+                        {testAction === "actualizar_hogar" ? "Actualización Hogar" : testAction === "acceso_temporal" ? "Acceso Temporal / Viaje" : "Restablecer Clave"}
+                      </span>
+                    </div>
+                    <div className="font-mono text-xs text-[#ff5555] break-all bg-black/70 p-3.5 rounded-xl border border-[#262626] select-all my-3">
+                      {testResult}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <a
+                        href={testResult}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2.5 px-4 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-red-950/40"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Abrir Enlace Oficial</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(testResult);
+                          setCopiedTestCode(true);
+                          setTimeout(() => setCopiedTestCode(false), 2000);
+                        }}
+                        className="py-2.5 px-4 bg-[#262626] hover:bg-[#333333] border border-[#383838] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                      >
+                        {copiedTestCode ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-400" />
+                            <span className="text-emerald-400">¡Enlace Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copiar Enlace</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* CÓDIGO NUMÉRICO (INICIO DE SESIÓN / VERIFICACIÓN) */
+                  <div className="p-6 rounded-2xl bg-[#121212] border-2 border-[#E50914]/60 text-center shadow-2xl shadow-red-950/40">
+                    <span className="inline-block text-[11px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3.5 py-1 rounded-full mb-3">
+                      ✓ Código Numérico Recibido con Éxito
+                    </span>
+                    <div className="my-2">
+                      <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest text-white select-all">
+                        {testResult}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(testResult);
+                          setCopiedTestCode(true);
+                          setTimeout(() => setCopiedTestCode(false), 2000);
+                        }}
+                        className="py-3 px-8 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs shadow-xl shadow-red-950/50 flex items-center gap-2 transition active:scale-95"
+                      >
+                        {copiedTestCode ? (
+                          <>
+                            <Check className="w-4 h-4 text-white" />
+                            <span>¡Código Copiado!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4" />
+                            <span>Copiar Código</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
