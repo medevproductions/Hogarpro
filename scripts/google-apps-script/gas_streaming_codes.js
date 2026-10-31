@@ -269,81 +269,152 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
  */
 function extraerPorAccionNetflix(subject, body, htmlBody, actionType) {
   const normAction = normalizarAccion(actionType);
-  if (normAction === "login_code" || normAction === "verification_code") {
-    return extraerCodigoNumericoNetflix(subject, body, htmlBody);
+  if (normAction === "login_code") {
+    // 1. Código de Inicio de Sesión: ESTRICTAMENTE 4 DÍGITOS (para TV o pantalla)
+    return extraerCodigoInicioSesion4Digitos(subject, body, htmlBody);
+  } else if (normAction === "verification_code") {
+    // 2. Código de Verificación: ESTRICTAMENTE 6 DÍGITOS (OTP numérico)
+    return extraerCodigoVerificacion6Digitos(subject, body, htmlBody);
   } else {
+    // 3, 4 y 5: Son ENLACES OFICIALES (LINKS)
     return extraerLinkNetflix(subject, body, htmlBody, normAction);
   }
 }
 
 /**
- * EXTRACTOR DE CÓDIGOS NUMÉRICOS (4 a 6 dígitos)
- * Diseñado específicamente para códigos de Inicio de Sesión y Verificación de Netflix
+ * EXTRACTOR ESTRICTO DE CÓDIGO DE INICIO DE SESIÓN (EXACTAMENTE 4 DÍGITOS)
+ * Diseñado específicamente para TV, pantalla o login de Netflix
  */
-function extraerCodigoNumericoNetflix(subject, body, htmlBody) {
+function extraerCodigoInicioSesion4Digitos(subject, body, htmlBody) {
   const cleanBody = (body || "").replace(/=\r?\n/g, "");
   const cleanHtml = (htmlBody || "").replace(/=\r?\n/g, "");
   const combined = (subject || "") + "\n" + cleanBody;
 
-  // 1. Dígitos espaciados en HTML o texto (muy común en Netflix: "8 4 9 2" o "1 2 3 4 5 6")
-  const spacedHtml = cleanHtml.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\s*</);
+  // 1. Dígitos espaciados en HTML o texto (ej: "8 4 9 2")
+  const spacedHtml = cleanHtml.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\s*</);
   if (spacedHtml && spacedHtml[1]) {
     const code = spacedHtml[1].replace(/\s+/g, "");
-    if ((code.length === 4 || code.length === 6) && !esAnio(code)) return code;
+    if (code.length === 4 && !esAnio(code)) return code;
   }
 
-  const spacedText = combined.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\b/);
+  const spacedText = combined.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
   if (spacedText && spacedText[1]) {
     const code = spacedText[1].replace(/\s+/g, "");
-    if ((code.length === 4 || code.length === 6) && !esAnio(code)) return code;
+    if (code.length === 4 && !esAnio(code)) return code;
   }
 
-  // 2. Elemento HTML con tamaño de fuente grande o contenedor de código OTP
-  const bigFontMatch = cleanHtml.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{4,8})\s*</i) ||
-                       cleanHtml.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{4,8})\s*</i) ||
-                       cleanHtml.match(/class=["'][^"']*(?:code|pin|otp|token)[^"']*["'][^>]*>\s*([0-9\s]{4,8})\s*</i);
+  // 2. Elemento HTML con tamaño de fuente grande o contenedor de código
+  const bigFontMatch = cleanHtml.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{4,6})\s*</i) ||
+                       cleanHtml.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{4,6})\s*</i) ||
+                       cleanHtml.match(/class=["'][^"']*(?:code|pin|otp|token)[^"']*["'][^>]*>\s*([0-9\s]{4,6})\s*</i);
   if (bigFontMatch && bigFontMatch[1]) {
     const code = bigFontMatch[1].replace(/\s+/g, "");
-    if ((code.length === 4 || code.length === 6) && !esAnio(code)) return code;
+    if (code.length === 4 && !esAnio(code)) return code;
   }
 
-  // 3. Dígitos en celdas de tabla consecutivas <td>8</td><td>4</td>...
-  const tableCells = cleanHtml.match(/(?:<td[^>]*>\s*([0-9])\s*<\/td>[\s\S]*?){4,6}/i);
-  if (tableCells) {
-    const digits = [];
-    const cellRegex = /<td[^>]*>\s*([0-9])\s*<\/td>/gi;
-    let cellMatch;
-    while ((cellMatch = cellRegex.exec(cleanHtml)) !== null) {
-      digits.push(cellMatch[1]);
-      if (digits.length === 6) break;
-    }
-    if (digits.length === 4 || digits.length === 6) {
-      const code = digits.join("");
-      if (!esAnio(code)) return code;
-    }
+  // 3. Dígitos en exactamente 4 celdas de tabla <td>8</td><td>4</td>...
+  const cellRegex = /<td[^>]*>\s*([0-9])\s*<\/td>/gi;
+  let cellMatch;
+  const digits = [];
+  while ((cellMatch = cellRegex.exec(cleanHtml)) !== null) {
+    digits.push(cellMatch[1]);
+    if (digits.length === 4) break;
+  }
+  if (digits.length === 4 && !esAnio(digits.join(""))) {
+    return digits.join("");
   }
 
-  // 4. Código precedido por texto clave ("código para iniciar sesión: 8492", "código es: 8492")
-  const prefixedMatch = combined.match(/(?:código|code|pin|clave|acceso|iniciar\s+sesión|verificación|verification)[\s\:\-]+([0-9]{4,6})\b/i) ||
-                        combined.match(/\b([0-9]{4,6})\b[\s]+(?:es tu código|is your code|para iniciar|for sign-in)/i);
+  // 4. Código precedido por texto clave ("iniciar sesión: 8492", "código para iniciar: 8492", "código es: 8492")
+  const prefixedMatch = combined.match(/(?:iniciar\s+sesión|iniciar|sign-in|código|code|pin|clave|acceso)[\s\:\-]+([0-9]{4})\b/i) ||
+                        combined.match(/\b([0-9]{4})\b[\s]+(?:es tu código|is your code|para iniciar|for sign-in)/i);
   if (prefixedMatch && prefixedMatch[1]) {
     const code = prefixedMatch[1].trim();
     if (!esAnio(code)) return code;
   }
 
-  // 5. Código presente en el asunto del correo (ej: "1234 es tu código de Netflix")
-  const subjectMatch = (subject || "").match(/\b([0-9]{4,6})\b/);
+  // 5. Código presente en el asunto del correo (ej: "8492 es tu código para iniciar sesión")
+  const subjectMatch = (subject || "").match(/\b([0-9]{4})\b/);
   if (subjectMatch && subjectMatch[1]) {
     const code = subjectMatch[1].trim();
     if (!esAnio(code)) return code;
   }
 
-  // 6. Secuencia aislada de exactamente 4 o 6 dígitos en el cuerpo (evitando años 2020-2030)
-  const allMatches = cleanBody.match(/\b([0-9]{4,6})\b/g);
+  // 6. Secuencia aislada de exactamente 4 dígitos en el cuerpo (evitando años 2020-2030)
+  const allMatches = cleanBody.match(/\b([0-9]{4})\b/g);
   if (allMatches) {
     for (let k = 0; k < allMatches.length; k++) {
       const cand = allMatches[k];
-      if ((cand.length === 4 || cand.length === 6) && !esAnio(cand) && !cand.startsWith("19") && !cand.startsWith("202")) {
+      if (cand.length === 4 && !esAnio(cand) && !cand.startsWith("19") && !cand.startsWith("202")) {
+        return cand;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * EXTRACTOR ESTRICTO DE CÓDIGO DE VERIFICACIÓN (EXACTAMENTE 6 DÍGITOS)
+ * Código OTP numérico de verificación de Netflix
+ */
+function extraerCodigoVerificacion6Digitos(subject, body, htmlBody) {
+  const cleanBody = (body || "").replace(/=\r?\n/g, "");
+  const cleanHtml = (htmlBody || "").replace(/=\r?\n/g, "");
+  const combined = (subject || "") + "\n" + cleanBody;
+
+  // 1. Dígitos espaciados en HTML o texto (ej: "1 2 3 4 5 6")
+  const spacedHtml = cleanHtml.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9])\s*</);
+  if (spacedHtml && spacedHtml[1]) {
+    const code = spacedHtml[1].replace(/\s+/g, "");
+    if (code.length === 6) return code;
+  }
+
+  const spacedText = combined.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
+  if (spacedText && spacedText[1]) {
+    const code = spacedText[1].replace(/\s+/g, "");
+    if (code.length === 6) return code;
+  }
+
+  // 2. Elemento HTML con tamaño de fuente grande o contenedor de código OTP
+  const bigFontMatch = cleanHtml.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{6,8})\s*</i) ||
+                       cleanHtml.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{6,8})\s*</i) ||
+                       cleanHtml.match(/class=["'][^"']*(?:code|pin|otp|token|verification)[^"']*["'][^>]*>\s*([0-9\s]{6,8})\s*</i);
+  if (bigFontMatch && bigFontMatch[1]) {
+    const code = bigFontMatch[1].replace(/\s+/g, "");
+    if (code.length === 6) return code;
+  }
+
+  // 3. Dígitos en exactamente 6 celdas de tabla <td>1</td><td>2</td>...
+  const cellRegex = /<td[^>]*>\s*([0-9])\s*<\/td>/gi;
+  let cellMatch;
+  const digits = [];
+  while ((cellMatch = cellRegex.exec(cleanHtml)) !== null) {
+    digits.push(cellMatch[1]);
+    if (digits.length === 6) break;
+  }
+  if (digits.length === 6) {
+    return digits.join("");
+  }
+
+  // 4. Código precedido por texto clave de verificación ("código de verificación: 123456", "código es: 123456")
+  const prefixedMatch = combined.match(/(?:verificación|verification|un\s+solo\s+uso|otp|código|code|clave)[\s\:\-]+([0-9]{6})\b/i) ||
+                        combined.match(/\b([0-9]{6})\b[\s]+(?:es tu código|is your verification code|para verificar)/i);
+  if (prefixedMatch && prefixedMatch[1]) {
+    return prefixedMatch[1].trim();
+  }
+
+  // 5. Código de 6 dígitos en el asunto del correo (ej: "123456 es tu código de verificación")
+  const subjectMatch = (subject || "").match(/\b([0-9]{6})\b/);
+  if (subjectMatch && subjectMatch[1]) {
+    return subjectMatch[1].trim();
+  }
+
+  // 6. Secuencia aislada de exactamente 6 dígitos en el cuerpo
+  const allMatches = cleanBody.match(/\b([0-9]{6})\b/g);
+  if (allMatches) {
+    for (let k = 0; k < allMatches.length; k++) {
+      const cand = allMatches[k];
+      if (cand.length === 6) {
         return cand;
       }
     }

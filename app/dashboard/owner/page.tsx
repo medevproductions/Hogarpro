@@ -4859,7 +4859,7 @@ export default function OwnerDashboard() {
                     className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                   >
                     <option value="login_code">Código de inicio de sesión (4 dígitos)</option>
-                    <option value="verification_code">Código de verificación (15 minutos)</option>
+                    <option value="verification_code">Código de verificación (6 dígitos)</option>
                     <option value="actualizar_hogar">Solicitar actualizar hogar netflix (link)</option>
                     <option value="acceso_temporal">Código de acceso temporal (link)</option>
                     <option value="reset_password">Restablecer contraseña (link)</option>
@@ -4927,7 +4927,7 @@ export default function OwnerDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                 {[
                   { id: "login_code", label: "Inicio de Sesión", desc: "Código 4 dígitos", icon: Zap },
-                  { id: "verification_code", label: "Verificación", desc: "Código 15 minutos", icon: Clock },
+                  { id: "verification_code", label: "Verificación", desc: "Código 6 dígitos", icon: Clock },
                   { id: "actualizar_hogar", label: "Actualizar Hogar", desc: "Enlace confirmar hogar", icon: Home },
                   { id: "acceso_temporal", label: "Acceso Temporal", desc: "Enlace temporal / viaje", icon: ExternalLink },
                   { id: "reset_password", label: "Restablecer Clave", desc: "Enlace cambio de clave", icon: Lock },

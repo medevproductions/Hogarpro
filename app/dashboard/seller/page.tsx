@@ -77,10 +77,10 @@ const ACTIONS: ActionConfig[] = [
   {
     id: "verification_code",
     title: "Código de Verificación",
-    subtitle: "Código numérico OTP (dura 15 minutos)",
+    subtitle: "Código numérico OTP de 6 dígitos",
     icon: <Clock className="w-5 h-5" />,
     color: "from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border-cyan-500/40",
-    badge: "Dura 15 Minutos"
+    badge: "Código (6 Dígitos)"
   },
   {
     id: "actualizar_hogar",

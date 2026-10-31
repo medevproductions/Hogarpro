@@ -61,27 +61,87 @@ export function extractNetflixLinkOrCode(text: string, rawActionType?: string): 
   const isNumberAction = (action === "login_code" || action === "verification_code");
 
   // =========================================================================
-  // GRUPO 1: CÓDIGOS NUMÉRICOS (INICIO DE SESIÓN Y VERIFICACIÓN)
+  // GRUPO 1: CÓDIGOS NUMÉRICOS
+  // - login_code: EXACTAMENTE 4 DÍGITOS (Inicio de sesión / TV)
+  // - verification_code: EXACTAMENTE 6 DÍGITOS (Verificación OTP)
   // =========================================================================
-  if (isNumberAction) {
-    // A. Dígitos espaciados en HTML o texto: "8 4 9 2" o "1 2 3 4 5 6"
-    const spacedMatch = cleaned.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\s*</) ||
-                        cleaned.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9](?:\s+[0-9]\s+[0-9])?)\b/);
+  if (action === "login_code") {
+    // 1. Dígitos espaciados: "8 4 9 2"
+    const spacedMatch = cleaned.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\s*</) ||
+                        cleaned.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
     if (spacedMatch && spacedMatch[1]) {
       const code = spacedMatch[1].replace(/\s+/g, "");
-      if ((code.length === 4 || code.length === 6) && !isYear(code)) return code;
+      if (code.length === 4 && !isYear(code)) return code;
     }
 
-    // B. Elemento HTML con tamaño de fuente grande o contenedor de código
-    const bigFontMatch = cleaned.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{4,8})\s*</i) ||
-                         cleaned.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{4,8})\s*</i) ||
-                         cleaned.match(/class=["'][^"']*(?:code|pin|otp|token)[^"']*["'][^>]*>\s*([0-9\s]{4,8})\s*</i);
+    // 2. Elemento HTML con tamaño de fuente grande o contenedor
+    const bigFontMatch = cleaned.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{4,6})\s*</i) ||
+                         cleaned.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{4,6})\s*</i) ||
+                         cleaned.match(/class=["'][^"']*(?:code|pin|otp|token)[^"']*["'][^>]*>\s*([0-9\s]{4,6})\s*</i);
     if (bigFontMatch && bigFontMatch[1]) {
       const code = bigFontMatch[1].replace(/\s+/g, "");
-      if ((code.length === 4 || code.length === 6) && !isYear(code)) return code;
+      if (code.length === 4 && !isYear(code)) return code;
     }
 
-    // C. Dígitos en celdas de tabla consecutivas <td>8</td><td>4</td>...
+    // 3. Celdas de tabla consecutivas (exactamente 4 celdas)
+    const cellRegex = /<td[^>]*>\s*([0-9])\s*<\/td>/gi;
+    let cellMatch;
+    const digits: string[] = [];
+    while ((cellMatch = cellRegex.exec(cleaned)) !== null) {
+      digits.push(cellMatch[1]);
+      if (digits.length === 4) break;
+    }
+    if (digits.length === 4 && !isYear(digits.join(""))) {
+      return digits.join("");
+    }
+
+    // 4. Código precedido por texto clave de inicio
+    const prefixedMatch = cleaned.match(/(?:iniciar\s+sesión|iniciar|sign-in|código|code|pin|clave|acceso)[\s\:\-]+([0-9]{4})\b/i) ||
+                          cleaned.match(/\b([0-9]{4})\b[\s]+(?:es tu código|is your code|para iniciar|for sign-in)/i);
+    if (prefixedMatch && prefixedMatch[1]) {
+      const code = prefixedMatch[1].trim();
+      if (!isYear(code)) return code;
+    }
+
+    // 5. Asunto del correo
+    const subjectMatch = cleaned.match(/\b([0-9]{4})\b/);
+    if (subjectMatch && subjectMatch[1]) {
+      const code = subjectMatch[1].trim();
+      if (!isYear(code)) return code;
+    }
+
+    // 6. Secuencia aislada de exactamente 4 dígitos (evitando años 2020-2030)
+    const allMatches = cleaned.match(/\b([0-9]{4})\b/g);
+    if (allMatches) {
+      for (const cand of allMatches) {
+        if (cand.length === 4 && !isYear(cand) && !cand.startsWith("19") && !cand.startsWith("202")) {
+          return cand;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  if (action === "verification_code") {
+    // 1. Dígitos espaciados: "1 2 3 4 5 6"
+    const spacedMatch = cleaned.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9])\s*</) ||
+                        cleaned.match(/\b([0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9]\s+[0-9])\b/);
+    if (spacedMatch && spacedMatch[1]) {
+      const code = spacedMatch[1].replace(/\s+/g, "");
+      if (code.length === 6) return code;
+    }
+
+    // 2. Elemento HTML con tamaño de fuente grande o contenedor
+    const bigFontMatch = cleaned.match(/font-size:\s*(?:2[4-9]|[3-9][0-9])px[^>]*>\s*([0-9\s]{6,8})\s*</i) ||
+                         cleaned.match(/letter-spacing:\s*[^>]*>\s*([0-9\s]{6,8})\s*</i) ||
+                         cleaned.match(/class=["'][^"']*(?:code|pin|otp|token|verification)[^"']*["'][^>]*>\s*([0-9\s]{6,8})\s*</i);
+    if (bigFontMatch && bigFontMatch[1]) {
+      const code = bigFontMatch[1].replace(/\s+/g, "");
+      if (code.length === 6) return code;
+    }
+
+    // 3. Celdas de tabla consecutivas (exactamente 6 celdas)
     const cellRegex = /<td[^>]*>\s*([0-9])\s*<\/td>/gi;
     let cellMatch;
     const digits: string[] = [];
@@ -89,23 +149,22 @@ export function extractNetflixLinkOrCode(text: string, rawActionType?: string): 
       digits.push(cellMatch[1]);
       if (digits.length === 6) break;
     }
-    if ((digits.length === 4 || digits.length === 6) && !isYear(digits.join(""))) {
+    if (digits.length === 6) {
       return digits.join("");
     }
 
-    // D. Código precedido por texto clave ("código para iniciar sesión: 8492", "código es: 8492")
-    const prefixedMatch = cleaned.match(/(?:código|code|pin|clave|acceso|iniciar\s+sesión|verificación|verification)[\s\:\-]+([0-9]{4,6})\b/i) ||
-                          cleaned.match(/\b([0-9]{4,6})\b[\s]+(?:es tu código|is your code|para iniciar|for sign-in)/i);
+    // 4. Código precedido por texto clave de verificación
+    const prefixedMatch = cleaned.match(/(?:verificación|verification|un\s+solo\s+uso|otp|código|code|clave)[\s\:\-]+([0-9]{6})\b/i) ||
+                          cleaned.match(/\b([0-9]{6})\b[\s]+(?:es tu código|is your verification code|para verificar)/i);
     if (prefixedMatch && prefixedMatch[1]) {
-      const code = prefixedMatch[1].trim();
-      if (!isYear(code)) return code;
+      return prefixedMatch[1].trim();
     }
 
-    // E. Secuencia aislada de exactamente 4 o 6 dígitos en el cuerpo (evitando años 2020-2030)
-    const allMatches = cleaned.match(/\b([0-9]{4,6})\b/g);
+    // 5. Secuencia aislada de exactamente 6 dígitos
+    const allMatches = cleaned.match(/\b([0-9]{6})\b/g);
     if (allMatches) {
       for (const cand of allMatches) {
-        if ((cand.length === 4 || cand.length === 6) && !isYear(cand) && !cand.startsWith("19") && !cand.startsWith("202")) {
+        if (cand.length === 6) {
           return cand;
         }
       }
