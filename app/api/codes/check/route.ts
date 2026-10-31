@@ -70,20 +70,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Normalizar la acción a una de las 5 opciones oficiales de Netflix
+  // Normalizar la acción a una de las 5 opciones oficiales de Netflix o 'auto'
   const actionType = normalizeActionType(rawActionType);
+  const isAuto = actionType === "auto";
   const service = "netflix"; // Exclusivo Netflix
   const isLink = actionType === "actualizar_hogar" || actionType === "acceso_temporal" || actionType === "reset_password";
 
   // 2. CHEQUEO INSTANTÁNEO EN MEMORIA DE SERVIDOR
   // Para enlaces: 24 horas. Para códigos numéricos: 60 minutos
-  const MAX_CODE_AGE_MS = isLink ? (24 * 60 * 60 * 1000) : (60 * 60 * 1000);
+  const MAX_CODE_AGE_MS = (isLink || isAuto) ? (24 * 60 * 60 * 1000) : (60 * 60 * 1000);
   const now = Date.now();
   const cacheKey = `${cleanEmail}:${actionType}`;
-  const cached = memoryStore.get(cacheKey) || memoryStore.get(`${cleanEmail}:${rawActionType}`) || memoryStore.get(cleanEmail);
+  const cached = isAuto
+    ? (memoryStore.get(cleanEmail) || memoryStore.get(`${cleanEmail}:actualizar_hogar`) || memoryStore.get(`${cleanEmail}:acceso_temporal`) || memoryStore.get(`${cleanEmail}:verification_code`) || memoryStore.get(`${cleanEmail}:login_code`))
+    : (memoryStore.get(cacheKey) || memoryStore.get(`${cleanEmail}:${rawActionType}`) || memoryStore.get(cleanEmail));
 
   if (cached) {
-    const isMatchingAction = !cached.actionType || 
+    const isMatchingAction = isAuto || !cached.actionType || 
       cached.actionType === actionType || 
       normalizeActionType(cached.actionType) === actionType;
     const isFresh = (now - cached.timestamp) <= MAX_CODE_AGE_MS;
@@ -91,26 +94,28 @@ export async function GET(req: NextRequest) {
     if (isMatchingAction && isFresh) {
       const codeIsUrl = cached.code.startsWith("http://") || cached.code.startsWith("https://");
       
-      // Si la acción requería link y tenemos URL, sanitizarla
-      if (isLink && codeIsUrl) {
+      // Si la acción requería link o es auto y tenemos URL, sanitizarla
+      if ((isLink || isAuto) && codeIsUrl) {
         const safeLink = sanitizeStreamingLink(cached.code);
         if (safeLink) {
+          const resolvedAction = cached.actionType || (safeLink.includes("household") ? "actualizar_hogar" : safeLink.includes("travel") ? "acceso_temporal" : "reset_password");
           return NextResponse.json({
             success: true,
             code: safeLink,
             status: "completado",
-            actionType: actionType,
+            actionType: resolvedAction,
             timestamp: new Date(cached.timestamp).toISOString(),
             source: "instant_cache"
           }, { headers: corsHeaders });
         }
       } else if (!isLink && !codeIsUrl) {
         // Código numérico
+        const resolvedAction = cached.actionType || (cached.code.length === 4 ? "login_code" : "verification_code");
         return NextResponse.json({
           success: true,
           code: cached.code,
           status: "completado",
-          actionType: actionType,
+          actionType: resolvedAction,
           timestamp: new Date(cached.timestamp).toISOString(),
           source: "instant_cache"
         }, { headers: corsHeaders });
@@ -143,27 +148,30 @@ export async function GET(req: NextRequest) {
       const gasData = await gasRes.json();
       if (gasData && gasData.success && gasData.code) {
         let finalCode = String(gasData.code).trim();
-        if (finalCode.startsWith("http://") || finalCode.startsWith("https://")) {
+        const codeIsUrl = finalCode.startsWith("http://") || finalCode.startsWith("https://");
+        if (codeIsUrl) {
           const verifiedLink = sanitizeStreamingLink(finalCode);
           if (verifiedLink) {
             finalCode = verifiedLink;
           }
         }
 
+        const resolvedAction = gasData.actionType || (codeIsUrl ? (finalCode.includes("household") ? "actualizar_hogar" : finalCode.includes("travel") ? "acceso_temporal" : "reset_password") : (finalCode.length === 4 ? "login_code" : "verification_code"));
+
         const freshEntry = {
           code: finalCode,
           timestamp: Date.now(),
-          actionType: actionType,
+          actionType: resolvedAction,
           service: service || undefined
         };
-        memoryStore.set(`${cleanEmail}:${actionType}`, freshEntry);
+        memoryStore.set(`${cleanEmail}:${resolvedAction}`, freshEntry);
         memoryStore.set(cleanEmail, freshEntry);
 
         return NextResponse.json({
           success: true,
           code: finalCode,
           status: "completado",
-          actionType: actionType,
+          actionType: resolvedAction,
           timestamp: new Date().toISOString(),
           source: "gas_direct"
         }, { headers: corsHeaders });

@@ -62,6 +62,7 @@ function doPost(e) {
 function normalizarAccion(action) {
   if (!action) return "login_code";
   const a = action.toLowerCase().trim();
+  if (a === "auto" || a === "any" || a === "detect" || a === "all") return "auto";
   if (a === "actualizar" || a === "actualizar_hogar" || a === "hogar" || a === "household") return "actualizar_hogar";
   if (a === "temporal" || a === "acceso_temporal" || a === "viaje" || a === "travel") return "acceso_temporal";
   if (a === "login_confirm" || a === "verification_code" || a === "verificacion" || a === "verification" || a === "otp") return "verification_code";
@@ -216,14 +217,18 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
 
     const codeOrLink = extraerPorAccionNetflix(subject, body, htmlBody, requestedAction);
     if (codeOrLink) {
-      Logger.log(`[NETFLIX EXITO] ${cleanTarget} | Acción: ${requestedAction} -> ${codeOrLink}`);
-      enviarAlServidor(cleanTarget, codeOrLink, requestedAction, subject, body || htmlBody);
+      const finalCode = (typeof codeOrLink === "object" && codeOrLink.code) ? codeOrLink.code : codeOrLink;
+      const finalAction = (typeof codeOrLink === "object" && codeOrLink.action) ? codeOrLink.action : requestedAction;
+      const finalIsLink = (typeof codeOrLink === "object" && typeof codeOrLink.isLink === "boolean") ? codeOrLink.isLink : !isNumberCode;
+
+      Logger.log(`[NETFLIX EXITO] ${cleanTarget} | Acción: ${finalAction} -> ${finalCode}`);
+      enviarAlServidor(cleanTarget, finalCode, finalAction, subject, body || htmlBody);
       return {
         success: true,
-        code: codeOrLink,
+        code: finalCode,
         email: cleanTarget,
-        actionType: requestedAction,
-        isLink: !isNumberCode,
+        actionType: finalAction,
+        isLink: finalIsLink,
         receivedAt: new Date(msgDate).toISOString()
       };
     }
@@ -239,14 +244,18 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
 
     const codeOrLink = extraerPorAccionNetflix(subject, body, htmlBody, requestedAction);
     if (codeOrLink) {
-      Logger.log(`[NETFLIX FALLBACK EXITO] ${cleanTarget} | Acción: ${requestedAction} -> ${codeOrLink}`);
-      enviarAlServidor(cleanTarget, codeOrLink, requestedAction, subject, body || htmlBody);
+      const finalCode = (typeof codeOrLink === "object" && codeOrLink.code) ? codeOrLink.code : codeOrLink;
+      const finalAction = (typeof codeOrLink === "object" && codeOrLink.action) ? codeOrLink.action : requestedAction;
+      const finalIsLink = (typeof codeOrLink === "object" && typeof codeOrLink.isLink === "boolean") ? codeOrLink.isLink : !isNumberCode;
+
+      Logger.log(`[NETFLIX FALLBACK EXITO] ${cleanTarget} | Acción: ${finalAction} -> ${finalCode}`);
+      enviarAlServidor(cleanTarget, finalCode, finalAction, subject, body || htmlBody);
       return {
         success: true,
-        code: codeOrLink,
+        code: finalCode,
         email: cleanTarget,
-        actionType: requestedAction,
-        isLink: !isNumberCode,
+        actionType: finalAction,
+        isLink: finalIsLink,
         receivedAt: new Date(msgDate).toISOString(),
         note: "Extraído del correo más reciente disponible"
       };
@@ -269,6 +278,27 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
  */
 function extraerPorAccionNetflix(subject, body, htmlBody, actionType) {
   const normAction = normalizarAccion(actionType);
+
+  // MODO DETECCIÓN AUTOMÁTICA
+  if (normAction === "auto") {
+    const linkHogar = extraerLinkNetflix(subject, body, htmlBody, "actualizar_hogar");
+    if (linkHogar) return { code: linkHogar, action: "actualizar_hogar", isLink: true };
+
+    const linkViaje = extraerLinkNetflix(subject, body, htmlBody, "acceso_temporal");
+    if (linkViaje) return { code: linkViaje, action: "acceso_temporal", isLink: true };
+
+    const linkReset = extraerLinkNetflix(subject, body, htmlBody, "reset_password");
+    if (linkReset) return { code: linkReset, action: "reset_password", isLink: true };
+
+    const code6 = extraerCodigoVerificacion6Digitos(subject, body, htmlBody);
+    if (code6) return { code: code6, action: "verification_code", isLink: false };
+
+    const code4 = extraerCodigoInicioSesion4Digitos(subject, body, htmlBody);
+    if (code4) return { code: code4, action: "login_code", isLink: false };
+
+    return null;
+  }
+
   if (normAction === "login_code") {
     // 1. Código de Inicio de Sesión: ESTRICTAMENTE 4 DÍGITOS (para TV o pantalla)
     return extraerCodigoInicioSesion4Digitos(subject, body, htmlBody);

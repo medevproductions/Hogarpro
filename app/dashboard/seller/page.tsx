@@ -48,6 +48,7 @@ import {
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 import { updatePasswordInFirebase } from "@/lib/firebase/auth-service";
 import LatamPhoneInput from "@/components/LatamPhoneInput";
+import CodigoHelpGuide from "@/components/soporte/CodigoHelpGuide";
 
 export type CodeAction = 
   | "login_code" 
@@ -1432,6 +1433,50 @@ export default function SellerLiveCodesPage() {
                     Limpiar pantalla
                   </button>
                 )}
+              </div>
+
+              {/* BANNER COMPARTIR CON CLIENTES & GUÍA PASO A PASO */}
+              <div className="mt-8 pt-6 border-t border-[#262626] space-y-6">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/30 to-purple-950/30 border border-red-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-950/50">
+                      <Tv className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">
+                        Portal de Autoservicio para tus Clientes
+                      </h4>
+                      <p className="text-xs text-zinc-400">
+                        Envía este link a tus compradores para que ellos mismos consulten su código o enlace de Hogar: <span className="text-red-400 font-mono">/soporte-codigos</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = window.location.origin + "/soporte-codigos";
+                        navigator.clipboard.writeText(url);
+                        alert("¡Link copiado al portapapeles! Envíalo a tus clientes por WhatsApp.");
+                      }}
+                      className="px-3.5 py-2 bg-[#222222] hover:bg-[#2c2c2c] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition border border-zinc-700"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar Link para WhatsApp</span>
+                    </button>
+                    <Link
+                      href="/soporte-codigos"
+                      target="_blank"
+                      className="px-3.5 py-2 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
+                    >
+                      <span>Abrir</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Guía Paso a Paso */}
+                <CodigoHelpGuide />
               </div>
             </div>
           </>

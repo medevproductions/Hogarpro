@@ -16,6 +16,7 @@ export type CodeActionType =
 export function normalizeActionType(action?: string): string {
   if (!action) return "login_code";
   const a = action.toLowerCase().trim();
+  if (a === "auto" || a === "any" || a === "detect" || a === "all") return "auto";
   if (a === "actualizar" || a === "actualizar_hogar" || a === "hogar" || a === "household") return "actualizar_hogar";
   if (a === "temporal" || a === "acceso_temporal" || a === "viaje" || a === "travel") return "acceso_temporal";
   if (a === "login_confirm" || a === "verification_code" || a === "verificacion" || a === "verification") return "verification_code";
@@ -64,7 +65,23 @@ export function extractNetflixLinkOrCode(text: string, rawActionType?: string): 
   // GRUPO 1: CÓDIGOS NUMÉRICOS
   // - login_code: EXACTAMENTE 4 DÍGITOS (Inicio de sesión / TV)
   // - verification_code: EXACTAMENTE 6 DÍGITOS (Verificación OTP)
-  // =========================================================================
+  // MODO DETECCIÓN AUTOMÁTICA: Si no se especificó acción, detectar la más probable en el mensaje
+  if (action === "auto") {
+    // 1. Enlaces oficiales de Hogar o Viaje (Prioritarios)
+    const hogar = extractNetflixLinkOrCode(cleaned, "actualizar_hogar");
+    if (hogar) return hogar;
+    const temporal = extractNetflixLinkOrCode(cleaned, "acceso_temporal");
+    if (temporal) return temporal;
+    const reset = extractNetflixLinkOrCode(cleaned, "reset_password");
+    if (reset) return reset;
+
+    // 2. Códigos numéricos (6 dígitos verificación OTP o 4 dígitos TV)
+    const verif = extractNetflixLinkOrCode(cleaned, "verification_code");
+    if (verif) return verif;
+    const login = extractNetflixLinkOrCode(cleaned, "login_code");
+    if (login) return login;
+  }
+
   if (action === "login_code") {
     // 1. Dígitos espaciados: "8 4 9 2"
     const spacedMatch = cleaned.match(/>\s*([0-9]\s+[0-9]\s+[0-9]\s+[0-9])\s*</) ||
