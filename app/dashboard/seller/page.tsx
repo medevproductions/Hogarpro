@@ -417,8 +417,17 @@ export default function SellerLiveCodesPage() {
       }
     }
 
-    // 2. Polling cada 3 segundos como respaldo automático
+    // 2. Polling cada 3 segundos como respaldo automático (máximo 15 intentos = 45s)
+    let attempts = 0;
+    const maxAttempts = 15;
     const pollingInterval = setInterval(async () => {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        clearInterval(pollingInterval);
+        setIsWaiting(false);
+        return;
+      }
+
       try {
         const cleanEmail = selectedAccount.trim().toLowerCase();
         if (!cleanEmail) return;

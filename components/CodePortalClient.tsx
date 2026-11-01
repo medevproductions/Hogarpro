@@ -109,7 +109,17 @@ export default function CodePortalClient({
 
     // Primera verificación rápida
     checkCode();
-    const interval = setInterval(checkCode, 3000);
+    let attempts = 0;
+    const maxAttempts = 15;
+    const interval = setInterval(() => {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        if (isMounted) setIsWaiting(false);
+        return;
+      }
+      checkCode();
+    }, 3000);
 
     return () => {
       isMounted = false;

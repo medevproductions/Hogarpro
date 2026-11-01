@@ -213,16 +213,31 @@ const DEFAULT_ACCOUNTS: StoredStreamingAccount[] = [
   }
 ];
 
+let lastSyncAccountsTime = 0;
+let lastSyncUsersTime = 0;
+const SYNC_COOLDOWN_MS = 45000; // Mínimo 45 segundos entre sincronizaciones automáticas
+
 export async function syncAccountsFromCloud(force: boolean = false): Promise<StoredStreamingAccount[]> {
   if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
+  const now = Date.now();
+  if (!force && (now - lastSyncAccountsTime < SYNC_COOLDOWN_MS)) {
+    const cached = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+    return cached ? JSON.parse(cached) : DEFAULT_ACCOUNTS;
+  }
+  lastSyncAccountsTime = now;
+
   try {
     const cloudAccounts = await getAccountsFromFirestore();
     const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
     const local = stored ? JSON.parse(stored) : [];
 
     if (cloudAccounts && cloudAccounts.length > 0) {
-      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(cloudAccounts));
-      window.dispatchEvent(new Event("streamhub_accounts_updated"));
+      const serializedCloud = JSON.stringify(cloudAccounts);
+      // Solo disparar evento y actualizar si los datos realmente cambiaron
+      if (stored !== serializedCloud) {
+        localStorage.setItem(STORAGE_KEY_ACCOUNTS, serializedCloud);
+        window.dispatchEvent(new Event("streamhub_accounts_updated"));
+      }
       return cloudAccounts;
     } else if (local && local.length > 0) {
       // Subir a la nube SOLO si no son las 2 cuentas dummy
@@ -241,14 +256,25 @@ export async function syncAccountsFromCloud(force: boolean = false): Promise<Sto
 
 export async function syncUsersFromCloud(force: boolean = false): Promise<SystemUser[]> {
   if (typeof window === "undefined") return DEFAULT_SELLERS;
+  const now = Date.now();
+  if (!force && (now - lastSyncUsersTime < SYNC_COOLDOWN_MS)) {
+    const cached = localStorage.getItem(STORAGE_KEY_USERS);
+    return cached ? JSON.parse(cached) : DEFAULT_SELLERS;
+  }
+  lastSyncUsersTime = now;
+
   try {
     const cloudUsers = await getUsersFromFirestore();
     const stored = localStorage.getItem(STORAGE_KEY_USERS);
     const local = stored ? JSON.parse(stored) : [];
 
     if (cloudUsers && cloudUsers.length > 0) {
-      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(cloudUsers));
-      window.dispatchEvent(new Event("streamhub_users_updated"));
+      const serializedUsers = JSON.stringify(cloudUsers);
+      // Solo disparar evento si los datos cambiaron
+      if (stored !== serializedUsers) {
+        localStorage.setItem(STORAGE_KEY_USERS, serializedUsers);
+        window.dispatchEvent(new Event("streamhub_users_updated"));
+      }
       return cloudUsers;
     } else if (local && local.length > 0) {
       const isDummyOnly = local.length <= 3 && local.every((u: any) => u.id === "s-1" || u.id === "s-2" || u.id === "s-3");
@@ -266,9 +292,6 @@ export async function syncUsersFromCloud(force: boolean = false): Promise<System
 
 export function getSystemUsers(): SystemUser[] {
   if (typeof window === "undefined") return DEFAULT_SELLERS;
-
-  // Disparar sincronización con la nube
-  syncUsersFromCloud().catch(console.warn);
 
   const stored = localStorage.getItem(STORAGE_KEY_USERS);
   if (!stored) {
@@ -325,9 +348,6 @@ export function deleteSystemUser(userId: string) {
 
 export function getStoredAccounts(): StoredStreamingAccount[] {
   if (typeof window === "undefined") return DEFAULT_ACCOUNTS;
-
-  // Sincronizar en segundo plano con la nube
-  syncAccountsFromCloud().catch(console.warn);
 
   const stored = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
   if (!stored) {

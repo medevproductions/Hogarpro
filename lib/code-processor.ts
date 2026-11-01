@@ -240,9 +240,68 @@ export function extractNetflixLinkOrCode(text: string, rawActionType?: string): 
   return null;
 }
 
-// Memoria compartida del servidor para entrega instantánea garantizada (con TTL de 15 minutos)
-const memoryStore = new Map<string, { code: string; timestamp: number; service?: string; actionType?: string }>();
+// Almacén seguro con límite estricto de memoria (máximo 500 entradas con purga automática LRU)
+export interface CodeStoreEntry {
+  code: string;
+  timestamp: number;
+  service?: string;
+  actionType?: string;
+}
 
+class BoundedCodeStore {
+  private map = new Map<string, CodeStoreEntry>();
+  private readonly MAX_ENTRIES = 500;
+
+  get(key: string): CodeStoreEntry | undefined {
+    return this.map.get(key);
+  }
+
+  set(key: string, value: CodeStoreEntry): this {
+    if (this.map.size >= this.MAX_ENTRIES) {
+      this.pruneExpired();
+      if (this.map.size >= this.MAX_ENTRIES) {
+        // Eliminar las 50 entradas más antiguas
+        const it = this.map.keys();
+        for (let i = 0; i < 50; i++) {
+          const k = it.next().value;
+          if (k) this.map.delete(k);
+        }
+      }
+    }
+    this.map.set(key, value);
+    return this;
+  }
+
+  delete(key: string): boolean {
+    return this.map.delete(key);
+  }
+
+  has(key: string): boolean {
+    return this.map.has(key);
+  }
+
+  clear(): void {
+    this.map.clear();
+  }
+
+  get size(): number {
+    return this.map.size;
+  }
+
+  pruneExpired(): number {
+    const now = Date.now();
+    let count = 0;
+    for (const [k, v] of this.map.entries()) {
+      if (now - v.timestamp > 24 * 60 * 60 * 1000) {
+        this.map.delete(k);
+        count++;
+      }
+    }
+    return count;
+  }
+}
+
+const memoryStore = new BoundedCodeStore();
 export { memoryStore };
 
 export async function processIncomingCode(payload: ProcessCodePayload, authHeader: string | null) {

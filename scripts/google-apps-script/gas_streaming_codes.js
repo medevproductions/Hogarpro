@@ -176,8 +176,9 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
     }
   }
 
-  // Ordenar de más nuevo a más viejo
+  // Ordenar de más nuevo a más viejo y limitar a los 15 más recientes para evitar consumo excesivo de memoria
   allMessages.sort((a, b) => b.getDate().getTime() - a.getDate().getTime());
+  const recentMessages = allMessages.slice(0, 15);
 
   const now = new Date().getTime();
   const isNumberCode = (requestedAction === "login_code" || requestedAction === "verification_code");
@@ -191,8 +192,8 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
     : cleanTarget;
 
   // PASADA 1: Búsqueda en mensajes recientes
-  for (let i = 0; i < allMessages.length; i++) {
-    const message = allMessages[i];
+  for (let i = 0; i < recentMessages.length; i++) {
+    const message = recentMessages[i];
     const msgDate = message.getDate().getTime();
 
     // Descartar mensajes fuera de la ventana de tiempo
@@ -248,8 +249,8 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
   }
 
   // PASADA 2 (FALLBACK): Si no se encontró dentro de la ventana de tiempo, tomar el mensaje más reciente del hilo
-  for (let i = 0; i < allMessages.length; i++) {
-    const message = allMessages[i];
+  for (let i = 0; i < recentMessages.length; i++) {
+    const message = recentMessages[i];
     const body = message.getPlainBody() || "";
     const htmlBody = message.getBody() || "";
     const subject = message.getSubject() || "";

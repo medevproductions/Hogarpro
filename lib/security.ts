@@ -61,16 +61,20 @@ interface RateLimitRecord {
 
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
-// Limpieza periódica de memoria cada 10 minutos
+// Limpieza periódica de memoria cada 5 minutos (con unref para evitar memory leaks en Node.js)
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [key, value] of rateLimitStore.entries()) {
       if (now > value.resetAt) {
         rateLimitStore.delete(key);
       }
     }
-  }, 10 * 60 * 1000);
+  }, 5 * 60 * 1000);
+
+  if (cleanupTimer && typeof (cleanupTimer as any).unref === "function") {
+    (cleanupTimer as any).unref();
+  }
 }
 
 export function checkRateLimit(
@@ -79,6 +83,19 @@ export function checkRateLimit(
   windowMs: number = 60 * 1000
 ): { allowed: boolean; remaining: number; resetInMs: number } {
   const now = Date.now();
+
+  // Control estricto de consumo de memoria: si hay más de 1,500 entradas, purgar expirados
+  if (rateLimitStore.size > 1500) {
+    for (const [k, v] of rateLimitStore.entries()) {
+      if (now > v.resetAt) {
+        rateLimitStore.delete(k);
+      }
+    }
+    if (rateLimitStore.size > 1500) {
+      rateLimitStore.clear(); // Reseteo de seguridad contra ataques masivos de IPs falsas
+    }
+  }
+
   const record = rateLimitStore.get(identifier);
 
   if (!record || now > record.resetAt) {
