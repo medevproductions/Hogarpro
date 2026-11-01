@@ -62,7 +62,8 @@ import {
   FileText,
   Info,
   ArrowLeftRight,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import LatamPhoneInput from "@/components/LatamPhoneInput";
@@ -207,6 +208,19 @@ function getVerificationStatus(val: any): "verified" | "payment_failed" | "faile
 }
 
 export default function OwnerDashboard() {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { credentials: "include" });
+      document.cookie = "hp_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "hp_session=; path=/; max-age=0";
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("hp_user");
+      window.location.href = "/admin";
+    } catch {
+      window.location.href = "/admin";
+    }
+  };
+
   const [dateFilter, setDateFilter] = useState("this_month");
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("all");
@@ -1974,7 +1988,7 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Accesos Rápidos Inferiores del Drawer */}
-            <div className="pt-4 border-t border-[#262626] space-y-1.5 text-xs">
+            <div className="pt-4 border-t border-[#262626] space-y-2 text-xs">
               <Link
                 href="/dashboard/seller"
                 onClick={() => setMobileMenuOpen(false)}
@@ -1986,7 +2000,13 @@ export default function OwnerDashboard() {
                 </div>
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
-
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-red-400/80 hover:text-red-300 hover:bg-red-950/20 transition font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Cerrar Sesión</span>
+              </button>
             </div>
           </div>
         </div>
@@ -2129,6 +2149,13 @@ export default function OwnerDashboard() {
             <ArrowLeftRight className="w-3.5 h-3.5" />
             <span>Cambiar a Vista Vendedor</span>
           </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition pt-1 font-medium"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </aside>
 

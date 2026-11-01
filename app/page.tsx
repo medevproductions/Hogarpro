@@ -65,8 +65,11 @@ export default function HomeOrSellerCatalogPage() {
     const user = getCurrentUser();
     setCurrentUserState(user);
     if (user) {
-      // Redirigir directamente al panel de vendedor
-      router.push("/dashboard/seller");
+      if (user.role === "owner" || (user.role as string) === "admin") {
+        router.push("/dashboard/owner");
+      } else {
+        router.push("/dashboard/seller");
+      }
       return;
     }
 

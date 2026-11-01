@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, ShieldCheck, AlertCircle } from "lucide-react";
-import { setCurrentUser, SystemUser } from "@/lib/account-manager";
+import { setCurrentUser, getCurrentUser, SystemUser } from "@/lib/account-manager";
 import { authenticateWithFirebase } from "@/lib/firebase/auth-service";
 
 export default function AdminLoginPage() {
@@ -13,6 +13,13 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const user = getCurrentUser();
+    if (user && (user.role === "owner" || (user.role as string) === "admin")) {
+      router.push("/dashboard/owner");
+    }
+  }, [router]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
