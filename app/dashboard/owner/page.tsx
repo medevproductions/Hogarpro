@@ -2012,10 +2012,10 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* DESKTOP SIDEBAR DASHBOARD */}
-      <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0">
-        <div>
-          <div className="flex items-center gap-3 mb-8">
+      {/* DESKTOP SIDEBAR DASHBOARD CONSTANTEMENTE VISIBLE */}
+      <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0">
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex items-center gap-3 mb-6 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-lg shadow-red-600/30">
               <Tv className="w-5 h-5" />
             </div>
@@ -2026,7 +2026,7 @@ export default function OwnerDashboard() {
             </div>
           </div>
 
-          <nav className="space-y-1.5 text-xs font-semibold">
+          <nav className="space-y-1.5 text-xs font-semibold overflow-y-auto flex-1 pr-1">
             <button
               onClick={() => setActiveTab("resumen")}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
@@ -2144,16 +2144,16 @@ export default function OwnerDashboard() {
           </nav>
         </div>
 
-        <div className="pt-4 border-t border-[#262626] space-y-2 text-xs">
-          <Link href="/dashboard/seller" className="flex items-center gap-1.5 text-[#E50914] hover:underline font-semibold">
+        <div className="pt-4 mt-2 border-t border-[#262626] space-y-2 text-xs shrink-0 bg-[#101010]">
+          <Link href="/dashboard/seller" className="flex items-center gap-1.5 text-[#E50914] hover:underline font-semibold p-1">
             <ArrowLeftRight className="w-3.5 h-3.5" />
             <span>Cambiar a Vista Vendedor</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition pt-1 font-medium"
+            className="w-full flex items-center gap-2 text-red-400/90 hover:text-red-300 hover:bg-red-950/20 transition p-2 rounded-xl font-medium border border-transparent hover:border-red-500/20"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
             <span>Cerrar Sesión</span>
           </button>
         </div>
