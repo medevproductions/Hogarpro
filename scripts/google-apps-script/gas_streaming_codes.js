@@ -107,9 +107,10 @@ function buscarCodigoNetflix(targetEmail, rawActionType) {
 
   let threads = [];
 
-  // Intento 1: Búsqueda exacta del correo con comillas + remitente Netflix
+  // Intento 1: Búsqueda exacta del correo con comillas + remitente Netflix (compatible con embudos)
   try {
-    const q1 = `("${cleanTarget}" OR to:"${cleanTarget}") (${CONFIG.NETFLIX_FROM})`.trim();
+    const urlEncoded = cleanTarget.replace("@", "%40");
+    const q1 = `("${cleanTarget}" OR to:"${cleanTarget}" OR "${urlEncoded}") (${CONFIG.NETFLIX_FROM})`.trim();
     Logger.log("Búsqueda 1: " + q1);
     threads = GmailApp.search(q1, 0, 10);
   } catch (e1) {
@@ -204,12 +205,24 @@ function procesarHilosNetflix(threads, targetEmail, requestedAction) {
     const htmlBody = message.getBody() || "";
     const subject = message.getSubject() || "";
 
-    // Validación de destinatario flexible: To, Delivered-To, body o baseEmail
-    const matchesTarget = rawTo.includes(cleanTarget) || 
-                          body.toLowerCase().includes(cleanTarget) || 
-                          htmlBody.toLowerCase().includes(cleanTarget) ||
-                          (baseEmail && rawTo.includes(baseEmail)) ||
-                          (threads.length === 1); // Si fue el único hilo retornado
+    // Validación de destinatario flexible (especial para embudos de reenvío multicuenta):
+    // Verifica To, cuerpo, HTML, enlaces codificados o cabeceras raw del reenvío
+    const urlEncodedTarget = cleanTarget.replace("@", "%40");
+    let matchesTarget = rawTo.includes(cleanTarget) || 
+                        body.toLowerCase().includes(cleanTarget) || 
+                        htmlBody.toLowerCase().includes(cleanTarget) ||
+                        htmlBody.toLowerCase().includes(urlEncodedTarget) ||
+                        (baseEmail && rawTo.includes(baseEmail)) ||
+                        (threads.length === 1);
+
+    if (!matchesTarget) {
+      try {
+        const rawContent = message.getRawContent ? message.getRawContent().toLowerCase() : "";
+        if (rawContent && (rawContent.includes(cleanTarget) || rawContent.includes(urlEncodedTarget))) {
+          matchesTarget = true;
+        }
+      } catch (err) {}
+    }
 
     if (!matchesTarget) {
       continue;
