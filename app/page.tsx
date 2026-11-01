@@ -76,6 +76,13 @@ export default function HomeOrSellerCatalogPage() {
     setCatalogPlatforms(getCatalogPlatforms());
     setLoadingSession(false);
 
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "restricted") {
+        setLoginError("Acceso protegido: La consulta de códigos está restringida exclusivamente a Revendedores Autorizados y Administradores. Inicia sesión para continuar.");
+      }
+    }
+
     // Sincronizar usuarios y cuentas desde la nube en segundo plano
     syncUsersFromCloud(true).catch(console.warn);
     syncAccountsFromCloud(true).catch(console.warn);

@@ -641,43 +641,19 @@ export function checkAccountAuthorization(
 } {
   const cleanEmail = accountEmail.trim().toLowerCase();
 
-  // El Owner o Admin tiene acceso maestro e irrestricto
+  // 1. El Owner o Admin tiene acceso maestro e irrestricto a todas las cuentas
   if (user?.role === "owner" || (user?.role as string) === "admin") {
-    return { authorized: true };
-  }
-
-  // Si es consulta pública desde el portal /soporte-codigos
-  if (!user && allowPublicLookup) {
     const accounts = getStoredAccounts();
-    const match = accounts.find(a => a.email.toLowerCase().trim() === cleanEmail);
-    if (match && match.expirationDate) {
-      const cleanExp = match.expirationDate.split("T")[0];
-      const parts = cleanExp.split("-").map(Number);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      let expDate: Date;
-      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-        expDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
-      } else {
-        expDate = new Date(match.expirationDate);
-        expDate.setHours(23, 59, 59, 999);
-      }
-
-      if (expDate < today) {
-        return {
-          authorized: false,
-          reason: `El servicio de esta cuenta expiró el ${match.expirationDate}. Contacta a tu proveedor para renovar.`
-        };
-      }
-    }
+    const match = accounts.find(a => (a.email || "").toLowerCase().trim() === cleanEmail);
     return { authorized: true, account: match };
   }
 
+  // 2. ACCESO ESTRICTO: Los clientes finales NO pueden consultar códigos directamente.
+  // Solo los revendedores autenticados y el owner tienen acceso.
   if (!user) {
     return {
       authorized: false,
-      reason: "Debes iniciar sesión como vendedor para consultar códigos de tus cuentas."
+      reason: "Acceso denegado. La consulta de códigos está restringida exclusivamente a Revendedores Autorizados y al Administrador. Los clientes no tienen acceso directo."
     };
   }
 

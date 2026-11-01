@@ -5152,10 +5152,10 @@ export default function OwnerDashboard() {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">
-                      Portal Público de Autoservicio de Códigos
+                      Portal Privado de Consulta de Códigos
                     </h4>
                     <p className="text-xs text-zinc-400">
-                      Tus clientes y revendedores pueden entrar a <span className="text-red-400 font-mono">/soporte-codigos</span> para obtener sus propios códigos en tiempo real.
+                      Acceso exclusivo para Administrador y Revendedores autorizados (solo sus cuentas asignadas). Los clientes finales tienen el acceso bloqueado.
                     </p>
                   </div>
                 </div>
@@ -5165,7 +5165,7 @@ export default function OwnerDashboard() {
                     target="_blank"
                     className="px-4 py-2 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
                   >
-                    <span>Ver Portal Público</span>
+                    <span>Abrir Portal de Códigos</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
                 </div>

@@ -10,6 +10,35 @@ import {
 } from "@/lib/security";
 import { getRecentCodeFromFirestore } from "@/lib/firebase/firestore-service";
 
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, isFirebaseConfigured } from "@/lib/firebase/config";
+
+interface SessionPayload {
+  id: string;
+  email: string;
+  role: "owner" | "seller" | "admin";
+  name?: string;
+  exp: number;
+}
+
+function parseSessionCookie(req: NextRequest): SessionPayload | null {
+  const cookie = req.cookies.get("hp_session")?.value;
+  if (!cookie) return null;
+
+  try {
+    const jsonStr = decodeURIComponent(atob(cookie));
+    const data: SessionPayload = JSON.parse(jsonStr);
+
+    if (!data.exp || Date.now() > data.exp) {
+      return null;
+    }
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * OPTIONS handler for CORS preflight
  */
@@ -20,14 +49,27 @@ export async function OPTIONS(req: NextRequest) {
 
 /**
  * ENDPOINT GET: /api/codes/check?email=correo@ejemplo.com&actionType=login_code
- * Permite consultar el código o link de Netflix de inmediato mediante un proxy seguro
- * Opciones: login_code, verification_code, actualizar_hogar, acceso_temporal, reset_password
+ * Permite consultar el código o link de Netflix mediante un proxy seguro
+ * ACCESO PRIVADO: Exclusivo para Owner y Revendedores autorizados
  */
 export async function GET(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
   const clientIp = getClientIp(req);
 
-  // 1. RATE LIMITING: Hasta 120 consultas por minuto por dirección IP (soporta polling legítimo)
+  // 1. CONTROL DE ACCESO: Los clientes finales NO pueden consultar códigos. Solo Owner y Revendedores
+  const session = parseSessionCookie(req);
+  if (!session) {
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: "Acceso denegado. La consulta de códigos es privada para el Administrador y Revendedores autorizados.", 
+        code: null 
+      },
+      { status: 401, headers: corsHeaders }
+    );
+  }
+
+  // 2. RATE LIMITING: Hasta 120 consultas por minuto por dirección IP
   const rateLimitResult = checkRateLimit(`check:${clientIp}`, 120, 60 * 1000);
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
@@ -68,6 +110,83 @@ export async function GET(req: NextRequest) {
       { success: false, error: "Formato de correo inválido", code: null },
       { status: 400, headers: corsHeaders }
     );
+  }
+
+  // 3. REGLA ESTRICTA DE REVENDEDOR:
+  // Si no es Administrador ni Owner, SOLO puede consultar códigos de cuentas que tenga asignadas y no estén vencidas
+  const isOwnerOrAdmin = session.role === "owner" || (session.role as string) === "admin";
+  if (!isOwnerOrAdmin) {
+    if (db && isFirebaseConfigured()) {
+      try {
+        const colRef = collection(db, "streaming_accounts");
+        const q = query(colRef, where("email", "==", cleanEmail));
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          const acc = snap.docs[0].data();
+          const sId = (acc.sellerId || "").toLowerCase().trim();
+          const sName = (acc.sellerName || acc.seller || "").toLowerCase().trim();
+          const sCustomer = (acc.customerName || "").toLowerCase().trim();
+          const uId = (session.id || "").toLowerCase().trim();
+          const uName = (session.name || "").toLowerCase().trim();
+          const uEmail = (session.email || "").toLowerCase().trim();
+
+          const isAssigned =
+            (sId && (sId === uId || sId === uEmail)) ||
+            (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName))) ||
+            (sCustomer && (sCustomer === uName || sCustomer === uEmail));
+
+          if (!isAssigned) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "Esta cuenta no está asignada a tu usuario de revendedor. No tienes permisos para ver sus códigos.",
+                code: null
+              },
+              { status: 403, headers: corsHeaders }
+            );
+          }
+
+          // Verificar si la cuenta ya expiró
+          if (acc.expirationDate) {
+            const cleanExp = String(acc.expirationDate).split("T")[0];
+            const parts = cleanExp.split("-").map(Number);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let expDate: Date;
+            if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+              expDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+            } else {
+              expDate = new Date(acc.expirationDate);
+              expDate.setHours(23, 59, 59, 999);
+            }
+
+            if (expDate < today) {
+              return NextResponse.json(
+                {
+                  success: false,
+                  error: `Esta cuenta expiró el ${cleanExp}. Contacta al administrador para renovar.`,
+                  code: null
+                },
+                { status: 403, headers: corsHeaders }
+              );
+            }
+          }
+        } else {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Cuenta no registrada en el sistema de cuentas.",
+              code: null
+            },
+            { status: 404, headers: corsHeaders }
+          );
+        }
+      } catch (err: any) {
+        console.warn("[CHECK AUTH] Error verificando asignación:", err?.message);
+      }
+    }
   }
 
   // Normalizar la acción a una de las 5 opciones oficiales de Netflix o 'auto'

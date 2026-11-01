@@ -1932,43 +1932,24 @@ export default function SellerLiveCodesPage() {
                 )}
               </div>
 
-              {/* BANNER COMPARTIR CON CLIENTES & GUÍA PASO A PASO */}
+              {/* AVISO DE PRIVACIDAD: CONSULTA EXCLUSIVA DE REVENDEDORES Y GUÍA PASO A PASO */}
               <div className="mt-8 pt-6 border-t border-[#262626] space-y-6">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/30 to-purple-950/30 border border-red-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900 to-black border border-red-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-950/50">
-                      <Tv className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-[#E50914] shrink-0">
+                      <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-white">
-                        Portal de Autoservicio para tus Clientes
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <span>Canal Privado de Códigos Exclusivo para Revendedores</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold uppercase">
+                          Seguro
+                        </span>
                       </h4>
-                      <p className="text-xs text-zinc-400">
-                        Envía este link a tus compradores para que ellos mismos consulten su código o enlace de Hogar: <span className="text-red-400 font-mono">/soporte-codigos</span>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        Los clientes finales no tienen acceso al extractor. Como revendedor autorizado, solicita el código aquí y envíaselo directamente a tu comprador por WhatsApp.
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = window.location.origin + "/soporte-codigos";
-                        navigator.clipboard.writeText(url);
-                        alert("¡Link copiado al portapapeles! Envíalo a tus clientes por WhatsApp.");
-                      }}
-                      className="px-3.5 py-2 bg-[#222222] hover:bg-[#2c2c2c] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition border border-zinc-700"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar Link para WhatsApp</span>
-                    </button>
-                    <Link
-                      href="/soporte-codigos"
-                      target="_blank"
-                      className="px-3.5 py-2 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
-                    >
-                      <span>Abrir</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
                   </div>
                 </div>
 

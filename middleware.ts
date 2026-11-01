@@ -51,12 +51,39 @@ export function middleware(req: NextRequest) {
     }
   }
 
+  // 3. Proteger rutas de consulta de códigos: Restringidas exclusivamente a Owner y Revendedores
+  // Los clientes finales no tienen acceso a consultar códigos
+  const isCodeLookupRoute = 
+    pathname.startsWith("/soporte-codigos") || 
+    pathname.startsWith("/streaming/soporte-codigos") ||
+    pathname === "/codigo" ||
+    pathname === "/actualizar" ||
+    pathname === "/temporal" ||
+    pathname === "/confirmar" ||
+    pathname === "/clave";
+
+  if (isCodeLookupRoute) {
+    if (!session) {
+      const loginUrl = new URL("/", req.url);
+      loginUrl.searchParams.set("error", "restricted");
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     "/dashboard/owner/:path*",
-    "/dashboard/seller/:path*"
+    "/dashboard/seller/:path*",
+    "/soporte-codigos/:path*",
+    "/streaming/soporte-codigos/:path*",
+    "/codigo",
+    "/actualizar",
+    "/temporal",
+    "/confirmar",
+    "/clave"
   ]
 };

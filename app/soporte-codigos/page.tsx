@@ -19,10 +19,11 @@ import {
   KeyRound,
   ArrowLeft,
   Smartphone,
-  Share2
+  Share2,
+  Lock
 } from "lucide-react";
 import CodigoHelpGuide from "@/components/soporte/CodigoHelpGuide";
-import { getCurrentUser, checkAccountAuthorization } from "@/lib/account-manager";
+import { getCurrentUser, checkAccountAuthorization, SystemUser } from "@/lib/account-manager";
 
 type ActionType = "auto" | "actualizar_hogar" | "acceso_temporal" | "login_code" | "verification_code" | "reset_password";
 
@@ -97,10 +98,16 @@ export default function SoporteCodigosPage() {
     message?: string;
     success?: boolean;
   } | null>(null);
+  const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUserState(user);
+  }, []);
 
   // Limpiar temporizador al desmontar
   useEffect(() => {
@@ -134,9 +141,18 @@ export default function SoporteCodigosPage() {
       return;
     }
 
-    // Comprobar estado de autorización (permite consulta de cuentas activas de clientes)
+    // ACCESO PRIVADO ESTRICTO: Solo Revendedores y Administrador pueden consultar códigos
     const user = getCurrentUser();
-    const authCheck = checkAccountAuthorization(cleanEmail, user, true);
+    if (!user) {
+      setResult({
+        success: false,
+        message: "Acceso denegado: La consulta de códigos es exclusiva para Revendedores Autorizados y el Administrador. Los clientes finales no pueden consultar códigos directamente."
+      });
+      return;
+    }
+
+    // Comprobar estado de autorización (el revendedor solo puede consultar sus cuentas asignadas)
+    const authCheck = checkAccountAuthorization(cleanEmail, user, false);
     if (!authCheck.authorized) {
       setResult({
         success: false,
@@ -245,28 +261,11 @@ export default function SoporteCodigosPage() {
           </Link>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={handleShareLink}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#222222] hover:bg-[#2a2a2a] text-xs font-semibold text-zinc-300 hover:text-white transition border border-zinc-800"
-              title="Copiar enlace para compartir con clientes"
-            >
-              {copiedShare ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">¡Link Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Compartir Portal</span>
-                </>
-              )}
-            </button>
             <Link
-              href="/dashboard/seller"
+              href={currentUser?.role === "owner" || (currentUser?.role as string) === "admin" ? "/dashboard/owner" : "/dashboard/seller"}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#E50914] hover:bg-[#b80710] text-xs font-bold text-white transition shadow-sm"
             >
-              <span>Acceso Vendedores</span>
+              <span>{currentUser ? "Ir a mi Panel" : "Acceso Revendedor / Admin"}</span>
             </Link>
           </div>
         </div>
@@ -274,19 +273,49 @@ export default function SoporteCodigosPage() {
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="max-w-4xl w-full mx-auto px-4 py-8 sm:py-12 flex-1">
-        {/* ENCABEZADO Y TÍTULO */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/40 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider mb-3">
-            <Tv className="w-3.5 h-3.5" />
-            <span>Portal de Autoservicio Netflix</span>
+        {/* PANTALLA DE ACCESO RESTRINGIDO SI NO HAY SESIÓN INICIADA */}
+        {!currentUser ? (
+          <div className="rounded-3xl bg-[#141414] border-2 border-red-500/40 p-8 sm:p-12 text-center shadow-2xl max-w-lg mx-auto my-8 animate-in fade-in">
+            <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-500/50 text-[#E50914] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-950/50">
+              <Lock className="w-8 h-8" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#E50914] bg-red-950/60 border border-red-500/30 px-3 py-1 rounded-full">
+              Canal Privado Protegido
+            </span>
+            <h2 className="text-2xl font-black text-white mt-3">Consulta Exclusiva para Revendedores</h2>
+            <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
+              La extracción de códigos y enlaces no está abierta a clientes finales. Como revendedor o administrador, inicia sesión para solicitar los códigos de tus cuentas asignadas.
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/"
+                className="w-full sm:w-auto px-6 py-3 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl shadow-lg shadow-red-950/60 transition"
+              >
+                Iniciar Sesión como Revendedor
+              </Link>
+              <Link
+                href="/admin"
+                className="w-full sm:w-auto px-6 py-3 bg-[#222222] hover:bg-zinc-800 text-zinc-300 hover:text-white font-bold text-xs rounded-xl border border-zinc-700 transition"
+              >
+                Acceso Administrador
+              </Link>
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
-            Soporte de Códigos Netflix
-          </h1>
-          <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto mt-2">
-            Obtén tu código de 4 dígitos para TV, verificación de 6 dígitos o enlace oficial de Hogar con Netflix en tiempo real.
-          </p>
-        </div>
+        ) : (
+          <>
+            {/* ENCABEZADO Y TÍTULO */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/40 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider mb-3">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#E50914]" />
+                <span>Canal Privado • {currentUser.role === "owner" || (currentUser.role as string) === "admin" ? "Administrador Maestro" : `Revendedor: ${currentUser.name}`}</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+                Soporte de Códigos Netflix
+              </h1>
+              <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto mt-2">
+                Consulta códigos de 4 dígitos para TV, verificación de 6 dígitos o enlace oficial de Hogar para tus cuentas asignadas.
+              </p>
+            </div>
 
         {/* TARJETA DE BÚSQUEDA CENTRAL */}
         <div className="rounded-3xl bg-[#141414] border border-[#2a2a2a] p-5 sm:p-8 shadow-2xl relative overflow-hidden mb-8">
@@ -514,6 +543,8 @@ export default function SoporteCodigosPage() {
 
         {/* GUÍA PASO A PASO: ¿CÓMO UTILIZAR ESTA PÁGINA? */}
         <CodigoHelpGuide className="mt-8" />
+          </>
+        )}
       </main>
 
       {/* FOOTER */}

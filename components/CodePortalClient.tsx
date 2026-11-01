@@ -15,9 +15,10 @@ import {
   ExternalLink,
   KeyRound,
   AlertCircle,
-  ShieldAlert
+  ShieldAlert,
+  Lock
 } from "lucide-react";
-import { getCurrentUser, checkAccountAuthorization } from "@/lib/account-manager";
+import { getCurrentUser, checkAccountAuthorization, SystemUser } from "@/lib/account-manager";
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 
 interface CodePagePortalProps {
@@ -46,6 +47,11 @@ export default function CodePortalClient({
   const [authError, setAuthError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
+
+  useEffect(() => {
+    setCurrentUserState(getCurrentUser());
+  }, []);
 
   const PLATFORMS = [
     {
@@ -227,17 +233,45 @@ export default function CodePortalClient({
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="max-w-xl w-full mx-auto px-4 py-12 relative z-10 flex-1 flex flex-col justify-center">
-        <div className="bg-[#121826]/90 border border-gray-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
-          
-          {/* Badge & Título */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-4">
-              {icon}
-              <span>{badge}</span>
+        {!currentUser ? (
+          <div className="bg-[#121826]/95 border-2 border-red-500/40 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-500/50 text-[#E50914] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-950/50">
+              <Lock className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{title}</h1>
-            <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#E50914] bg-red-950/60 border border-red-500/30 px-3 py-1 rounded-full">
+              Canal Privado Protegido
+            </span>
+            <h2 className="text-2xl font-black text-white mt-3">Consulta Exclusiva para Revendedores</h2>
+            <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
+              La extracción de códigos y enlaces no está disponible para clientes finales. Como revendedor o administrador, inicia sesión para solicitar los códigos de tus cuentas asignadas.
+            </p>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/"
+                className="w-full sm:w-auto px-6 py-3 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl shadow-lg shadow-red-950/60 transition"
+              >
+                Iniciar Sesión como Revendedor
+              </Link>
+              <Link
+                href="/admin"
+                className="w-full sm:w-auto px-6 py-3 bg-[#222222] hover:bg-zinc-800 text-zinc-300 hover:text-white font-bold text-xs rounded-xl border border-zinc-700 transition"
+              >
+                Acceso Administrador
+              </Link>
+            </div>
           </div>
+        ) : (
+          <div className="bg-[#121826]/90 border border-gray-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
+            
+            {/* Badge & Título */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-4">
+                {icon}
+                <span>{badge} • {currentUser.role === "owner" || (currentUser.role as string) === "admin" ? "Administrador" : `Revendedor: ${currentUser.name}`}</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{title}</h1>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
+            </div>
 
           {/* FORMULARIO DE INGRESO DE CORREO Y SERVICIO */}
           <form onSubmit={handleRequestCode} noValidate className="space-y-4">
@@ -426,6 +460,7 @@ export default function CodePortalClient({
             <span>Sincronización instantánea en vivo</span>
           </div>
         </div>
+        )}
       </main>
 
       {/* FOOTER */}
