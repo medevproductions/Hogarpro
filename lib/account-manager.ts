@@ -570,12 +570,35 @@ export function toggleCalendarReminder(id: string) {
 export function getCurrentUser(): SystemUser | null {
   if (typeof window === "undefined") return null;
   const stored = localStorage.getItem(STORAGE_KEY_CURRENT_USER);
-  if (!stored) return null;
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return null;
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed && parsed.email) {
+        return parsed;
+      }
+    } catch {}
   }
+
+  // Fallback seguro: Leer la cookie de sesión si localStorage se perdió
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)hp_session=([^;]+)/);
+    if (match && match[1]) {
+      const decoded = JSON.parse(decodeURIComponent(atob(match[1])));
+      if (decoded && decoded.email && (!decoded.exp || Date.now() < decoded.exp)) {
+        const fallbackUser: SystemUser = {
+          id: decoded.id || "owner-1",
+          email: decoded.email,
+          name: decoded.name || (decoded.role === "owner" ? "Administrador Maestro" : "Revendedor"),
+          role: decoded.role || "seller",
+          status: "active"
+        };
+        localStorage.setItem(STORAGE_KEY_CURRENT_USER, JSON.stringify(fallbackUser));
+        return fallbackUser;
+      }
+    }
+  } catch {}
+
+  return null;
 }
 
 export function setCurrentUser(user: SystemUser | null) {

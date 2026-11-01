@@ -3845,21 +3845,32 @@ export default function OwnerDashboard() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSellerForAccounts(isSelected ? null : s.id);
-                        }}
-                        className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
-                          isSelected
-                            ? "bg-[#E50914] text-white shadow-lg shadow-red-950/60"
-                            : "bg-[#202020] hover:bg-[#282828] text-white border border-[#333333]"
-                        }`}
-                      >
-                        <Tv className="w-3.5 h-3.5 text-[#E50914]" />
-                        <span>{isSelected ? "Ocultar Cuentas Asignadas" : `Ver Cuentas Asignadas (${assignedCount})`}</span>
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSellerForAccounts(isSelected ? null : s.id);
+                          }}
+                          className={`py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                            isSelected
+                              ? "bg-[#E50914] text-white shadow-lg shadow-red-950/60"
+                              : "bg-[#202020] hover:bg-[#282828] text-white border border-[#333333]"
+                          }`}
+                        >
+                          <Tv className="w-3.5 h-3.5 text-[#E50914]" />
+                          <span>{isSelected ? "Ocultar" : `Cuentas (${assignedCount})`}</span>
+                        </button>
+                        <Link
+                          href={`/dashboard/seller?sellerId=${s.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="py-2 px-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-gradient-to-r from-red-950/60 to-black hover:bg-red-900/40 text-red-200 border border-red-500/40 transition shadow-sm"
+                          title={`Abrir el portal de vendedor tal como lo ve ${s.name}`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-[#E50914]" />
+                          <span>Ver Portal</span>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
@@ -3907,6 +3918,15 @@ export default function OwnerDashboard() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        href={`/dashboard/seller?sellerId=${activeSellerObj.id}`}
+                        className="px-3.5 py-2 bg-gradient-to-r from-red-950/80 via-red-900/40 to-black hover:bg-red-900/60 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 border border-red-500/40 shadow-sm transition active:scale-95"
+                        title={`Abrir el portal tal como lo ve ${activeSellerObj.name}`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-[#E50914]" />
+                        <span>Ver Portal de {activeSellerObj.name}</span>
+                      </Link>
+
                       <button
                         onClick={() => {
                           const availableAcc = accounts.find(a => !a.sellerId);
@@ -3920,7 +3940,7 @@ export default function OwnerDashboard() {
                         className="px-3.5 py-2 bg-[#E50914] hover:bg-[#f40612] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>Asignar Cuenta a {activeSellerObj.name}</span>
+                        <span>Asignar Cuenta</span>
                       </button>
 
                       <button

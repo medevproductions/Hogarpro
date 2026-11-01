@@ -29,12 +29,16 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   CheckCircle2,
   Globe,
   ArrowLeft,
   ArrowLeftRight,
-  Menu
+  Menu,
+  Users,
+  Search,
+  Plus
 } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -43,8 +47,10 @@ import {
   setCurrentUser,
   saveSystemUser,
   getStoredAccounts, 
+  getSystemUsers,
   checkAccountAuthorization, 
   syncAccountsFromCloud,
+  syncUsersFromCloud,
   StoredStreamingAccount,
   SystemUser
 } from "@/lib/account-manager";
@@ -127,6 +133,13 @@ export default function SellerLiveCodesPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string; country: string }>>([]);
   const [rawSellerAccounts, setRawSellerAccounts] = useState<StoredStreamingAccount[]>([]);
+
+  // Estados de Revendedores para simulación de vistas (Owner)
+  const [availableSellers, setAvailableSellers] = useState<SystemUser[]>([]);
+  const [simulatedSellerId, setSimulatedSellerId] = useState<string>("all");
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState<boolean>(true);
+  const [accountSearchQuery, setAccountSearchQuery] = useState<string>("");
+  const [showAllCards, setShowAllCards] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -300,8 +313,23 @@ export default function SellerLiveCodesPage() {
     }
   };
 
-  // Cargar cuentas asignadas al vendedor logueado
-  const reloadSellerAccounts = () => {
+  // Cambiar revendedor simulado (para Owner / Administrador)
+  const handleSwitchSeller = (newSellerId: string) => {
+    setSimulatedSellerId(newSellerId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (newSellerId === "all") {
+        url.searchParams.delete("sellerId");
+      } else {
+        url.searchParams.set("sellerId", newSellerId);
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
+    reloadSellerAccounts(newSellerId);
+  };
+
+  // Cargar cuentas asignadas al vendedor logueado o simular revendedor para el Owner
+  const reloadSellerAccounts = (targetSellerIdOverride?: string) => {
     const user = getCurrentUser();
     if (!user) {
       router.push("/?error=login_required");
@@ -309,15 +337,56 @@ export default function SellerLiveCodesPage() {
     }
 
     setCurrentUserState(user);
-    setProfileName(user.name || "");
-    setProfilePhone(user.phone || "");
+
+    // Cargar y almacenar lista de revendedores
+    const allUsers = getSystemUsers();
+    setAvailableSellers(allUsers);
 
     const allAccounts = getStoredAccounts();
-    // Si es owner o admin muestra todas, si es vendedor filtra con coincidencia inteligente sus cuentas asignadas
+    const isOwner = user.role === "owner" || (user.role as string) === "admin";
+    const effectiveSimId = targetSellerIdOverride !== undefined ? targetSellerIdOverride : simulatedSellerId;
+
     let validAccs: StoredStreamingAccount[] = [];
-    if (user.role === "owner" || (user.role as string) === "admin") {
-      validAccs = allAccounts;
+
+    if (isOwner) {
+      if (effectiveSimId === "all") {
+        validAccs = allAccounts;
+        setProfileName("Vista Global Admin");
+        setProfilePhone("Acceso Total");
+      } else {
+        const foundSeller = allUsers.find(
+          u => u.id === effectiveSimId || (u.email && u.email.toLowerCase() === effectiveSimId.toLowerCase())
+        );
+
+        if (foundSeller) {
+          setProfileName(foundSeller.name);
+          setProfilePhone(foundSeller.phone || "Sin teléfono");
+
+          const sId = (foundSeller.id || "").toLowerCase().trim();
+          const sName = (foundSeller.name || "").toLowerCase().trim();
+          const sEmail = (foundSeller.email || "").toLowerCase().trim();
+
+          validAccs = allAccounts.filter(a => {
+            const accSellerId = (a.sellerId || "").toLowerCase().trim();
+            const accSellerName = (a.sellerName || (a as any).seller || "").toLowerCase().trim();
+            const accCustomer = (a.customerName || "").toLowerCase().trim();
+
+            return (
+              (accSellerId && (accSellerId === sId || accSellerId === sEmail)) ||
+              (accSellerName && (accSellerName === sName || accSellerName === sEmail || sName.includes(accSellerName) || accSellerName.includes(sName))) ||
+              (accCustomer && (accCustomer === sName || accCustomer === sEmail))
+            );
+          });
+        } else {
+          validAccs = allAccounts;
+          setProfileName(user.name || "Administrador");
+          setProfilePhone(user.phone || "");
+        }
+      }
     } else {
+      setProfileName(user.name || "");
+      setProfilePhone(user.phone || "");
+
       const uName = (user.name || "").toLowerCase().trim();
       const uEmail = (user.email || "").toLowerCase().trim();
       const uId = (user.id || "").toLowerCase().trim();
@@ -346,17 +415,19 @@ export default function SellerLiveCodesPage() {
 
     const formatted = validAccs.map((a) => ({
       id: a.id,
-      service: a.platform,
-      email: a.email,
+      service: a.platform || "Netflix",
+      email: a.email || "sin_correo@hogarpro.com",
       profiles: `${a.occupiedProfiles || 0}/${a.maxProfiles || 5}`,
       country: a.country || "Global"
     }));
 
     setAssignedAccounts(formatted);
     setRawSellerAccounts(validAccs);
+    setIsLoadingAccounts(false);
+
     if (formatted.length > 0) {
       setSelectedAccount((prev) => {
-        if (prev && formatted.some(f => f.email.toLowerCase().trim() === prev.toLowerCase().trim())) {
+        if (prev && formatted.some(f => (f.email || "").toLowerCase().trim() === (prev || "").toLowerCase().trim())) {
           return prev;
         }
         return formatted[0].email;
@@ -367,17 +438,29 @@ export default function SellerLiveCodesPage() {
   };
 
   useEffect(() => {
+    let initialSellerId = "all";
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab");
       if (tabParam === "calendario" || tabParam === "configuracion" || tabParam === "cuentas") {
         setActiveTab(tabParam);
       }
+      const sellerParam = urlParams.get("sellerId");
+      if (sellerParam) {
+        initialSellerId = sellerParam;
+        setSimulatedSellerId(sellerParam);
+      }
     }
 
-    reloadSellerAccounts();
-    // Sincronizar cuentas desde Firestore para que cualquier dispositivo nuevo las descargue
-    syncAccountsFromCloud(true).then(() => reloadSellerAccounts()).catch(console.warn);
+    reloadSellerAccounts(initialSellerId);
+
+    // Sincronizar cuentas y revendedores desde Cloud Firestore
+    Promise.all([
+      syncAccountsFromCloud(true),
+      syncUsersFromCloud(true)
+    ]).then(() => {
+      reloadSellerAccounts(initialSellerId);
+    }).catch(console.warn);
 
     const handleUpdate = () => reloadSellerAccounts();
     window.addEventListener("storage", handleUpdate);
@@ -390,6 +473,11 @@ export default function SellerLiveCodesPage() {
       window.removeEventListener("streamhub_users_updated", handleUpdate);
     };
   }, []);
+
+  const simulatedSellerObj = React.useMemo(() => {
+    if (simulatedSellerId === "all") return null;
+    return availableSellers.find(s => s.id === simulatedSellerId || (s.email && s.email.toLowerCase() === simulatedSellerId.toLowerCase())) || null;
+  }, [simulatedSellerId, availableSellers]);
 
   // Temporizador de espera visual
   useEffect(() => {
@@ -611,14 +699,14 @@ export default function SellerLiveCodesPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
-                    <span>{currentUser?.name || "Vendedor"}</span>
+                    <span>{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</span>
                     {isOwnerOrAdmin && (
                       <span className="text-[8px] px-1.5 py-0.2 rounded bg-[#E50914] text-white font-black uppercase">
-                        Owner
+                        {simulatedSellerObj ? "Simulación" : "Owner"}
                       </span>
                     )}
                   </div>
-                  <div className="text-[10px] text-zinc-400 font-mono truncate">{currentUser?.email || "vendedor@ventas.com"}</div>
+                  <div className="text-[10px] text-zinc-400 font-mono truncate">{simulatedSellerObj ? simulatedSellerObj.email : (currentUser?.email || "vendedor@ventas.com")}</div>
                 </div>
               </div>
 
@@ -827,32 +915,71 @@ export default function SellerLiveCodesPage() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 min-w-0 p-3.5 sm:p-6 md:p-8 overflow-y-auto max-w-full overflow-x-hidden">
-        {/* BANNER MODO VISTA OWNER */}
+        {/* BANNER MODO VISTA OWNER CON SELECTOR DE REVENDEDORES */}
         {isOwnerOrAdmin && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/70 via-zinc-900 to-black border border-red-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-black/60">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-[#E50914] shrink-0">
-                <ArrowLeftRight className="w-5 h-5" />
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-black border-2 border-red-500/50 shadow-2xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-[#E50914] shrink-0 mt-1 sm:mt-0">
+                  <ArrowLeftRight className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-black text-white uppercase tracking-wider">Modo Vista de Revendedor</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-semibold">
+                      Sesión Owner Activa
+                    </span>
+                    {simulatedSellerObj ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E50914]/20 text-[#ff8888] border border-red-500/30 font-bold">
+                        Viendo como: {simulatedSellerObj.name}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold">
+                        Vista Global (Todas las Cuentas)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-300 mt-1">
+                    Puedes alternar entre cualquier revendedor para simular exactamente su portal y códigos disponibles.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <span>Modo Vista de Revendedor</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-semibold">
-                    Sesión Owner Activa
-                  </span>
-                </p>
-                <p className="text-xs text-zinc-300 mt-0.5">
-                  Estás visualizando el portal tal como lo ve un revendedor. Puedes volver a tu panel de administración en cualquier momento sin perder tu sesión.
-                </p>
+
+              {/* CONTROLES DEL BANNER: SELECTOR DE REVENDEDOR Y VOLVER */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-1.5 bg-[#181818] border border-zinc-700/80 rounded-xl px-2.5 py-1.5 shadow-sm">
+                  <Users className="w-3.5 h-3.5 text-[#E50914] shrink-0" />
+                  <span className="text-[11px] text-zinc-400 font-medium hidden sm:inline">Ver como:</span>
+                  <select
+                    value={simulatedSellerId}
+                    onChange={(e) => handleSwitchSeller(e.target.value)}
+                    className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer pr-1"
+                  >
+                    <option value="all" className="bg-[#181818] text-white">
+                      🌟 Todas las Cuentas ({getStoredAccounts().length})
+                    </option>
+                    {availableSellers.filter(s => s.role !== "owner").map((s) => {
+                      const count = getStoredAccounts().filter(a => 
+                        a.sellerId === s.id || a.sellerId === s.email || a.sellerName === s.name || a.customerName === s.name
+                      ).length;
+                      return (
+                        <option key={s.id} value={s.id} className="bg-[#181818] text-white">
+                          👤 {s.name} ({count} {count === 1 ? "cuenta" : "cuentas"})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <Link
+                  href="/dashboard/owner"
+                  className="px-3.5 py-2 bg-[#E50914] hover:bg-[#b80710] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shrink-0 shadow-md shadow-red-950/60 active:scale-95"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Volver a Owner</span>
+                </Link>
               </div>
             </div>
-            <Link
-              href="/dashboard/owner"
-              className="px-4 py-2.5 bg-[#E50914] hover:bg-[#b80710] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shrink-0 shadow-md shadow-red-950/60"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Volver a Panel Owner</span>
-            </Link>
           </div>
         )}
 
@@ -881,14 +1008,14 @@ export default function SellerLiveCodesPage() {
             </div>
             <div className="text-left">
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>{currentUser?.name || "Vendedor"}</span>
+                <span>{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</span>
                 {isOwnerOrAdmin && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#E50914] text-white font-black uppercase tracking-wider">
-                    Owner
+                    {simulatedSellerObj ? "Simulación" : "Owner"}
                   </span>
                 )}
               </div>
-              <div className="text-[10px] text-zinc-400 font-mono">{currentUser?.email || "vendedor@ventas.com"}</div>
+              <div className="text-[10px] text-zinc-400 font-mono">{simulatedSellerObj ? simulatedSellerObj.email : (currentUser?.email || "vendedor@ventas.com")}</div>
             </div>
             {activeTab !== "configuracion" && (
               <button
@@ -1384,85 +1511,242 @@ export default function SellerLiveCodesPage() {
                     Tus Cuentas de Streaming Asignadas ({assignedAccounts.length})
                   </label>
                 </div>
-                {currentUser && (
-                  <span className="text-[11px] text-zinc-400">
-                    Vendedor Activo: <strong className="text-white">{currentUser.name}</strong>
+                <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                  <span>
+                    Vendedor Activo: <strong className="text-white">{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</strong>
                   </span>
-                )}
+                  {assignedAccounts.length > 0 && (
+                    <span className="text-zinc-500">•</span>
+                  )}
+                  {assignedAccounts.length > 0 && (
+                    <span className="font-mono text-emerald-400 font-bold">
+                      {assignedAccounts.length} {assignedAccounts.length === 1 ? "disponible" : "disponibles"}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {assignedAccounts.length === 0 ? (
-                <div className="p-6 rounded-xl bg-[#121212] border border-[#262626] text-center text-xs text-zinc-400">
-                  No tienes cuentas asignadas actualmente. Solicita al Administrador que te asigne cuentas de streaming.
+              {isLoadingAccounts ? (
+                <div className="p-8 rounded-xl bg-[#121212] border border-[#262626] flex items-center justify-center gap-3 text-xs text-zinc-400">
+                  <div className="w-5 h-5 border-2 border-[#E50914]/30 border-t-[#E50914] rounded-full animate-spin" />
+                  <span>Sincronizando cuentas con la nube en tiempo real...</span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Selector Desplegable Rápido */}
+              ) : assignedAccounts.length === 0 ? (
+                <div className="p-6 sm:p-8 rounded-xl bg-[#141414] border border-dashed border-red-500/30 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                      Selecciona una cuenta de la lista:
-                    </label>
-                    <select
-                      value={selectedAccount}
-                      onChange={(e) => {
-                        setSelectedAccount(e.target.value);
-                        setAuthError(null);
-                        setReceivedCode(null);
-                        setIsWaiting(false);
-                      }}
-                      className="w-full bg-[#121212] border border-[#333333] hover:border-[#E50914] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#E50914] transition cursor-pointer shadow-sm"
-                    >
-                      {assignedAccounts.map((a) => (
-                        <option key={a.id} value={a.email}>
-                          {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
-                        </option>
-                      ))}
-                    </select>
+                    <h3 className="text-sm sm:text-base font-bold text-white">
+                      {isOwnerOrAdmin && simulatedSellerObj
+                        ? `El revendedor "${simulatedSellerObj.name}" no tiene cuentas asignadas`
+                        : "No tienes cuentas asignadas actualmente"}
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
+                      {isOwnerOrAdmin
+                        ? "Puedes asignarle cuentas libres desde el inventario del Panel Owner o cambiar a la vista global para probar cualquier cuenta del sistema."
+                        : "Solicita a tu proveedor o administrador que te asigne tus cuentas de streaming para poder pedir códigos."}
+                    </p>
                   </div>
 
-                  {/* Cuadrícula de Tarjetas Clicables */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {assignedAccounts.map((acc) => {
-                      const isSelected = selectedAccount.toLowerCase().trim() === acc.email.toLowerCase().trim();
-                      return (
-                        <div
-                          key={acc.id}
-                          onClick={() => {
-                            setSelectedAccount(acc.email.trim());
-                            setAuthError(null);
-                            setReceivedCode(null);
-                            setIsWaiting(false);
-                          }}
-                          className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                            isSelected
-                              ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 transform scale-[1.02]"
-                              : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#181818]"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className={`text-xs font-black ${isSelected ? "text-white" : "text-zinc-300"}`}>
-                              {acc.service}
+                  {isOwnerOrAdmin ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchSeller("all")}
+                        className="px-4 py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl shadow-lg shadow-red-950/50 flex items-center gap-1.5 transition active:scale-95"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Ver Todas las Cuentas ({getStoredAccounts().length})</span>
+                      </button>
+                      <Link
+                        href="/dashboard/owner?tab=vendedores"
+                        className="px-4 py-2 bg-[#202020] hover:bg-[#282828] text-zinc-300 hover:text-white text-xs font-bold rounded-xl border border-zinc-700 transition flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-[#E50914]" />
+                        <span>Ir a Asignar en Panel Owner</span>
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Buscador y Selector Desplegable */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="md:col-span-2">
+                      <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Selecciona una cuenta de la lista:
+                      </label>
+                      <select
+                        value={selectedAccount}
+                        onChange={(e) => {
+                          setSelectedAccount(e.target.value);
+                          setAuthError(null);
+                          setReceivedCode(null);
+                          setIsWaiting(false);
+                        }}
+                        className="w-full bg-[#121212] border border-[#333333] hover:border-[#E50914] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#E50914] transition cursor-pointer shadow-sm"
+                      >
+                        {assignedAccounts.map((a) => (
+                          <option key={a.id} value={a.email}>
+                            {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                        Filtrar por correo o país:
+                      </label>
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-3" />
+                        <input
+                          type="text"
+                          placeholder="Buscar cuenta..."
+                          value={accountSearchQuery}
+                          onChange={(e) => setAccountSearchQuery(e.target.value)}
+                          className="w-full bg-[#121212] border border-[#333333] hover:border-zinc-500 focus:border-[#E50914] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* TARJETA DETALLADA DE LA CUENTA ACTIVA SELECCIONADA */}
+                  {(() => {
+                    const activeAcc = rawSellerAccounts.find(a => (a.email || "").toLowerCase().trim() === (selectedAccount || "").toLowerCase().trim()) || rawSellerAccounts[0];
+                    if (!activeAcc) return null;
+                    const isExp = activeAcc.expirationDate ? new Date(activeAcc.expirationDate) < new Date() : false;
+
+                    return (
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/30 via-[#181818] to-black border-2 border-red-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff7777] border border-[#E50914]/30">
+                              {activeAcc.platform}
                             </span>
-                            <span className="text-[10px] text-zinc-400 bg-[#282828] px-2 py-0.5 rounded font-mono">
-                              {acc.profiles}
-                            </span>
-                          </div>
-                          <div className="font-mono text-xs text-zinc-200 truncate mb-1.5">{acc.email}</div>
-                          <div className="flex items-center justify-between pt-1.5 border-t border-[#262626] text-[10px]">
-                            <span className="inline-flex items-center gap-1 text-zinc-400 font-mono">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-zinc-300 bg-black/60 border border-zinc-700">
                               <Globe className="w-2.5 h-2.5 text-[#E50914]" />
-                              <span>País: <strong className="text-zinc-200">{acc.country}</strong></span>
+                              <span>{activeAcc.country || "Global"}</span>
                             </span>
-                            {isSelected && (
-                              <span className="text-[#ff6666] font-bold text-[9px] uppercase tracking-wider">
-                                Seleccionada
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono text-zinc-300 bg-[#222222] border border-zinc-700">
+                              Perfiles: <strong className="text-white">{activeAcc.occupiedProfiles || 0}/{activeAcc.maxProfiles || 5}</strong>
+                            </span>
+                            {activeAcc.expirationDate && (
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                                isExp 
+                                  ? "bg-red-950 text-red-300 border border-red-500/40" 
+                                  : "bg-emerald-950/60 text-emerald-300 border border-emerald-500/30"
+                              }`}>
+                                {isExp ? "Vencida: " : "Vence: "}{activeAcc.expirationDate}
                               </span>
                             )}
                           </div>
+
+                          <div className="font-mono text-sm sm:text-base font-black text-white break-all flex items-center gap-2">
+                            <span>{activeAcc.email}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(activeAcc.email);
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              }}
+                              className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
+                              title="Copiar correo"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Lista para Extraer Códigos
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Cuadrícula de Tarjetas Clicables (con filtro y botón de colapsar) */}
+                  {(() => {
+                    const filteredAccounts = assignedAccounts.filter(a => {
+                      if (!accountSearchQuery.trim()) return true;
+                      const q = accountSearchQuery.toLowerCase().trim();
+                      return (
+                        (a.email || "").toLowerCase().includes(q) ||
+                        (a.service || "").toLowerCase().includes(q) ||
+                        (a.country || "").toLowerCase().includes(q)
                       );
-                    })}
-                  </div>
+                    });
+
+                    const displayAccounts = showAllCards ? filteredAccounts : filteredAccounts.slice(0, 4);
+
+                    return (
+                      <div className="space-y-2.5 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                          {displayAccounts.map((acc) => {
+                            const isSelected = (selectedAccount || "").toLowerCase().trim() === (acc.email || "").toLowerCase().trim();
+                            return (
+                              <div
+                                key={acc.id}
+                                onClick={() => {
+                                  setSelectedAccount((acc.email || "").trim());
+                                  setAuthError(null);
+                                  setReceivedCode(null);
+                                  setIsWaiting(false);
+                                }}
+                                className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                                  isSelected
+                                    ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 transform scale-[1.01]"
+                                    : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#181818]"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-xs font-black truncate max-w-[120px] ${isSelected ? "text-white" : "text-zinc-300"}`}>
+                                    {acc.service}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-400 bg-[#242424] px-1.5 py-0.2 rounded font-mono">
+                                    {acc.profiles}
+                                  </span>
+                                </div>
+                                <div className="font-mono text-xs text-zinc-200 truncate mb-1">{acc.email}</div>
+                                <div className="flex items-center justify-between pt-1 border-t border-[#242424] text-[10px]">
+                                  <span className="inline-flex items-center gap-1 text-zinc-400 font-mono">
+                                    <Globe className="w-2.5 h-2.5 text-[#E50914]" />
+                                    <span>{acc.country}</span>
+                                  </span>
+                                  {isSelected && (
+                                    <span className="text-[#ff6666] font-bold text-[9px] uppercase tracking-wider">
+                                      Activa
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {filteredAccounts.length > 4 && (
+                          <div className="flex justify-center pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setShowAllCards(!showAllCards)}
+                              className="text-xs text-zinc-400 hover:text-white bg-[#1a1a1a] hover:bg-zinc-800 border border-[#2c2c2c] px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition"
+                            >
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAllCards ? "rotate-180" : ""}`} />
+                              <span>
+                                {showAllCards 
+                                  ? "Mostrar solo 4 tarjetas" 
+                                  : `Ver todas las tarjetas (${filteredAccounts.length})`}
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
