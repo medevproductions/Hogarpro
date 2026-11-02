@@ -35,7 +35,7 @@ interface ActionOption {
 const ACTION_OPTIONS: ActionOption[] = [
   {
     id: "auto",
-    label: "Todo (Detectar Automático)",
+    label: "Detectar Automático",
     badge: "Recomendado",
     icon: <Sparkles className="w-4 h-4 text-amber-400" />,
     iconColor: "text-amber-400"
@@ -43,35 +43,35 @@ const ACTION_OPTIONS: ActionOption[] = [
   {
     id: "actualizar_hogar",
     label: "Actualizar Hogar",
-    badge: "Link",
+    badge: "Enlace",
     icon: <Home className="w-4 h-4 text-blue-400" />,
     iconColor: "text-blue-400"
   },
   {
     id: "acceso_temporal",
-    label: "Acceso Temporal / Viaje",
-    badge: "Link",
+    label: "Acceso de Viaje",
+    badge: "Enlace",
     icon: <Plane className="w-4 h-4 text-sky-400" />,
     iconColor: "text-sky-400"
   },
   {
     id: "login_code",
-    label: "Código TV (4 Dígitos)",
+    label: "Código TV",
     badge: "4 dígitos",
     icon: <Tv className="w-4 h-4 text-emerald-400" />,
     iconColor: "text-emerald-400"
   },
   {
     id: "verification_code",
-    label: "Verificación OTP",
+    label: "Código OTP",
     badge: "6 dígitos",
     icon: <ShieldCheck className="w-4 h-4 text-indigo-400" />,
     iconColor: "text-indigo-400"
   },
   {
     id: "reset_password",
-    label: "Restablecer Contraseña",
-    badge: "Link",
+    label: "Cambiar Contraseña",
+    badge: "Enlace",
     icon: <KeyRound className="w-4 h-4 text-rose-400" />,
     iconColor: "text-rose-400"
   }
@@ -270,7 +270,7 @@ export default function SoporteCodigosPage() {
               {/* SELECTOR DE ACCIÓN */}
               <div className="mb-6">
                 <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2.5">
-                  1. Selecciona lo que necesitas:
+                  1. Tipo de solicitud:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {ACTION_OPTIONS.map((opt) => {
@@ -310,7 +310,7 @@ export default function SoporteCodigosPage() {
               <form onSubmit={handleSearch} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-                    2. Ingresa el correo de tu cuenta:
+                    2. Correo de la cuenta:
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -337,12 +337,12 @@ export default function SoporteCodigosPage() {
                   {isSearching ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Buscando Código en Netflix... ({secondsElapsed}s)</span>
+                      <span>Buscando en Netflix... ({secondsElapsed}s)</span>
                     </>
                   ) : (
                     <>
                       <Search className="w-4 h-4" />
-                      <span>Buscar Código o Enlace</span>
+                      <span>Buscar Código</span>
                     </>
                   )}
                 </button>

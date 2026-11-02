@@ -79,47 +79,47 @@ interface ActionConfig {
 const ACTIONS: ActionConfig[] = [
   {
     id: "login_code",
-    title: "Inicio de Sesión",
-    subtitle: "Código de 4 dígitos para TV o inicio",
+    title: "Código TV",
+    subtitle: "4 dígitos en pantalla",
     icon: <Zap className="w-5 h-5 text-emerald-400" />,
     iconBg: "bg-emerald-500/10 border-emerald-500/20",
-    badge: "Código TV (4D)",
+    badge: "4 dígitos",
     badgeClass: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
   },
   {
     id: "verification_code",
-    title: "Verificación OTP",
-    subtitle: "Código numérico de 6 dígitos",
+    title: "Código OTP",
+    subtitle: "6 dígitos de verificación",
     icon: <Clock className="w-5 h-5 text-sky-400" />,
     iconBg: "bg-sky-500/10 border-sky-500/20",
-    badge: "Código OTP (6D)",
+    badge: "6 dígitos",
     badgeClass: "bg-sky-500/10 text-sky-300 border-sky-500/20"
   },
   {
     id: "actualizar_hogar",
     title: "Actualizar Hogar",
-    subtitle: "Enlace directo oficial para confirmar red",
+    subtitle: "Confirmar red doméstica",
     icon: <Home className="w-5 h-5 text-blue-400" />,
     iconBg: "bg-blue-500/10 border-blue-500/20",
-    badge: "Link Hogar",
+    badge: "Enlace",
     badgeClass: "bg-blue-500/10 text-blue-300 border-blue-500/20"
   },
   {
     id: "acceso_temporal",
-    title: "Acceso Temporal",
-    subtitle: "Enlace para autorizar viaje o fuera de casa",
+    title: "Acceso de Viaje",
+    subtitle: "TV fuera del hogar",
     icon: <ShieldCheck className="w-5 h-5 text-amber-400" />,
     iconBg: "bg-amber-500/10 border-amber-500/20",
-    badge: "Link Viaje",
+    badge: "Enlace",
     badgeClass: "bg-amber-500/10 text-amber-300 border-amber-500/20"
   },
   {
     id: "reset_password",
-    title: "Restablecer Clave",
-    subtitle: "Enlace oficial para cambiar contraseña",
+    title: "Cambiar Clave",
+    subtitle: "Restablecer contraseña",
     icon: <Lock className="w-5 h-5 text-rose-400" />,
     iconBg: "bg-rose-500/10 border-rose-500/20",
-    badge: "Link Clave",
+    badge: "Enlace",
     badgeClass: "bg-rose-500/10 text-rose-300 border-rose-500/20"
   }
 ];
@@ -722,23 +722,23 @@ export default function SellerLiveCodesPage() {
               </div>
 
               {/* Lista Vertical de Opciones */}
-              <nav className="space-y-1.5 text-xs font-semibold overflow-y-auto max-h-[calc(100vh-320px)] pr-1">
+              <nav className="space-y-1 text-xs font-medium overflow-y-auto max-h-[calc(100vh-320px)] pr-1">
                 <button
                   onClick={() => {
                     setActiveTab("cuentas");
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                     activeTab === "cuentas"
-                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                      ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <KeyRound className="w-4 h-4" />
-                    <span>Pedir Códigos</span>
+                  <div className="flex items-center gap-2.5">
+                    <KeyRound className="w-4 h-4 text-blue-400" />
+                    <span>Mis Cuentas y Códigos</span>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/40 text-white font-mono">
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">
                     {assignedAccounts.length}
                   </span>
                 </button>
@@ -748,18 +748,18 @@ export default function SellerLiveCodesPage() {
                     setActiveTab("calendario");
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                     activeTab === "calendario"
-                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                      ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-4 h-4" />
-                    <span>Calendario de Vencimientos</span>
+                  <div className="flex items-center gap-2.5">
+                    <Calendar className="w-4 h-4 text-blue-400" />
+                    <span>Vencimientos</span>
                   </div>
                   {expiringSoonAccounts.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-500/40 font-mono font-bold animate-pulse">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-rose-950/60 text-rose-300 border border-rose-800/50 font-mono font-medium">
                       {expiringSoonAccounts.length} prox
                     </span>
                   )}
@@ -770,14 +770,14 @@ export default function SellerLiveCodesPage() {
                     setActiveTab("configuracion");
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition ${
                     activeTab === "configuracion"
-                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                      ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
                   }`}
                 >
-                  <Settings className="w-4 h-4" />
-                  <span>Configuración de Cuenta</span>
+                  <Settings className="w-4 h-4 text-blue-400" />
+                  <span>Mi Cuenta</span>
                 </button>
               </nav>
             </div>
@@ -858,7 +858,7 @@ export default function SellerLiveCodesPage() {
             >
               <div className="flex items-center gap-2.5">
                 <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-blue-400" : "text-slate-400"}`} />
-                <span>Pedir Códigos & Cuentas</span>
+                <span>Mis Cuentas y Códigos</span>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 font-mono">
                 {assignedAccounts.length}
@@ -875,7 +875,7 @@ export default function SellerLiveCodesPage() {
             >
               <div className="flex items-center gap-2.5">
                 <Calendar className={`w-4 h-4 ${activeTab === "calendario" ? "text-blue-400" : "text-slate-400"}`} />
-                <span>Calendario de Vencimientos</span>
+                <span>Vencimientos</span>
               </div>
               {expiringSoonAccounts.length > 0 ? (
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-950/60 text-rose-300 border border-rose-800/50 font-mono font-medium">
@@ -893,7 +893,7 @@ export default function SellerLiveCodesPage() {
               }`}
             >
               <Settings className={`w-4 h-4 ${activeTab === "configuracion" ? "text-blue-400" : "text-slate-400"}`} />
-              <span>Configuración</span>
+              <span>Mi Cuenta</span>
             </button>
           </nav>
         </div>
@@ -1008,28 +1008,28 @@ export default function SellerLiveCodesPage() {
           </div>
 
           {/* PERFIL DEL VENDEDOR */}
-          <div className="flex items-center gap-3 bg-[#181818] border border-[#2f2f2f] p-2.5 px-4 rounded-2xl shadow-lg">
-            <div className="w-9 h-9 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center font-bold border border-red-500/30">
+          <div className="flex items-center gap-3 bg-[#121722] border border-slate-800/80 p-2.5 px-4 rounded-2xl shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold border border-blue-500/20">
               <User className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <div className="text-xs font-semibold text-slate-100 flex items-center gap-1.5">
                 <span>{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</span>
                 {isOwnerOrAdmin && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#E50914] text-white font-black uppercase tracking-wider">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-semibold uppercase tracking-wider">
                     {simulatedSellerObj ? "Simulación" : "Owner"}
                   </span>
                 )}
               </div>
-              <div className="text-[10px] text-zinc-400 font-mono">{simulatedSellerObj ? simulatedSellerObj.email : (currentUser?.email || "vendedor@ventas.com")}</div>
+              <div className="text-[10px] text-slate-400 font-mono">{simulatedSellerObj ? simulatedSellerObj.email : (currentUser?.email || "vendedor@ventas.com")}</div>
             </div>
             {activeTab !== "configuracion" && (
               <button
                 onClick={() => setActiveTab("configuracion")}
-                className="ml-2 px-3 py-1.5 bg-[#252525] hover:bg-[#333333] border border-[#383838] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+                className="ml-2 px-3 py-1.5 bg-[#1C2433] hover:bg-[#253043] border border-slate-700 text-slate-200 text-xs font-medium rounded-xl flex items-center gap-1.5 transition"
                 title="Ir a Configuración"
               >
-                <Settings className="w-3.5 h-3.5 text-zinc-300" />
+                <Settings className="w-3.5 h-3.5 text-slate-400" />
                 <span>Configurar</span>
               </button>
             )}
@@ -1042,17 +1042,17 @@ export default function SellerLiveCodesPage() {
         {activeTab === "configuracion" && (
           <div className="max-w-3xl space-y-6 animate-in fade-in duration-200">
             {/* Tarjeta 1: Datos Personales */}
-            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#262626]">
-                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center font-bold border border-red-500/30">
+            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-800/80">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold border border-blue-500/20">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
-                    <h2 className="text-base font-bold text-white">Datos Personales del Revendedor</h2>
+                    <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
+                    <h2 className="text-base font-semibold text-slate-100">Datos Personales del Revendedor</h2>
                   </div>
-                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">Información de contacto asociada a tu cuenta</p>
+                  <p className="text-xs text-slate-400 pl-3.5 mt-0.5">Información de contacto asociada a tu cuenta</p>
                 </div>
               </div>
 
@@ -1066,20 +1066,20 @@ export default function SellerLiveCodesPage() {
               <form onSubmit={handleUpdateProfile} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Nombre Completo</label>
+                    <label className="block font-medium text-slate-300 mb-1">Nombre Completo</label>
                     <div className="relative">
                       <input
                         type="text"
                         required
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                        className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Teléfono / WhatsApp (LATAM)</label>
+                    <label className="block font-medium text-slate-300 mb-1">Teléfono / WhatsApp (LATAM)</label>
                     <LatamPhoneInput
                       value={profilePhone}
                       onChange={(phone) => setProfilePhone(phone)}
@@ -1089,14 +1089,14 @@ export default function SellerLiveCodesPage() {
                 </div>
 
                 <div>
-                  <label className="block font-medium text-zinc-300 mb-1">Correo Electrónico (Solo Lectura)</label>
+                  <label className="block font-medium text-slate-300 mb-1">Correo Electrónico (Solo Lectura)</label>
                   <input
                     type="text"
                     disabled
                     value={currentUser?.email || ""}
-                    className="w-full bg-[#101010] border border-[#262626] text-zinc-500 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed"
+                    className="w-full bg-[#080B10] border border-slate-800 text-slate-500 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed"
                   />
-                  <span className="text-[11px] text-zinc-500 mt-1 block">
+                  <span className="text-[11px] text-slate-500 mt-1 block">
                     El correo es tu identificador único de vendedor y no se puede modificar.
                   </span>
                 </div>
@@ -1104,32 +1104,32 @@ export default function SellerLiveCodesPage() {
                 <div className="pt-2 flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-[#E50914] hover:bg-[#b80710] text-white font-bold rounded-xl shadow-lg shadow-red-950/40 transition flex items-center gap-2"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl shadow-sm transition flex items-center gap-2"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Guardar Datos de la Cuenta</span>
+                    <span>Guardar Datos</span>
                   </button>
                 </div>
               </form>
             </div>
 
             {/* Tarjeta 2: Cambiar Contraseña */}
-            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#262626]">
-                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center font-bold border border-red-500/30">
+            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-800/80">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold border border-rose-500/20">
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
-                    <h2 className="text-base font-bold text-white">Seguridad y Cambio de Contraseña</h2>
+                    <div className="w-1.5 h-4 bg-rose-500 rounded-full" />
+                    <h2 className="text-base font-semibold text-slate-100">Seguridad y Cambio de Contraseña</h2>
                   </div>
-                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">Actualiza tu clave de acceso para iniciar sesión en tu portal</p>
+                  <p className="text-xs text-slate-400 pl-3.5 mt-0.5">Actualiza tu clave de acceso para iniciar sesión en tu portal</p>
                 </div>
               </div>
 
               {passwordError && (
-                <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                <div className="mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{passwordError}</span>
                 </div>
@@ -1145,13 +1145,13 @@ export default function SellerLiveCodesPage() {
               <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
                 {currentUser?.password && (
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Contraseña Actual</label>
+                    <label className="block font-medium text-slate-300 mb-1">Contraseña Actual</label>
                     <input
                       type={showPassModalText ? "text" : "password"}
                       placeholder="••••••••"
                       value={currentPasswordInput}
                       onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                      className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
                 )}
@@ -1159,11 +1159,11 @@ export default function SellerLiveCodesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block font-medium text-zinc-300">Nueva Contraseña</label>
+                      <label className="block font-medium text-slate-300">Nueva Contraseña</label>
                       <button
                         type="button"
                         onClick={() => setShowPassModalText(!showPassModalText)}
-                        className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
+                        className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1"
                       >
                         {showPassModalText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                         <span>{showPassModalText ? "Ocultar" : "Mostrar"}</span>
@@ -1175,19 +1175,19 @@ export default function SellerLiveCodesPage() {
                       placeholder="Mínimo 4 caracteres"
                       value={newPasswordInput}
                       onChange={(e) => setNewPasswordInput(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                      className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Confirmar Nueva Contraseña</label>
+                    <label className="block font-medium text-slate-300 mb-1">Confirmar Nueva Contraseña</label>
                     <input
                       type={showPassModalText ? "text" : "password"}
                       required
                       placeholder="Repite la nueva clave"
                       value={confirmPasswordInput}
                       onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                      className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -1195,10 +1195,10 @@ export default function SellerLiveCodesPage() {
                 <div className="pt-2 flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-[#E50914] hover:bg-[#b80710] text-white font-bold rounded-xl shadow-lg shadow-red-950/40 transition flex items-center gap-2"
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium rounded-xl shadow-sm transition flex items-center gap-2"
                   >
                     <Lock className="w-4 h-4" />
-                    <span>Actualizar Mi Contraseña</span>
+                    <span>Actualizar Contraseña</span>
                   </button>
                 </div>
               </form>
@@ -1212,78 +1212,76 @@ export default function SellerLiveCodesPage() {
         {activeTab === "calendario" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Acceso Directo a los 5 Botones de Códigos */}
-            <div className="p-4 rounded-2xl bg-[#1a1a1a] border border-[#2e2e2e] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+            <div className="p-4 rounded-2xl bg-[#121722] border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#E50914]/20 text-[#E50914] flex items-center justify-center shrink-0 border border-[#E50914]/30">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">¿Necesitas consultar un código OTP, enlace de acceso o cambio de hogar?</div>
-                  <div className="text-[11px] text-zinc-400">Pulsa el botón para ir directamente al panel con los 5 botones de extracción automática</div>
+                  <div className="text-xs font-semibold text-slate-100">¿Necesitas consultar un código o enlace para tus clientes?</div>
+                  <div className="text-[11px] text-slate-400">Accede directamente al panel para solicitar códigos OTP o enlaces de Netflix.</div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveTab("cuentas")}
-                className="px-4 py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl transition shrink-0 shadow-md shadow-red-950/50 flex items-center justify-center gap-1.5"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition shrink-0 shadow-sm flex items-center justify-center gap-1.5"
               >
                 <KeyRound className="w-3.5 h-3.5" />
-                <span>Ir a Pedir Códigos</span>
+                <span>Solicitar Códigos</span>
               </button>
             </div>
 
             {/* Encabezado del Calendario */}
-            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-72 h-72 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-[#262626]">
+            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-800/80">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-6 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
+                  <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
                   <div>
-                    <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-[#E50914]" />
+                    <h2 className="text-xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-blue-400" />
                       <span>Calendario de Vencimiento de Cuentas</span>
                     </h2>
-                    <p className="text-xs text-zinc-400 mt-0.5">
-                      Monitorea las fechas de expiración de tus cuentas asignadas. Los días con vencimientos aparecen resaltados en rojo.
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Fechas de expiración de tus cuentas asignadas.
                     </p>
                   </div>
                 </div>
 
-                <div className="text-xs text-zinc-400 font-mono">
-                  Total Asignadas: <strong className="text-white">{rawSellerAccounts.length}</strong>
+                <div className="text-xs text-slate-400 font-mono">
+                  Total Asignadas: <strong className="text-slate-200">{rawSellerAccounts.length}</strong>
                 </div>
               </div>
 
               {/* KPIs de Alerta de Vencimientos */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                <div className="p-3.5 rounded-xl bg-[#141414] border border-amber-500/30 shadow-md">
-                  <div className="flex items-center justify-between text-xs text-amber-400 font-bold mb-1">
+                <div className="p-3.5 rounded-xl bg-[#0E131E] border border-amber-500/30 shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-amber-400 font-semibold mb-1">
                     <span>Por Vencer (7 Días)</span>
                     <Clock className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-2xl font-black text-white font-mono">{expiringSoonAccounts.length}</div>
-                  <div className="text-[10px] text-zinc-500 mt-0.5">Requieren renovación pronto</div>
+                  <div className="text-2xl font-bold text-slate-100 font-mono">{expiringSoonAccounts.length}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Requieren renovación pronto</div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#141414] border border-red-500/30 shadow-md">
-                  <div className="flex items-center justify-between text-xs text-red-400 font-bold mb-1">
+                <div className="p-3.5 rounded-xl bg-[#0E131E] border border-rose-500/30 shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-rose-400 font-semibold mb-1">
                     <span>Ya Vencidas</span>
                     <AlertCircle className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-2xl font-black text-white font-mono">{expiredAccounts.length}</div>
-                  <div className="text-[10px] text-zinc-500 mt-0.5">Contacta al admin para renovar</div>
+                  <div className="text-2xl font-bold text-slate-100 font-mono">{expiredAccounts.length}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Contacta al admin para renovar</div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[#141414] border border-[#2c2c2c] shadow-md">
-                  <div className="flex items-center justify-between text-xs text-zinc-400 font-bold mb-1">
+                <div className="p-3.5 rounded-xl bg-[#0E131E] border border-slate-800 shadow-sm">
+                  <div className="flex items-center justify-between text-xs text-slate-400 font-semibold mb-1">
                     <span>Mis Cuentas Activas</span>
-                    <Tv className="w-3.5 h-3.5 text-[#E50914]" />
+                    <Tv className="w-3.5 h-3.5 text-blue-400" />
                   </div>
-                  <div className="text-2xl font-black text-white font-mono">
+                  <div className="text-2xl font-bold text-slate-100 font-mono">
                     {rawSellerAccounts.filter(a => !a.expirationDate || new Date(a.expirationDate) >= new Date()).length}
                   </div>
-                  <div className="text-[10px] text-zinc-500 mt-0.5">Operando normalmente</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Operando normalmente</div>
                 </div>
               </div>
 
@@ -1471,13 +1469,13 @@ export default function SellerLiveCodesPage() {
                                     setReceivedCode(null);
                                     setIsWaiting(false);
                                     setTimeout(() => {
-                                      window.scrollTo({ top: 280, behavior: "smooth" });
+                                      window.scrollTo({ top: 120, behavior: "smooth" });
                                     }, 80);
                                   }}
-                                  className="w-full py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-red-950/60 transition active:scale-95"
+                                  className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95"
                                 >
                                   <Zap className="w-3.5 h-3.5" />
-                                  <span>Pedir Códigos para esta Cuenta</span>
+                                  <span>Seleccionar y Pedir Códigos</span>
                                 </button>
                               </div>
                             </div>
@@ -1499,59 +1497,59 @@ export default function SellerLiveCodesPage() {
           <>
             {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
             {authError && (
-              <div className="mb-6 p-4 rounded-2xl bg-red-950/70 border-2 border-red-500/50 text-red-200 flex items-start gap-3 shadow-xl">
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="mb-6 p-4 rounded-2xl bg-rose-950/60 border border-rose-800/60 text-rose-200 flex items-start gap-3 shadow-lg">
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-sm text-red-300">Consulta Bloqueada</div>
-                  <div className="text-xs text-red-200/90 mt-0.5">{authError}</div>
+                  <div className="font-semibold text-sm text-rose-200">Acción Bloqueada</div>
+                  <div className="text-xs text-rose-200/90 mt-0.5">{authError}</div>
                 </div>
               </div>
             )}
 
-            {/* SECCIÓN 1: SELECTOR DE CUENTA ACTIVA */}
-            <div className="bg-[#181818] border border-[#2f2f2f] rounded-2xl p-5 mb-8 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-[#262626]">
+            {/* SECCIÓN 1: CUENTA ACTIVA */}
+            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-5 mb-5 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800/80">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
-                  <label className="text-xs font-bold text-white uppercase tracking-wider">
-                    Tus Cuentas de Streaming Asignadas ({assignedAccounts.length})
+                  <div className="w-1.5 h-4 bg-rose-500 rounded-full" />
+                  <label className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                    Cuenta Activa
                   </label>
                 </div>
-                <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                <div className="flex items-center gap-3 text-xs text-slate-400">
                   <span>
-                    Vendedor Activo: <strong className="text-white">{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</strong>
+                    Revendedor: <strong className="text-slate-200">{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</strong>
                   </span>
                   {assignedAccounts.length > 0 && (
-                    <span className="text-zinc-500">•</span>
-                  )}
-                  {assignedAccounts.length > 0 && (
-                    <span className="font-mono text-emerald-400 font-bold">
-                      {assignedAccounts.length} {assignedAccounts.length === 1 ? "disponible" : "disponibles"}
-                    </span>
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span className="font-mono text-emerald-400 font-medium">
+                        {assignedAccounts.length} {assignedAccounts.length === 1 ? "cuenta disponible" : "cuentas disponibles"}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
 
               {isLoadingAccounts ? (
-                <div className="p-8 rounded-xl bg-[#121212] border border-[#262626] flex items-center justify-center gap-3 text-xs text-zinc-400">
-                  <div className="w-5 h-5 border-2 border-[#E50914]/30 border-t-[#E50914] rounded-full animate-spin" />
-                  <span>Sincronizando cuentas con la nube en tiempo real...</span>
+                <div className="p-6 rounded-xl bg-[#0E131E] border border-slate-800 flex items-center justify-center gap-3 text-xs text-slate-400">
+                  <div className="w-4 h-4 border-2 border-slate-600 border-t-rose-500 rounded-full animate-spin" />
+                  <span>Cargando cuentas asignadas...</span>
                 </div>
               ) : assignedAccounts.length === 0 ? (
-                <div className="p-6 sm:p-8 rounded-xl bg-[#141414] border border-dashed border-red-500/30 text-center space-y-3">
+                <div className="p-6 sm:p-8 rounded-xl bg-[#0E131E] border border-dashed border-slate-800 text-center space-y-3">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
                     <AlertCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">
+                    <h3 className="text-sm sm:text-base font-semibold text-slate-100">
                       {isOwnerOrAdmin && simulatedSellerObj
                         ? `El revendedor "${simulatedSellerObj.name}" no tiene cuentas asignadas`
                         : "No tienes cuentas asignadas actualmente"}
                     </h3>
-                    <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
+                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
                       {isOwnerOrAdmin
-                        ? "Puedes asignarle cuentas libres desde el inventario del Panel Owner o cambiar a la vista global para probar cualquier cuenta del sistema."
-                        : "Solicita a tu proveedor o administrador que te asigne tus cuentas de streaming para poder pedir códigos."}
+                        ? "Puedes asignarle cuentas libres desde el inventario del Panel Owner o cambiar a la vista global."
+                        : "Solicita a tu proveedor o administrador que te asigne tus cuentas para poder solicitar códigos."}
                     </p>
                   </div>
 
@@ -1560,96 +1558,75 @@ export default function SellerLiveCodesPage() {
                       <button
                         type="button"
                         onClick={() => handleSwitchSeller("all")}
-                        className="px-4 py-2 bg-[#E50914] hover:bg-[#b80710] text-white text-xs font-bold rounded-xl shadow-lg shadow-red-950/50 flex items-center gap-1.5 transition active:scale-95"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-1.5 transition active:scale-95"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>Ver Todas las Cuentas ({getStoredAccounts().length})</span>
+                        <span>Ver Todas ({getStoredAccounts().length})</span>
                       </button>
                       <Link
                         href="/dashboard/owner?tab=vendedores"
-                        className="px-4 py-2 bg-[#202020] hover:bg-[#282828] text-zinc-300 hover:text-white text-xs font-bold rounded-xl border border-zinc-700 transition flex items-center gap-1.5"
+                        className="px-4 py-2 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5"
                       >
-                        <Plus className="w-3.5 h-3.5 text-[#E50914]" />
+                        <Plus className="w-3.5 h-3.5 text-blue-400" />
                         <span>Ir a Asignar en Panel Owner</span>
                       </Link>
                     </div>
                   ) : null}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {/* Buscador y Selector Desplegable */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2">
-                      <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                        Selecciona una cuenta de la lista:
-                      </label>
-                      <select
-                        value={selectedAccount}
-                        onChange={(e) => {
-                          setSelectedAccount(e.target.value);
-                          setAuthError(null);
-                          setReceivedCode(null);
-                          setIsWaiting(false);
-                        }}
-                        className="w-full bg-[#121212] border border-[#333333] hover:border-[#E50914] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#E50914] transition cursor-pointer shadow-sm"
-                      >
-                        {assignedAccounts.map((a) => (
-                          <option key={a.id} value={a.email}>
-                            {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                        Filtrar por correo o país:
-                      </label>
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-3" />
-                        <input
-                          type="text"
-                          placeholder="Buscar cuenta..."
-                          value={accountSearchQuery}
-                          onChange={(e) => setAccountSearchQuery(e.target.value)}
-                          className="w-full bg-[#121212] border border-[#333333] hover:border-zinc-500 focus:border-[#E50914] rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none"
-                        />
-                      </div>
-                    </div>
+                <div className="space-y-3">
+                  {/* Selector Desplegable */}
+                  <div>
+                    <select
+                      value={selectedAccount}
+                      onChange={(e) => {
+                        setSelectedAccount(e.target.value);
+                        setAuthError(null);
+                        setReceivedCode(null);
+                        setIsWaiting(false);
+                      }}
+                      className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none transition cursor-pointer shadow-sm"
+                    >
+                      {assignedAccounts.map((a) => (
+                        <option key={a.id} value={a.email}>
+                          {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* TARJETA DETALLADA DE LA CUENTA ACTIVA SELECCIONADA */}
+                  {/* Fila de Resumen de Cuenta Activa con Botón de Copiado */}
                   {(() => {
                     const activeAcc = rawSellerAccounts.find(a => (a.email || "").toLowerCase().trim() === (selectedAccount || "").toLowerCase().trim()) || rawSellerAccounts[0];
                     if (!activeAcc) return null;
                     const isExp = activeAcc.expirationDate ? new Date(activeAcc.expirationDate) < new Date() : false;
 
                     return (
-                      <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/30 via-[#181818] to-black border-2 border-red-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1 min-w-0">
+                      <div className="p-3.5 rounded-xl bg-[#0E131E] border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E50914]/20 text-[#ff7777] border border-[#E50914]/30">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20">
                               {activeAcc.platform}
                             </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-zinc-300 bg-black/60 border border-zinc-700">
-                              <Globe className="w-2.5 h-2.5 text-[#E50914]" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 bg-slate-800/80 border border-slate-700">
+                              <Globe className="w-2.5 h-2.5 text-blue-400" />
                               <span>{activeAcc.country || "Global"}</span>
                             </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono text-zinc-300 bg-[#222222] border border-zinc-700">
-                              Perfiles: <strong className="text-white">{activeAcc.occupiedProfiles || 0}/{activeAcc.maxProfiles || 5}</strong>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 bg-slate-800/80 border border-slate-700">
+                              Perfiles: <strong className="text-slate-100">{activeAcc.occupiedProfiles || 0}/{activeAcc.maxProfiles || 5}</strong>
                             </span>
                             {activeAcc.expirationDate && (
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
                                 isExp 
-                                  ? "bg-red-950 text-red-300 border border-red-500/40" 
-                                  : "bg-emerald-950/60 text-emerald-300 border border-emerald-500/30"
+                                  ? "bg-rose-950/80 text-rose-300 border border-rose-800/50" 
+                                  : "bg-emerald-950/60 text-emerald-300 border border-emerald-800/50"
                               }`}>
                                 {isExp ? "Vencida: " : "Vence: "}{activeAcc.expirationDate}
                               </span>
                             )}
                           </div>
 
-                          <div className="font-mono text-sm sm:text-base font-black text-white break-all flex items-center gap-2">
+                          <div className="font-mono text-xs sm:text-sm font-semibold text-slate-100 break-all flex items-center gap-2">
                             <span>{activeAcc.email}</span>
                             <button
                               type="button"
@@ -1658,7 +1635,7 @@ export default function SellerLiveCodesPage() {
                                 setCopied(true);
                                 setTimeout(() => setCopied(false), 2000);
                               }}
-                              className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
+                              className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition"
                               title="Copiar correo"
                             >
                               <Copy className="w-3.5 h-3.5" />
@@ -1667,89 +1644,10 @@ export default function SellerLiveCodesPage() {
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Lista para Extraer Códigos
+                          <span className="text-[10px] font-semibold tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
+                            Lista para Extraer
                           </span>
                         </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Cuadrícula de Tarjetas Clicables (con filtro y botón de colapsar) */}
-                  {(() => {
-                    const filteredAccounts = assignedAccounts.filter(a => {
-                      if (!accountSearchQuery.trim()) return true;
-                      const q = accountSearchQuery.toLowerCase().trim();
-                      return (
-                        (a.email || "").toLowerCase().includes(q) ||
-                        (a.service || "").toLowerCase().includes(q) ||
-                        (a.country || "").toLowerCase().includes(q)
-                      );
-                    });
-
-                    const displayAccounts = showAllCards ? filteredAccounts : filteredAccounts.slice(0, 4);
-
-                    return (
-                      <div className="space-y-2.5 pt-1">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                          {displayAccounts.map((acc) => {
-                            const isSelected = (selectedAccount || "").toLowerCase().trim() === (acc.email || "").toLowerCase().trim();
-                            return (
-                              <div
-                                key={acc.id}
-                                onClick={() => {
-                                  setSelectedAccount((acc.email || "").trim());
-                                  setAuthError(null);
-                                  setReceivedCode(null);
-                                  setIsWaiting(false);
-                                }}
-                                className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                                  isSelected
-                                    ? "bg-[#182234] border border-blue-500/80 text-slate-100 shadow-sm ring-1 ring-blue-500/30"
-                                    : "bg-[#0E131E] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#131926]"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-xs font-semibold truncate max-w-[120px] ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
-                                    {acc.service}
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-mono">
-                                    {acc.profiles}
-                                  </span>
-                                </div>
-                                <div className="font-mono text-xs text-slate-300 truncate mb-1">{acc.email}</div>
-                                <div className="flex items-center justify-between pt-1 border-t border-slate-800 text-[10px]">
-                                  <span className="inline-flex items-center gap-1 text-slate-400 font-mono">
-                                    <Globe className="w-2.5 h-2.5 text-blue-400" />
-                                    <span>{acc.country}</span>
-                                  </span>
-                                  {isSelected && (
-                                    <span className="text-blue-400 font-semibold text-[9px] uppercase tracking-wider">
-                                      Activa
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {filteredAccounts.length > 4 && (
-                          <div className="flex justify-center pt-1">
-                            <button
-                              type="button"
-                              onClick={() => setShowAllCards(!showAllCards)}
-                              className="text-xs text-zinc-400 hover:text-white bg-[#1a1a1a] hover:bg-zinc-800 border border-[#2c2c2c] px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition"
-                            >
-                              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAllCards ? "rotate-180" : ""}`} />
-                              <span>
-                                {showAllCards 
-                                  ? "Mostrar solo 4 tarjetas" 
-                                  : `Ver todas las tarjetas (${filteredAccounts.length})`}
-                              </span>
-                            </button>
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
@@ -1757,16 +1655,16 @@ export default function SellerLiveCodesPage() {
               )}
             </div>
 
-            {/* SECCIÓN 2: 5 BOTONES DE ACCIONES PRINCIPALES */}
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
+            {/* SECCIÓN 2: 5 BOTONES DE ACCIÓN */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
                 <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
                 <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  Acciones Rápidas Disponibles
+                  Solicitar Código o Enlace
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {ACTIONS.map((action) => {
                   const isDisabled = isWaiting || assignedAccounts.length === 0;
                   return (
@@ -1774,11 +1672,11 @@ export default function SellerLiveCodesPage() {
                       key={action.id}
                       onClick={() => handleTriggerAction(action.id)}
                       disabled={isDisabled}
-                      title={assignedAccounts.length === 0 ? "Asigna o solicita una cuenta primero para pedir códigos" : ""}
-                      className="group relative p-4 rounded-2xl bg-[#121722] hover:bg-[#182030] border border-slate-800/80 hover:border-slate-700/80 text-left shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-40 disabled:transform-none flex flex-col justify-between min-h-[145px]"
+                      title={assignedAccounts.length === 0 ? "Asigna una cuenta primero" : ""}
+                      className="group relative p-3.5 rounded-2xl bg-[#121722] hover:bg-[#182030] border border-slate-800/80 hover:border-slate-700 text-left shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-40 disabled:transform-none flex flex-col justify-between min-h-[135px]"
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${action.iconBg}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${action.iconBg}`}>
                           {action.icon}
                         </div>
                         <span className={`text-[10px] font-medium border px-2 py-0.5 rounded-md ${action.badgeClass}`}>
@@ -1787,10 +1685,10 @@ export default function SellerLiveCodesPage() {
                       </div>
 
                       <div>
-                        <div className="font-semibold text-slate-100 text-sm tracking-tight group-hover:text-white transition">
+                        <div className="font-semibold text-slate-100 text-xs sm:text-sm tracking-tight group-hover:text-white transition">
                           {action.title}
                         </div>
-                        <div className="text-xs text-slate-400 mt-1 leading-snug line-clamp-2">
+                        <div className="text-[11px] text-slate-400 mt-0.5 leading-snug line-clamp-2">
                           {action.subtitle}
                         </div>
                       </div>
@@ -1800,59 +1698,59 @@ export default function SellerLiveCodesPage() {
               </div>
             </div>
 
-            {/* SECCIÓN 3: TERMINAL DE RESULTADO EN TIEMPO REAL */}
-            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-xl backdrop-blur-xl relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+            {/* SECCIÓN 3: RESULTADO EN TIEMPO REAL */}
+            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-5 sm:p-6 mb-6 shadow-xl relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
                 <div>
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Terminal de Extracción</span>
+                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Terminal de Resultado</span>
                   </div>
-                  <div className="font-mono text-sm text-slate-300 mt-1 pl-3.5">
-                    Cuenta: <strong className="text-slate-100">{selectedAccount}</strong>
+                  <div className="font-mono text-xs text-slate-400 mt-1 pl-3.5">
+                    Cuenta: <strong className="text-slate-200">{selectedAccount || "Ninguna seleccionada"}</strong>
                   </div>
                 </div>
 
                 {isWaiting && (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                    <span>Esperando código entrante ({timerSeconds}s)...</span>
+                    <span>Consultando correo ({timerSeconds}s)...</span>
                   </div>
                 )}
               </div>
 
               {/* CONTENEDOR PRINCIPAL DEL CÓDIGO */}
-              <div className="my-8 text-center">
+              <div className="my-6 text-center">
                 {isWaiting ? (
-                  <div className="py-12 flex flex-col items-center justify-center">
-                    <div className="w-12 h-12 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mb-4" />
-                    <h3 className="text-lg font-bold text-slate-100">Obteniendo código en vivo...</h3>
+                  <div className="py-8 flex flex-col items-center justify-center">
+                    <div className="w-10 h-10 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mb-3" />
+                    <h3 className="text-base font-semibold text-slate-100">Buscando código en tiempo real...</h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                      Consultando servidores de correo de Netflix para extraer el código en segundos.
+                      Consultando el correo de la cuenta para extraer el código o enlace en segundos.
                     </p>
                   </div>
                 ) : receivedCode ? (
-                  <div className="py-4">
+                  <div className="py-2">
                     <span className="text-xs font-medium text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
                       ¡Código Recibido con Éxito!
                     </span>
 
                     {/* VISUALIZACIÓN DEL CÓDIGO O ENLACE */}
                     {isUrl ? (
-                      <div className="mt-6 max-w-2xl mx-auto p-5 rounded-2xl bg-[#0E131E] border border-slate-800 text-left shadow-md">
+                      <div className="mt-5 max-w-2xl mx-auto p-4 sm:p-5 rounded-2xl bg-[#0E131E] border border-slate-800 text-left shadow-md">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs text-slate-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
                             <ExternalLink className="w-4 h-4 text-blue-400" />
-                            Enlace Oficial de Netflix:
+                            Enlace Oficial:
                           </span>
                           <span className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded font-mono">
-                            {activeAction === "actualizar_hogar" ? "Actualización Hogar" : activeAction === "acceso_temporal" ? "Acceso Temporal / Viaje" : "Restablecer Clave"}
+                            {activeAction === "actualizar_hogar" ? "Actualización Hogar" : activeAction === "acceso_temporal" ? "Acceso de Viaje" : "Cambiar Clave"}
                           </span>
                         </div>
-                        <div className="font-mono text-xs text-blue-300 break-all bg-[#080B10] p-3.5 rounded-xl border border-slate-800 select-all">
+                        <div className="font-mono text-xs text-blue-300 break-all bg-[#080B10] p-3 rounded-xl border border-slate-800 select-all mb-4">
                           {receivedCode}
                         </div>
-                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                           <a
                             href={receivedCode}
                             target="_blank"
@@ -1882,17 +1780,17 @@ export default function SellerLiveCodesPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="mt-6 inline-block bg-[#0E131E] border border-slate-800 rounded-2xl px-10 py-6 shadow-inner">
-                          <span className="text-5xl sm:text-6xl font-bold font-mono tracking-widest text-slate-100 select-all">
+                        <div className="mt-5 inline-block bg-[#0E131E] border border-slate-800 rounded-2xl px-8 sm:px-12 py-5 shadow-inner">
+                          <span className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-slate-100 select-all">
                             {receivedCode}
                           </span>
                         </div>
 
                         {/* BOTÓN DE COPIADO RÁPIDO */}
-                        <div className="mt-6 flex justify-center">
+                        <div className="mt-5 flex justify-center">
                           <button
                             onClick={handleCopy}
-                            className="py-3 px-8 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-sm flex items-center gap-2 transition transform active:scale-95"
+                            className="py-2.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition transform active:scale-95"
                           >
                             {copied ? (
                               <>
@@ -1911,87 +1809,175 @@ export default function SellerLiveCodesPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="py-12 text-zinc-500 flex flex-col items-center justify-center">
-                    <KeyRound className="w-12 h-12 text-zinc-700 mb-3" />
-                    <h3 className="text-base font-semibold text-zinc-400">Ninguna solicitud activa</h3>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      Presiona cualquiera de los 5 botones superiores para solicitar el código que necesitas.
+                  <div className="py-8 text-slate-500 flex flex-col items-center justify-center">
+                    <KeyRound className="w-10 h-10 text-slate-700 mb-2" />
+                    <h3 className="text-sm font-semibold text-slate-400">Listo para consultar</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Haz clic en cualquiera de los 5 botones para solicitar el código o enlace.
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-[#262626] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-500">
+              <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500">
                 <div className="flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Los códigos expiran automáticamente a los 5 minutos de su emisión.</span>
+                  <AlertCircle className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Los códigos expiran automáticamente a los 5 minutos.</span>
                 </div>
                 {receivedCode && (
                   <button
                     onClick={() => setReceivedCode(null)}
-                    className="text-zinc-400 hover:text-white underline transition"
+                    className="text-slate-400 hover:text-slate-200 underline transition text-xs"
                   >
                     Limpiar pantalla
                   </button>
                 )}
               </div>
+            </div>
 
-              {/* AVISO DE PRIVACIDAD: CONSULTA EXCLUSIVA DE REVENDEDORES Y GUÍA PASO A PASO */}
-              <div className="mt-8 pt-6 border-t border-[#262626] space-y-6">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900 to-black border border-red-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-[#E50914] shrink-0">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <span>Canal Privado de Códigos Exclusivo para Revendedores</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold uppercase">
-                          Seguro
-                        </span>
-                      </h4>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        Los clientes finales no tienen acceso al extractor. Como revendedor autorizado, solicita el código aquí y envíaselo directamente a tu comprador por WhatsApp.
-                      </p>
-                    </div>
+            {/* SECCIÓN 4: CATÁLOGO DE CUENTAS ASIGNADAS */}
+            {assignedAccounts.length > 0 && (
+              <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-5 sm:p-6 mb-6 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
+                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                      Mis Cuentas Asignadas ({assignedAccounts.length})
+                    </h3>
+                  </div>
+
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por correo o país..."
+                      value={accountSearchQuery}
+                      onChange={(e) => setAccountSearchQuery(e.target.value)}
+                      className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none transition"
+                    />
                   </div>
                 </div>
 
-                {/* Guía Paso a Paso */}
-                <CodigoHelpGuide />
+                {(() => {
+                  const filteredAccounts = assignedAccounts.filter(a => {
+                    if (!accountSearchQuery.trim()) return true;
+                    const q = accountSearchQuery.toLowerCase().trim();
+                    return (
+                      (a.email || "").toLowerCase().includes(q) ||
+                      (a.service || "").toLowerCase().includes(q) ||
+                      (a.country || "").toLowerCase().includes(q)
+                    );
+                  });
+
+                  const displayAccounts = showAllCards ? filteredAccounts : filteredAccounts.slice(0, 4);
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {displayAccounts.map((acc) => {
+                          const isSelected = (selectedAccount || "").toLowerCase().trim() === (acc.email || "").toLowerCase().trim();
+                          return (
+                            <div
+                              key={acc.id}
+                              onClick={() => {
+                                setSelectedAccount((acc.email || "").trim());
+                                setAuthError(null);
+                                setReceivedCode(null);
+                                setIsWaiting(false);
+                                window.scrollTo({ top: 120, behavior: "smooth" });
+                              }}
+                              className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                isSelected
+                                  ? "bg-[#182234] border border-blue-500/80 text-slate-100 shadow-sm ring-1 ring-blue-500/30"
+                                  : "bg-[#0E131E] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#131926]"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className={`text-xs font-semibold truncate max-w-[120px] ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
+                                  {acc.service}
+                                </span>
+                                <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-mono">
+                                  {acc.profiles}
+                                </span>
+                              </div>
+                              <div className="font-mono text-xs text-slate-200 truncate mb-2">{acc.email}</div>
+                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-[10px]">
+                                <span className="inline-flex items-center gap-1 text-slate-400 font-mono">
+                                  <Globe className="w-2.5 h-2.5 text-blue-400" />
+                                  <span>{acc.country}</span>
+                                </span>
+                                {isSelected ? (
+                                  <span className="text-blue-400 font-semibold text-[9px] uppercase tracking-wider">
+                                    Seleccionada
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-500 hover:text-slate-300 transition">
+                                    Seleccionar
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {filteredAccounts.length > 4 && (
+                        <div className="flex justify-center pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllCards(!showAllCards)}
+                            className="text-xs text-slate-400 hover:text-slate-200 bg-[#0E131E] hover:bg-slate-800 border border-slate-800 px-4 py-1.5 rounded-xl font-medium flex items-center gap-1.5 transition"
+                          >
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAllCards ? "rotate-180" : ""}`} />
+                            <span>
+                              {showAllCards 
+                                ? "Mostrar solo 4 cuentas" 
+                                : `Ver todas las cuentas (${filteredAccounts.length})`}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
+            )}
+
+            {/* SECCIÓN 5: GUÍA DE AYUDA */}
+            <div className="mb-8">
+              <CodigoHelpGuide />
             </div>
           </>
         )}
 
         {/* MODAL CAMBIAR CONTRASEÑA */}
         {isPasswordModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-[#181818] border border-[#2f2f2f] w-full max-w-md rounded-2xl p-6 shadow-2xl shadow-black/90 relative animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#121722] border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
               <button
                 onClick={() => setIsPasswordModalOpen(false)}
-                className="absolute top-4 right-4 text-zinc-400 hover:text-white w-8 h-8 rounded-full bg-[#262626] hover:bg-[#333333] flex items-center justify-center transition"
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition"
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-red-600/20 text-[#E50914] flex items-center justify-center border border-red-500/30">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
-                    <h3 className="text-lg font-black text-white">Cambiar mi Contraseña</h3>
+                    <div className="w-1.5 h-4 bg-rose-500 rounded-full" />
+                    <h3 className="text-base font-semibold text-slate-100">Cambiar Contraseña</h3>
                   </div>
-                  <p className="text-xs text-zinc-400 pl-3.5 mt-0.5">
-                    Actualiza tu clave de acceso personal para el panel de vendedor
+                  <p className="text-xs text-slate-400 pl-3.5 mt-0.5">
+                    Actualiza tu clave de acceso personal
                   </p>
                 </div>
               </div>
 
               {passwordError && (
-                <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
+                <div className="mb-4 p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{passwordError}</span>
                 </div>
@@ -2007,24 +1993,24 @@ export default function SellerLiveCodesPage() {
               <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
                 {currentUser?.password && (
                   <div>
-                    <label className="block font-medium text-zinc-300 mb-1">Contraseña Actual</label>
+                    <label className="block font-medium text-slate-300 mb-1">Contraseña Actual</label>
                     <input
                       type={showPassModalText ? "text" : "password"}
                       placeholder="••••••••"
                       value={currentPasswordInput}
                       onChange={(e) => setCurrentPasswordInput(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                      className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
                 )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block font-medium text-zinc-300">Nueva Contraseña</label>
+                    <label className="block font-medium text-slate-300">Nueva Contraseña</label>
                     <button
                       type="button"
                       onClick={() => setShowPassModalText(!showPassModalText)}
-                      className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1"
+                      className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1"
                     >
                       {showPassModalText ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       <span>{showPassModalText ? "Ocultar" : "Mostrar"}</span>
@@ -2036,33 +2022,33 @@ export default function SellerLiveCodesPage() {
                     placeholder="Mínimo 4 caracteres"
                     value={newPasswordInput}
                     onChange={(e) => setNewPasswordInput(e.target.value)}
-                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                    className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium text-zinc-300 mb-1">Confirmar Nueva Contraseña</label>
+                  <label className="block font-medium text-slate-300 mb-1">Confirmar Nueva Contraseña</label>
                   <input
                     type={showPassModalText ? "text" : "password"}
                     required
                     placeholder="Repite la nueva contraseña"
                     value={confirmPasswordInput}
                     onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                    className="w-full bg-[#121212] border border-[#2f2f2f] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914]"
+                    className="w-full bg-[#0E131E] border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
-                <div className="pt-4 border-t border-[#262626] flex justify-end gap-2">
+                <div className="pt-4 border-t border-slate-800/80 flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsPasswordModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-[#282828] hover:bg-[#383838] text-zinc-300 font-medium transition"
+                    className="px-4 py-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-300 font-medium transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold shadow-lg shadow-red-950/40 transition"
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium shadow-sm transition"
                   >
                     Guardar Contraseña
                   </button>

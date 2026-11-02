@@ -4908,11 +4908,11 @@ export default function OwnerDashboard() {
                     onChange={(e) => setTestAction(e.target.value)}
                     className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                   >
-                    <option value="login_code">Código de inicio de sesión (4 dígitos)</option>
-                    <option value="verification_code">Código de verificación (6 dígitos)</option>
-                    <option value="actualizar_hogar">Solicitar actualizar hogar netflix (link)</option>
-                    <option value="acceso_temporal">Código de acceso temporal (link)</option>
-                    <option value="reset_password">Restablecer contraseña (link)</option>
+                    <option value="login_code">Código TV (4 dígitos)</option>
+                    <option value="verification_code">Código OTP (6 dígitos)</option>
+                    <option value="actualizar_hogar">Actualizar Hogar (enlace)</option>
+                    <option value="acceso_temporal">Acceso de Viaje (enlace)</option>
+                    <option value="reset_password">Cambiar Clave (enlace)</option>
                   </select>
                 </div>
               </div>
@@ -4971,16 +4971,16 @@ export default function OwnerDashboard() {
             <div className="mb-5 pt-4 border-t border-[#262626]">
               <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2.5 flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-[#E50914] text-white flex items-center justify-center text-[10px] font-black">2</span>
-                <span>Pedir Código o Enlace Directo (Haz clic en la acción deseada)</span>
+                <span>Solicitar Código o Enlace (Haz clic en la acción deseada)</span>
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                 {[
-                  { id: "login_code", label: "Inicio de Sesión", desc: "Código 4 dígitos", icon: Zap },
-                  { id: "verification_code", label: "Verificación", desc: "Código 6 dígitos", icon: Clock },
-                  { id: "actualizar_hogar", label: "Actualizar Hogar", desc: "Enlace confirmar hogar", icon: Home },
-                  { id: "acceso_temporal", label: "Acceso Temporal", desc: "Enlace temporal / viaje", icon: ExternalLink },
-                  { id: "reset_password", label: "Restablecer Clave", desc: "Enlace cambio de clave", icon: Lock },
+                  { id: "login_code", label: "Código TV", desc: "4 dígitos en pantalla", icon: Zap },
+                  { id: "verification_code", label: "Código OTP", desc: "6 dígitos de verificación", icon: Clock },
+                  { id: "actualizar_hogar", label: "Actualizar Hogar", desc: "Confirmar red doméstica", icon: Home },
+                  { id: "acceso_temporal", label: "Acceso de Viaje", desc: "TV fuera del hogar", icon: ExternalLink },
+                  { id: "reset_password", label: "Cambiar Clave", desc: "Restablecer contraseña", icon: Lock },
                 ].map((action) => {
                   const isCurrentAction = testAction === action.id;
                   const Icon = action.icon;
@@ -5025,7 +5025,7 @@ export default function OwnerDashboard() {
                   ) : (
                     <>
                       <Zap className="w-3.5 h-3.5" />
-                      <span>Extraer Acción Seleccionada</span>
+                      <span>Solicitar Código</span>
                     </>
                   )}
                 </button>

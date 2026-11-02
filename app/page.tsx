@@ -282,7 +282,7 @@ export default function HomeOrSellerCatalogPage() {
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>Acceder a la Terminal</span>
+                      <span>Iniciar Sesión</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -355,7 +355,7 @@ export default function HomeOrSellerCatalogPage() {
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>Registrar Cuenta de Vendedor</span>
+                      <span>Crear Cuenta</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
