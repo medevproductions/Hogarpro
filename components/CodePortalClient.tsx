@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   ExternalLink,
   KeyRound,
-  AlertCircle,
   ShieldAlert,
   Lock
 } from "lucide-react";
@@ -37,8 +36,6 @@ export default function CodePortalClient({
   badge,
   description,
   icon,
-  themeColor,
-  buttonGradient
 }: CodePagePortalProps) {
   const [email, setEmail] = useState("");
   const [platform, setPlatform] = useState<string>("netflix");
@@ -58,18 +55,18 @@ export default function CodePortalClient({
       id: "netflix",
       name: "Netflix",
       domain: "netflix.com",
-      accent: "#E50914",
+      accent: "#EF4444",
       icon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
           <path d="M5.5 2H9.5V22L5.5 21V2Z" fill="#B81D24" />
           <path d="M14.5 2H18.5V21L14.5 22V2Z" fill="#B81D24" />
-          <path d="M5.5 2H9.5L18.5 22H14.5L5.5 2Z" fill="#E50914" />
+          <path d="M5.5 2H9.5L18.5 22H14.5L5.5 2Z" fill="#EF4444" />
         </svg>
       )
     }
   ];
 
-  // Contador de segundos en espera
+  // Counter
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isWaiting) {
@@ -82,7 +79,7 @@ export default function CodePortalClient({
     return () => clearInterval(interval);
   }, [isWaiting]);
 
-  // POLLING INTELIGENTE CADA 3 SEGUNDOS HACIA EL BACKEND
+  // Polling
   useEffect(() => {
     if (!isWaiting || !email) return;
 
@@ -113,7 +110,6 @@ export default function CodePortalClient({
       }
     };
 
-    // Primera verificación rápida
     checkCode();
     let attempts = 0;
     const maxAttempts = 15;
@@ -133,14 +129,12 @@ export default function CodePortalClient({
     };
   }, [isWaiting, email, actionType, platform]);
 
-  // Limpia el código para extraer dígitos numéricos o preservar enlaces directos
   const cleanCodeDisplay = (raw: string): string => {
     if (!raw) return "";
     const trimmed = raw.trim();
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
       return trimmed;
     }
-    // Si contiene código de 4 dígitos (estándar Netflix), priorizar 4 dígitos
     const match4 = trimmed.match(/\b([0-9]{4})\b/);
     if (match4 && match4[1]) {
       return match4[1];
@@ -152,16 +146,12 @@ export default function CodePortalClient({
     return trimmed;
   };
 
-  // Enviar Petición / Iniciar Escucha
-  // Enviar Petición / Iniciar Escucha con Verificación de Autorización
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) return;
 
-    // 1. REGLA ESTRICTA DE AUTORIZACIÓN:
-    // El vendedor solo puede consultar códigos de cuentas asignadas a él y que no estén vencidas
     const user = getCurrentUser();
     const authCheck = checkAccountAuthorization(cleanEmail, user);
     if (!authCheck.authorized) {
@@ -175,7 +165,6 @@ export default function CodePortalClient({
     setReceivedCode(null);
     setCopied(false);
 
-    // Disparar búsqueda inmediata a través del proxy seguro del backend
     try {
       fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`)
         .then(res => res.json())
@@ -191,7 +180,6 @@ export default function CodePortalClient({
         .catch(() => {});
     } catch (err) {}
 
-    // Registrar solicitud pendiente en Cloud Firestore
     try {
       await createPendingCodeRequestFirestore({
         account_email: cleanEmail,
@@ -209,263 +197,254 @@ export default function CodePortalClient({
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-gray-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white relative overflow-hidden">
-      {/* Glow de Fondo */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-600/15 blur-[130px] rounded-full pointer-events-none" />
-
-      {/* HEADER */}
-      <header className="border-b border-gray-800/80 bg-[#090d16]/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition">
+    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col justify-between selection:bg-rose-500/30 selection:text-rose-200 relative selection:bg-blue-500/30 selection:text-blue-200">
+      {/* Header */}
+      <header className="border-b border-slate-800/80 bg-[#0E121B]/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition">
             <ArrowLeft className="w-4 h-4" />
             <span>Volver a la Tienda</span>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-              <Tv className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center text-white shadow-sm">
+              <Tv className="w-3.5 h-3.5" />
             </div>
-            <span className="font-black text-white text-sm tracking-tight">
-              HOGAR<span className="text-[#E50914]">PRO</span>
+            <span className="font-bold text-slate-100 text-sm tracking-tight">
+              HOGAR<span className="text-rose-500">PRO</span>
             </span>
           </div>
         </div>
       </header>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main className="max-w-xl w-full mx-auto px-4 py-12 relative z-10 flex-1 flex flex-col justify-center">
+      {/* Main Content */}
+      <main className="max-w-xl w-full mx-auto px-4 py-8 relative z-10 flex-1 flex flex-col justify-center">
         {!currentUser ? (
-          <div className="bg-[#121826]/95 border-2 border-red-500/40 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl text-center">
-            <div className="w-16 h-16 rounded-2xl bg-red-950/60 border border-red-500/50 text-[#E50914] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-950/50">
-              <Lock className="w-8 h-8" />
+          <div className="bg-[#121722]/95 border border-slate-800 rounded-2xl p-8 sm:p-10 shadow-xl backdrop-blur-xl text-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#182030] border border-slate-700 text-slate-300 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <Lock className="w-7 h-7 text-rose-500" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#E50914] bg-red-950/60 border border-red-500/30 px-3 py-1 rounded-full">
+            <span className="text-xs font-semibold uppercase tracking-wider text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-lg">
               Canal Privado Protegido
             </span>
-            <h2 className="text-2xl font-black text-white mt-3">Consulta Exclusiva para Revendedores</h2>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-2 leading-relaxed">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-100 mt-3">Consulta Exclusiva para Revendedores</h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
               La extracción de códigos y enlaces no está disponible para clientes finales. Como revendedor o administrador, inicia sesión para solicitar los códigos de tus cuentas asignadas.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/"
-                className="w-full sm:w-auto px-6 py-3 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl shadow-lg shadow-red-950/60 transition"
+                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-xl shadow-sm transition"
               >
                 Iniciar Sesión como Revendedor
               </Link>
               <Link
                 href="/admin"
-                className="w-full sm:w-auto px-6 py-3 bg-[#222222] hover:bg-zinc-800 text-zinc-300 hover:text-white font-bold text-xs rounded-xl border border-zinc-700 transition"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white font-medium text-xs rounded-xl border border-slate-700 transition"
               >
                 Acceso Administrador
               </Link>
             </div>
           </div>
         ) : (
-          <div className="bg-[#121826]/90 border border-gray-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
-            
-            {/* Badge & Título */}
+          <div className="bg-[#121722]/90 border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-xl backdrop-blur-xl">
+            {/* Header of Action */}
             <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs font-medium mb-3">
                 {icon}
                 <span>{badge} • {currentUser.role === "owner" || (currentUser.role as string) === "admin" ? "Administrador" : `Revendedor: ${currentUser.name}`}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{title}</h1>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-md mx-auto">{description}</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight">{title}</h1>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">{description}</p>
             </div>
 
-          {/* FORMULARIO DE INGRESO DE CORREO Y SERVICIO */}
-          <form onSubmit={handleRequestCode} noValidate className="space-y-4">
-            {/* SELECTOR DE SERVICIO / PLATAFORMA */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                Selecciona el Servicio
-              </label>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
-                {PLATFORMS.map((p) => {
-                  const isSelected = platform === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setPlatform(p.id)}
-                      className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                        isSelected
-                          ? "bg-indigo-600/30 border-indigo-500 text-white shadow-md shadow-indigo-500/20"
-                          : "bg-[#0b0f19] border-gray-800 text-gray-400 hover:text-gray-200 hover:border-gray-700"
-                      }`}
-                    >
-                      <span className="shrink-0 flex items-center justify-center">{p.icon}</span>
-                      <span>{p.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
-                Correo de la Cuenta de Streaming (+embudo)
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  required
-                  placeholder="ej: hogaryutu+acido@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0b0f19] border border-gray-700/80 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-mono"
-                />
-              </div>
-              <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span>Se buscará solo correos dirigidos a este embudo en {PLATFORMS.find(p => p.id === platform)?.name}.</span>
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isWaiting || !email || !email.includes("@")}
-              className={`w-full py-3.5 px-4 rounded-xl bg-gradient-to-r ${buttonGradient} text-white font-bold text-sm uppercase tracking-wider shadow-xl flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:transform-none`}
-            >
-              {isWaiting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Esperando código ({secondsElapsed}s)...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>Solicitar Código Ahora</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* MENSAJE DE BLOQUEO POR AUTORIZACIÓN / EXPIRACIÓN */}
-          {authError && (
-            <div className="mt-6 p-4 rounded-2xl bg-red-950/60 border border-red-500/40 text-left animate-in fade-in">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-red-900/50 text-red-400 shrink-0">
-                  <ShieldAlert className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-red-300">
-                    Acceso No Autorizado
-                  </h4>
-                  <p className="text-xs text-red-200/90 mt-1 leading-relaxed">
-                    {authError}
-                  </p>
+            <form onSubmit={handleRequestCode} noValidate className="space-y-4">
+              {/* Service Selector */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Servicio Seleccionado
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PLATFORMS.map((p) => {
+                    const isSelected = platform === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPlatform(p.id)}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold border transition ${
+                          isSelected
+                            ? "bg-[#182030] border-blue-500 text-slate-100 shadow-sm"
+                            : "bg-[#0E121B] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                        }`}
+                      >
+                        <span className="shrink-0 flex items-center justify-center">{p.icon}</span>
+                        <span>{p.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* RESULTADO: NÚMERO DIRECTO Y GIGANTE */}
-          {isWaiting ? (
-            <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in">
-              <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-400 animate-spin mx-auto mb-3" />
-              <div className="text-sm font-semibold text-white">Escuchando correo entrante...</div>
-              <p className="text-xs text-gray-400 mt-1">
-                Presiona "Enviar código" en tu TV o pantalla. El código aparecerá aquí automáticamente.
-              </p>
-            </div>
-          ) : receivedCode ? (
-            <div className="mt-8 pt-6 border-t border-gray-800 text-center animate-in fade-in zoom-in-95">
-              {(receivedCode.startsWith("http://") || receivedCode.startsWith("https://")) ? (
-                <>
-                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-widest bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-4">
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>Enlace Oficial Listo</span>
-                  </span>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                  Correo de la Cuenta de Streaming
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="ej: usuario@gmail.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-sans"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+                  <Search className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span>Se buscarán correos recientes de Netflix vinculados a este usuario.</span>
+                </p>
+              </div>
 
-                  <div className="my-3 bg-[#0b0f19] border-2 border-amber-500/40 rounded-2xl p-6 shadow-2xl text-left">
-                    <p className="text-xs text-gray-300 font-medium mb-3">
-                      Se ha generado tu enlace oficial de acceso/confirmación. Haz clic en el botón a continuación para abrirlo directamente:
+              <button
+                type="submit"
+                disabled={isWaiting || !email || !email.includes("@")}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm shadow-sm flex items-center justify-center gap-2 transition transform active:scale-[0.99] disabled:opacity-50 disabled:transform-none"
+              >
+                {isWaiting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Esperando código ({secondsElapsed}s)...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Solicitar Código Ahora</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {authError && (
+              <div className="mt-5 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-left">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1 rounded-lg bg-rose-900/50 text-rose-400 shrink-0 mt-0.5">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-rose-300">
+                      Acceso No Autorizado
+                    </h4>
+                    <p className="text-xs text-rose-200/90 mt-0.5 leading-relaxed">
+                      {authError}
                     </p>
-                    <a
-                      href={receivedCode}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-4 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-orange-950/50 flex items-center justify-center gap-2.5 transition transform hover:scale-[1.02] active:scale-98"
-                    >
-                      <span>
-                        {actionType === "actualizar" || actionType === "actualizar_hogar"
-                          ? "Actualizar Hogar Ahora" 
-                          : actionType === "login_confirm" || actionType === "verification_code"
-                          ? "Confirmar Inicio de Sesión"
-                          : actionType === "acceso_temporal" || actionType === "temporal"
-                          ? "Confirmar Acceso Temporal (Viaje)"
-                          : actionType === "reset_password"
-                          ? "Restablecer Contraseña"
-                          : "Abrir Enlace Oficial en Netflix"}
-                      </span>
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
                   </div>
+                </div>
+              </div>
+            )}
 
-                  <button
-                    onClick={handleCopy}
-                    className="w-full py-2.5 px-4 rounded-xl bg-gray-800/80 hover:bg-gray-700 text-gray-300 text-xs font-semibold flex items-center justify-center gap-2 transition"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>¡Enlace copiado al portapapeles!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copiar enlace directo</span>
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-                    ¡Código Recibido!
-                  </span>
-
-                  {/* NÚMERO DIRECTO GIGANTE */}
-                  <div className="my-5 bg-[#0b0f19] border-2 border-emerald-500/40 rounded-2xl py-6 px-6 shadow-2xl">
-                    <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent select-all">
-                      {receivedCode.replace(/https?:\/\/[^\s]+/g, "").trim() || "8447"}
+            {isWaiting ? (
+              <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
+                <div className="w-10 h-10 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mx-auto mb-3" />
+                <div className="text-sm font-semibold text-slate-100">Escuchando correo entrante...</div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Presiona la opción correspondiente en tu TV o pantalla. El resultado aparecerá aquí automáticamente.
+                </p>
+              </div>
+            ) : receivedCode ? (
+              <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
+                {(receivedCode.startsWith("http://") || receivedCode.startsWith("https://")) ? (
+                  <>
+                    <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 mb-3">
+                      <KeyRound className="w-3.5 h-3.5" />
+                      <span>Enlace Oficial Listo</span>
                     </span>
-                  </div>
 
-                  <button
-                    onClick={handleCopy}
-                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 transition transform hover:scale-[1.02]"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4 text-white" />
-                        <span>¡Código Copiado al Portapapeles!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span>Copiar Código</span>
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
+                    <div className="my-2 bg-[#0E131E] border border-slate-800 rounded-xl p-4 text-left shadow-sm">
+                      <p className="text-xs text-slate-300 font-medium mb-3">
+                        Se ha generado tu enlace oficial de acceso/confirmación. Haz clic para abrirlo directamente:
+                      </p>
+                      <a
+                        href={receivedCode}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 transition shadow-sm"
+                      >
+                        <span>
+                          {actionType === "actualizar" || actionType === "actualizar_hogar"
+                            ? "Actualizar Hogar Ahora" 
+                            : actionType === "login_confirm" || actionType === "verification_code"
+                            ? "Confirmar Inicio de Sesión"
+                            : actionType === "acceso_temporal" || actionType === "temporal"
+                            ? "Confirmar Acceso Temporal (Viaje)"
+                            : actionType === "reset_password"
+                            ? "Restablecer Contraseña"
+                            : "Abrir Enlace Oficial en Netflix"}
+                        </span>
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+
+                    <button
+                      onClick={handleCopy}
+                      className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-2 transition"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400 font-medium">¡Enlace copiado al portapapeles!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar enlace directo</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs font-medium text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
+                      ¡Código Recibido!
+                    </span>
+
+                    <div className="my-4 bg-[#0E131E] border border-slate-800 rounded-2xl py-6 px-6 shadow-inner">
+                      <span className="text-5xl sm:text-6xl font-bold font-mono tracking-widest text-slate-100 select-all">
+                        {receivedCode.replace(/https?:\/\/[^\s]+/g, "").trim() || "8447"}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={handleCopy}
+                      className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-sm flex items-center justify-center gap-2 transition"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-4 h-4 text-white" />
+                          <span>¡Código Copiado al Portapapeles!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copiar Código</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+              <span>Sincronización instantánea en la nube</span>
             </div>
-          ) : null}
-
-          <div className="mt-6 pt-4 border-t border-gray-800/60 flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Sincronización instantánea en vivo</span>
           </div>
-        </div>
         )}
       </main>
 
-      {/* FOOTER */}
-      <footer className="py-6 text-center text-xs text-gray-500 border-t border-gray-800/80">
-        © 2026 HogarPro • Módulo de Gestión de Códigos
+      <footer className="py-4 text-center text-xs text-slate-400 border-t border-slate-800/80">
+        © 2026 HogarPro • Plataforma de Gestión de Códigos
       </footer>
     </div>
   );

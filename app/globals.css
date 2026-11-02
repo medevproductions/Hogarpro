@@ -3,15 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --background: #141414;
-  --foreground: #ffffff;
-  --brand-red: #E50914;
-  --brand-red-hover: #f40612;
-  --brand-dark: #141414;
-  --brand-card: #181818;
-  --brand-card-hover: #232323;
-  --brand-border: #2a2a2a;
-  /* Compatibilidad interna */
+  --background: #0B0E14;
+  --foreground: #F8FAFC;
+  --surface-primary: #121722;
+  --surface-secondary: #1A2130;
+  --surface-tertiary: #222B3D;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-border-hover: rgba(255, 255, 255, 0.16);
+
+  /* Brand Accents (Friendly & Balanced) */
+  --brand-accent: #EF4444;
+  --brand-accent-hover: #DC2626;
+  --brand-accent-soft: rgba(239, 68, 68, 0.12);
+  --brand-azure: #3B82F6;
+  --brand-azure-soft: rgba(59, 130, 246, 0.12);
+
+  /* Backwards compatibility */
+  --brand-red: #EF4444;
+  --brand-red-hover: #DC2626;
+  --brand-dark: #0B0E14;
+  --brand-card: #121722;
+  --brand-card-hover: #1A2130;
+  --brand-border: rgba(255, 255, 255, 0.08);
   --netflix-red: var(--brand-red);
   --netflix-red-hover: var(--brand-red-hover);
   --netflix-dark: var(--brand-dark);
@@ -21,90 +34,118 @@
 }
 
 html {
-  background-color: #141414 !important;
+  background-color: #0B0E14 !important;
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
-  color: #ffffff;
-  background-color: #141414 !important;
-  background: #141414 !important;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #F8FAFC;
+  background-color: #0B0E14 !important;
+  background: #0B0E14 !important;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  letter-spacing: -0.011em;
 }
 
-/* HogarPro Cards and Panels */
+/* =========================================================================
+ * MICROSOFT FLUENT & SAMSUNG ONE UI DESIGN TOKENS
+ * ========================================================================= */
+
+/* Tactile Surface Card */
+.fluent-card,
 .hp-card,
 .netflix-card {
-  background: #181818;
+  background: #121722;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.fluent-card:hover,
 .hp-card:hover,
 .netflix-card:hover {
-  background: #1f1f1f;
-  border-color: rgba(229, 9, 20, 0.4);
-  transform: translateY(-3px) scale(1.008);
-  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.8), 0 0 20px -4px rgba(229, 9, 20, 0.25);
+  background: #161D2B;
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.45);
 }
 
-/* Red Glow Accent */
-.hp-glow,
-.netflix-glow {
-  box-shadow: 0 0 30px -5px rgba(229, 9, 20, 0.45);
+/* Calm elevated acrylic surface */
+.glass-panel,
+.glass-card {
+  background: rgba(18, 23, 34, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.glass-panel:hover,
+.glass-card:hover {
+  background: rgba(22, 29, 43, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Gentle, non-glaring badges */
+.fluent-badge,
 .hp-pill,
 .netflix-pill {
-  background: rgba(229, 9, 20, 0.15);
-  border: 1px solid rgba(229, 9, 20, 0.4);
-  color: #ff5252;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #E2E8F0;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
-/* Glassmorphism utility classes */
-.glass-panel {
-  background: rgba(24, 24, 24, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Gentle Accent Glow (Eye-friendly, never blinding) */
+.hp-glow,
+.netflix-glow {
+  box-shadow: 0 8px 24px -4px rgba(239, 68, 68, 0.2);
 }
 
-.glass-card {
-  background: rgba(26, 26, 26, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.25s ease-in-out;
+/* Ergonomic Inputs (Samsung / Microsoft Fluent style) */
+.fluent-input {
+  background: #141A25;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #F8FAFC;
+  border-radius: 0.75rem;
+  transition: all 0.18s ease;
 }
 
-.glass-card:hover {
-  border-color: rgba(229, 9, 20, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(229, 9, 20, 0.2);
+.fluent-input:focus {
+  outline: none;
+  background: #171E2C;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 
-/* Custom scrollbars */
+/* Custom modern scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #141414;
+  background: #0B0E14;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
-  border-radius: 4px;
+  background: #232B3C;
+  border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #E50914;
+  background: #334155;
 }
 
 /* Smooth Drawer Animations */
 @keyframes slideInFromRight {
   0% {
     transform: translateX(100%);
-    opacity: 0.6;
+    opacity: 0.8;
   }
   100% {
     transform: translateX(0);
@@ -122,10 +163,10 @@ body {
 }
 
 .animate-drawer-right {
-  animation: slideInFromRight 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideInFromRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
 }
 
 .animate-backdrop-fade {
-  animation: fadeInBackdrop 0.25s ease-out forwards;
+  animation: fadeInBackdrop 0.2s ease-out forwards;
 }

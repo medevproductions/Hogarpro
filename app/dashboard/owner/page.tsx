@@ -1771,27 +1771,27 @@ export default function OwnerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-[#E50914] selection:text-white">
+    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-rose-500/30 selection:text-rose-200">
       {/* MOBILE STICKY HEADER & HUD BAR */}
-      <div className="md:hidden sticky top-0 z-40 bg-[#141414]/95 backdrop-blur-md border-b border-[#262626] px-3.5 py-2.5">
+      <div className="md:hidden sticky top-0 z-40 bg-[#0E121B]/95 backdrop-blur-md border-b border-slate-800/80 px-3.5 py-2.5">
         <div className="flex items-center justify-between gap-2">
           {/* Logo HogarPro a la izquierda */}
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-md shadow-red-600/30 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-white shadow-sm shrink-0">
               <Tv className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <div className="font-black text-sm text-white tracking-tight leading-none">
-                HOGAR<span className="text-[#E50914]">PRO</span>
+              <div className="font-bold text-sm text-slate-100 tracking-tight leading-none">
+                HOGAR<span className="text-rose-500">PRO</span>
               </div>
             </div>
           </div>
 
-          {/* Botón de Venta al lado del menú, y Menú en la esquina superior derecha */}
+          {/* Botón de Venta al lado del menú */}
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => handleOpenCreateSale()}
-              className="px-3 py-1.5 bg-[#E50914] hover:bg-[#b81d24] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-red-950/60 active:scale-95 transition"
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm active:scale-95 transition"
               title="Registrar Venta"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1800,11 +1800,11 @@ export default function OwnerDashboard() {
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 rounded-xl bg-[#222222] text-zinc-300 hover:text-white hover:bg-zinc-800 border border-[#333333] active:scale-95 transition shadow-sm flex items-center justify-center"
+              className="p-2 rounded-xl bg-[#141A25] text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 active:scale-95 transition shadow-sm flex items-center justify-center"
               title="Abrir menú de navegación"
               aria-label="Abrir menú"
             >
-              <Menu className="w-5 h-5 text-white" />
+              <Menu className="w-5 h-5 text-slate-200" />
             </button>
           </div>
         </div>
@@ -2013,119 +2013,121 @@ export default function OwnerDashboard() {
       )}
 
       {/* DESKTOP SIDEBAR DASHBOARD CONSTANTEMENTE VISIBLE */}
-      <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0">
+      <aside className="w-64 border-r border-slate-800/80 bg-[#0E121B] p-5 hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0">
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex items-center gap-3 mb-6 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E50914] to-[#B81D24] flex items-center justify-center font-bold text-white shadow-lg shadow-red-600/30">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-white shadow-sm">
               <Tv className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-black text-white text-base tracking-tight leading-none">
-                HOGAR<span className="text-[#E50914]">PRO</span>
+              <div className="font-bold text-slate-100 text-base tracking-tight leading-none">
+                HOGAR<span className="text-rose-500">PRO</span>
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
+                PANEL ADMINISTRADOR
               </div>
             </div>
           </div>
 
-          <nav className="space-y-1.5 text-xs font-semibold overflow-y-auto flex-1 pr-1">
+          <nav className="space-y-1 text-xs font-medium overflow-y-auto flex-1 pr-1">
             <button
               onClick={() => setActiveTab("resumen")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                 activeTab === "resumen" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <BarChart3 className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <BarChart3 className="w-4 h-4 text-blue-400" />
                 <span>Resumen & KPIs</span>
               </div>
             </button>
 
             <button
               onClick={() => setActiveTab("ventas")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                 activeTab === "ventas" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <Receipt className="w-4 h-4" />
-                <span>Libro de Ventas (Sheet)</span>
+              <div className="flex items-center gap-2.5">
+                <Receipt className="w-4 h-4 text-emerald-400" />
+                <span>Libro de Ventas</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-emerald-400 border border-emerald-500/30 font-mono font-bold">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-emerald-400 font-mono font-medium">
                 {sales.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab("cuentas")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                 activeTab === "cuentas" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <Tv className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <Tv className="w-4 h-4 text-sky-400" />
                 <span>Stock de Cuentas</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">
                 {accounts.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab("vendedores")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                 activeTab === "vendedores" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <Users className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-indigo-400" />
                 <span>Revendedores</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">
                 {sellers.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab("calendario")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                 activeTab === "calendario" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <Calendar className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <Calendar className="w-4 h-4 text-amber-400" />
                 <span>Calendario & Vencimientos</span>
               </div>
               {expiringSoonAccounts.length > 0 ? (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-mono font-bold animate-pulse">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono font-medium">
                   {expiringSoonAccounts.length} prox
                 </span>
               ) : (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-400 font-mono">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono">
                   {accounts.length}
                 </span>
               )}
             </button>
 
-
             <button
               onClick={() => setActiveTab("codigos")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
                 activeTab === "codigos" 
-                  ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <KeyRound className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                <KeyRound className="w-4 h-4 text-rose-400" />
                 <span>Extractor de Códigos</span>
               </div>
             </button>
@@ -2133,25 +2135,25 @@ export default function OwnerDashboard() {
             <div className="pt-2">
               <button
                 onClick={() => setActiveTab("todo")}
-                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-2 ${
-                  activeTab === "todo" ? "bg-zinc-800 text-white font-bold" : "text-zinc-500 hover:text-zinc-300"
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition flex items-center gap-2 ${
+                  activeTab === "todo" ? "bg-slate-800 text-slate-100 font-semibold" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <Eye className="w-3.5 h-3.5 text-zinc-400" />
+                <Eye className="w-3.5 h-3.5 text-slate-400" />
                 <span>Ver Todas las Secciones</span>
               </button>
             </div>
           </nav>
         </div>
 
-        <div className="pt-4 mt-2 border-t border-[#262626] space-y-2 text-xs shrink-0 bg-[#101010]">
-          <Link href="/dashboard/seller" className="flex items-center gap-1.5 text-[#E50914] hover:underline font-semibold p-1">
+        <div className="pt-4 mt-2 border-t border-slate-800/80 space-y-2 text-xs shrink-0 bg-[#0E121B]">
+          <Link href="/dashboard/seller" className="flex items-center gap-1.5 text-blue-400 hover:underline font-medium p-1">
             <ArrowLeftRight className="w-3.5 h-3.5" />
             <span>Cambiar a Vista Vendedor</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 text-red-400/90 hover:text-red-300 hover:bg-red-950/20 transition p-2 rounded-xl font-medium border border-transparent hover:border-red-500/20"
+            className="w-full flex items-center gap-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition p-2 rounded-xl font-medium"
           >
             <LogOut className="w-4 h-4" />
             <span>Cerrar Sesión</span>

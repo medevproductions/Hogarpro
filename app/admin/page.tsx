@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Tv, Lock, Mail, ArrowRight, ArrowLeft, Shield, ShieldCheck, AlertCircle } from "lucide-react";
-import { setCurrentUser, getCurrentUser, SystemUser } from "@/lib/account-manager";
+import { Lock, Mail, ArrowRight, ArrowLeft, Shield, ShieldCheck, AlertCircle, Tv } from "lucide-react";
+import { getCurrentUser } from "@/lib/account-manager";
 import { authenticateWithFirebase } from "@/lib/firebase/auth-service";
 
 export default function AdminLoginPage() {
@@ -46,73 +46,75 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#141414] flex items-center justify-center p-4 relative overflow-hidden selection:bg-[#E50914] selection:text-white">
-      {/* Cinematic Glows */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[380px] bg-[#E50914]/10 blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-red-950/20 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-[#0B0E14] flex flex-col justify-between p-4 sm:p-8 relative selection:bg-rose-500/30 selection:text-rose-200">
+      {/* Fluent soft ambient glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[650px] h-[350px] bg-gradient-to-b from-slate-800/20 via-transparent to-transparent blur-3xl opacity-70" />
+      </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Header / Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-950/70 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-widest mb-4">
-            <Shield className="w-3.5 h-3.5 text-[#E50914]" />
-            <span>Administrador</span>
-          </div>
+      <header className="relative z-10 w-full max-w-md mx-auto flex items-center justify-between py-2">
+        <Link href="/" className="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition font-medium">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver al Inicio</span>
+        </Link>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-300 text-xs font-medium">
+          <Shield className="w-3.5 h-3.5 text-blue-400" />
+          <span>Seguridad Admin</span>
+        </div>
+      </header>
 
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#E50914] flex items-center justify-center font-black text-2xl text-white shadow-xl shadow-red-600/40">
-              H
-            </div>
-            <span className="text-3xl font-black tracking-wider text-white">
-              HOGAR<span className="text-[#E50914]">PRO</span>
-            </span>
+      <main className="relative z-10 w-full max-w-md mx-auto my-auto py-8">
+        <div className="text-center mb-6">
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 items-center justify-center mb-3 shadow-md">
+            <Tv className="w-6 h-6 text-rose-500" />
           </div>
-          <h1 className="mt-3 text-2xl font-black text-white tracking-tight">Acceso Administrativo</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Gestión y control administrativo centralizado
+          <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+            Acceso Administrativo
+          </h1>
+          <p className="text-sm text-slate-400 mt-1.5">
+            Ingreso centralizado a métricas, finanzas y asignación de cuentas
           </p>
         </div>
 
-        {/* Card Form */}
-        <div className="bg-black/80 border border-[#2f2f2f] rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="bg-[#121722]/90 border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-xl backdrop-blur-xl">
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-950/70 border border-red-500/50 text-red-200 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+            <div className="mb-5 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-200 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                Correo Administrador
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                Correo Electrónico
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5" />
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@hogarpro.com"
-                  className="w-full bg-[#161616] border border-[#333333] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] transition font-mono"
+                  className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition font-sans"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5" />
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full bg-[#161616] border border-[#333333] rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] transition font-mono"
+                  className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 />
               </div>
             </div>
@@ -120,32 +122,31 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="w-full mt-2 py-3.5 px-4 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-sm uppercase tracking-wider shadow-xl shadow-red-950/50 flex items-center justify-center gap-2 transition transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
+              className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-semibold text-sm shadow-md shadow-blue-950/40 flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] disabled:opacity-50"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Ingresar al Panel</span>
+                  <span>Ingresar al Panel de Control</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-[#262626] flex items-center justify-center gap-2 text-[11px] text-zinc-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#E50914]" />
+          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-2 text-xs text-slate-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Acceso protegido con cifrado SSL de extremo a extremo</span>
           </div>
         </div>
+      </main>
 
-        <div className="mt-6 text-center">
-          <Link href="/dashboard/seller" className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Ir al Portal de Vendedores</span>
-          </Link>
-        </div>
-      </div>
+      <footer className="relative z-10 w-full max-w-md mx-auto py-4 text-center">
+        <p className="text-xs text-slate-400">
+          HogarPro Cloud © 2026. Panel de Gestión Empresarial.
+        </p>
+      </footer>
     </div>
   );
 }

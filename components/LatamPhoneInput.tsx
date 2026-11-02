@@ -56,66 +56,49 @@ export default function LatamPhoneInput({
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Detectar país inicial a partir del valor actual
   const detectCountry = (val: string): LatamCountry => {
-    if (!val) return LATAM_COUNTRIES[0]; // Por defecto Colombia
-    const clean = val.trim();
-    // Ordenar de mayor a menor longitud de dialCode para evitar colisiones (ej. +593 antes de +5)
-    const sorted = [...LATAM_COUNTRIES].sort((a, b) => b.dialCode.length - a.dialCode.length);
-    for (const c of sorted) {
-      if (clean.startsWith(c.dialCode)) {
-        return c;
-      }
-    }
-    return LATAM_COUNTRIES[0];
+    if (!val) return LATAM_COUNTRIES[0];
+    const match = LATAM_COUNTRIES.find((c) => val.startsWith(c.dialCode));
+    return match || LATAM_COUNTRIES[0];
   };
 
   const [selectedCountry, setSelectedCountry] = useState<LatamCountry>(() => detectCountry(value));
+  const [localNumber, setLocalNumber] = useState<string>(() => {
+    if (!value) return "";
+    const country = detectCountry(value);
+    return value.replace(country.dialCode, "").trim();
+  });
 
-  // Extraer sólo los dígitos locales del valor completo
-  const getLocalNumber = (val: string, country: LatamCountry): string => {
-    if (!val) return "";
-    let clean = val.trim();
-    if (clean.startsWith(country.dialCode)) {
-      clean = clean.substring(country.dialCode.length).trim();
-    }
-    return clean;
-  };
-
-  const [localNumber, setLocalNumber] = useState<string>(() => getLocalNumber(value, selectedCountry));
-
-  // Sincronizar si el valor externo cambia (ej. al abrir modal para editar)
   useEffect(() => {
-    const detected = detectCountry(value);
-    setSelectedCountry(detected);
-    setLocalNumber(getLocalNumber(value, detected));
+    if (!value) {
+      setLocalNumber("");
+      return;
+    }
+    const country = detectCountry(value);
+    setSelectedCountry(country);
+    setLocalNumber(value.replace(country.dialCode, "").trim());
   }, [value]);
 
-  // Manejar click fuera del dropdown
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSelectCountry = (country: LatamCountry) => {
     setSelectedCountry(country);
     setIsOpen(false);
     setSearchQuery("");
-    const combined = localNumber.trim() ? `${country.dialCode} ${localNumber.trim()}` : country.dialCode;
+    const combined = localNumber.trim() ? `${country.dialCode} ${localNumber.trim()}` : "";
     onChange(combined);
   };
 
   const handleLocalNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value.replace(/[^0-9\s-]/g, ""); // Permitir sólo dígitos y guiones
+    const rawVal = e.target.value.replace(/[^\d\s-]/g, "");
     setLocalNumber(rawVal);
     const combined = rawVal.trim() ? `${selectedCountry.dialCode} ${rawVal.trim()}` : "";
     onChange(combined);
@@ -133,42 +116,38 @@ export default function LatamPhoneInput({
 
   return (
     <div className={`relative flex items-center ${className}`}>
-      {/* Botón selector de bandera + código */}
       <div className="relative" ref={dropdownRef}>
         <button
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen((prev) => !prev)}
-          className="flex items-center gap-1.5 px-3 py-2.5 bg-[#161616] border border-[#333333] border-r-0 rounded-l-xl text-sm font-medium text-white hover:bg-[#202020] focus:outline-none transition select-none disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-2.5 bg-[#0E121B] border border-slate-800 border-r-0 rounded-l-xl text-sm font-medium text-slate-100 hover:bg-[#141A25] focus:outline-none transition select-none disabled:opacity-50"
           title={`${selectedCountry.name} (${selectedCountry.dialCode})`}
         >
           <span className="text-lg leading-none">{selectedCountry.flag}</span>
-          <span className="text-xs font-semibold text-zinc-300 font-mono">{selectedCountry.dialCode}</span>
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-xs font-semibold text-slate-300 font-mono">{selectedCountry.dialCode}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
         </button>
 
-        {/* Menú Desplegable con buscador */}
         {isOpen && (
-          <div className="absolute top-full left-0 mt-1.5 w-64 max-h-72 bg-[#121212] border border-[#333333] rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col backdrop-blur-xl animate-in fade-in duration-150">
-            {/* Buscador de países */}
-            <div className="p-2 border-b border-[#262626] bg-[#161616] sticky top-0">
+          <div className="absolute top-full left-0 mt-1.5 w-64 max-h-72 bg-[#121722] border border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col backdrop-blur-xl animate-in fade-in duration-150">
+            <div className="p-2 border-b border-slate-800 bg-[#0E121B] sticky top-0">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
                 <input
                   type="text"
                   autoFocus
                   placeholder="Buscar país o +código..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#1e1e1e] border border-[#333333] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914]"
+                  className="w-full bg-[#182030] border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
-            {/* Lista de países */}
-            <div className="overflow-y-auto divide-y divide-[#1e1e1e] flex-1 py-1">
+            <div className="overflow-y-auto divide-y divide-slate-800 flex-1 py-1">
               {filteredCountries.length === 0 ? (
-                <div className="p-3 text-center text-xs text-zinc-500">No se encontraron países</div>
+                <div className="p-3 text-center text-xs text-slate-400">No se encontraron países</div>
               ) : (
                 filteredCountries.map((country) => {
                   const isSelected = country.code === selectedCountry.code;
@@ -179,15 +158,15 @@ export default function LatamPhoneInput({
                       onClick={() => handleSelectCountry(country)}
                       className={`w-full px-3 py-2 flex items-center justify-between text-left text-xs transition ${
                         isSelected
-                          ? "bg-[#E50914]/15 text-white font-bold"
-                          : "text-zinc-300 hover:bg-[#1f1f1f] hover:text-white"
+                          ? "bg-blue-500/15 text-blue-300 font-semibold"
+                          : "text-slate-300 hover:bg-[#182030] hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-2 truncate pr-2">
                         <span className="text-base leading-none">{country.flag}</span>
                         <span className="truncate">{country.name}</span>
                       </div>
-                      <span className="text-zinc-400 font-mono text-[11px] font-semibold shrink-0">
+                      <span className="text-slate-400 font-mono text-[11px] font-semibold shrink-0">
                         {country.dialCode}
                       </span>
                     </button>
@@ -199,7 +178,6 @@ export default function LatamPhoneInput({
         )}
       </div>
 
-      {/* Input del número telefónico local */}
       <input
         type="tel"
         required={required}
@@ -207,7 +185,7 @@ export default function LatamPhoneInput({
         placeholder={placeholder}
         value={localNumber}
         onChange={handleLocalNumberChange}
-        className="w-full bg-[#161616] border border-[#333333] rounded-r-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] transition font-mono"
+        className="w-full bg-[#0E121B] border border-slate-800 rounded-r-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition font-sans"
       />
     </div>
   );

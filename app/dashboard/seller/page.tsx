@@ -71,50 +71,56 @@ interface ActionConfig {
   title: string;
   subtitle: string;
   icon: React.ReactNode;
-  color: string;
+  iconBg: string;
   badge: string;
+  badgeClass: string;
 }
 
 const ACTIONS: ActionConfig[] = [
   {
     id: "login_code",
-    title: "Código de Inicio de Sesión",
+    title: "Inicio de Sesión",
     subtitle: "Código de 4 dígitos para TV o inicio",
-    icon: <Zap className="w-5 h-5" />,
-    color: "from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 border-emerald-500/40",
-    badge: "Código (4 Dígitos)"
+    icon: <Zap className="w-5 h-5 text-emerald-400" />,
+    iconBg: "bg-emerald-500/10 border-emerald-500/20",
+    badge: "Código TV (4D)",
+    badgeClass: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
   },
   {
     id: "verification_code",
-    title: "Código de Verificación",
-    subtitle: "Código numérico OTP de 6 dígitos",
-    icon: <Clock className="w-5 h-5" />,
-    color: "from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 border-cyan-500/40",
-    badge: "Código (6 Dígitos)"
+    title: "Verificación OTP",
+    subtitle: "Código numérico de 6 dígitos",
+    icon: <Clock className="w-5 h-5 text-sky-400" />,
+    iconBg: "bg-sky-500/10 border-sky-500/20",
+    badge: "Código OTP (6D)",
+    badgeClass: "bg-sky-500/10 text-sky-300 border-sky-500/20"
   },
   {
     id: "actualizar_hogar",
-    title: "Solicitar Actualizar Hogar Netflix",
-    subtitle: "Enlace directo para confirmar Hogar con Netflix",
-    icon: <Home className="w-5 h-5" />,
-    color: "from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 border-blue-500/40",
-    badge: "Link Hogar"
+    title: "Actualizar Hogar",
+    subtitle: "Enlace directo oficial para confirmar red",
+    icon: <Home className="w-5 h-5 text-blue-400" />,
+    iconBg: "bg-blue-500/10 border-blue-500/20",
+    badge: "Link Hogar",
+    badgeClass: "bg-blue-500/10 text-blue-300 border-blue-500/20"
   },
   {
     id: "acceso_temporal",
-    title: "Código de Acceso Temporal",
-    subtitle: "Enlace para autorizar viaje o TV fuera de casa",
-    icon: <ShieldCheck className="w-5 h-5" />,
-    color: "from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 border-amber-500/40",
-    badge: "Link Viaje"
+    title: "Acceso Temporal",
+    subtitle: "Enlace para autorizar viaje o fuera de casa",
+    icon: <ShieldCheck className="w-5 h-5 text-amber-400" />,
+    iconBg: "bg-amber-500/10 border-amber-500/20",
+    badge: "Link Viaje",
+    badgeClass: "bg-amber-500/10 text-amber-300 border-amber-500/20"
   },
   {
     id: "reset_password",
-    title: "Restablecer Contraseña",
-    subtitle: "Enlace oficial para cambiar la clave de Netflix",
-    icon: <Lock className="w-5 h-5" />,
-    color: "from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 border-rose-500/40",
-    badge: "Link Contraseña"
+    title: "Restablecer Clave",
+    subtitle: "Enlace oficial para cambiar contraseña",
+    icon: <Lock className="w-5 h-5 text-rose-400" />,
+    iconBg: "bg-rose-500/10 border-rose-500/20",
+    badge: "Link Clave",
+    badgeClass: "bg-rose-500/10 text-rose-300 border-rose-500/20"
   }
 ];
 
@@ -616,27 +622,27 @@ export default function SellerLiveCodesPage() {
   const isOwnerOrAdmin = currentUser?.role === "owner" || (currentUser?.role as string) === "admin";
 
   return (
-    <div className="min-h-screen bg-[#141414] text-white flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-[#E50914] selection:text-white">
-      {/* BARRA SUPERIOR MÓVIL STICKY CON MENÚ DE 3 RAYAS ARRIBA A LA DERECHA */}
-      <div className="md:hidden sticky top-0 z-40 bg-[#101010]/95 backdrop-blur-md border-b border-[#262626] px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-rose-500/30 selection:text-rose-200">
+      {/* BARRA SUPERIOR MÓVIL STICKY CON MENÚ DE 3 RAYAS */}
+      <div className="md:hidden sticky top-0 z-40 bg-[#0E121B]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
         <Link href={isOwnerOrAdmin ? "/dashboard/owner" : "/dashboard/seller"} className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#E50914] flex items-center justify-center font-black text-white shadow-md shadow-red-600/40">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-white shadow-sm">
             H
           </div>
           <div>
-            <div className="font-black text-white text-xs tracking-wider leading-none">HOGAR<span className="text-[#E50914]">PRO</span></div>
-            <div className="text-[9px] text-[#E50914] font-bold uppercase tracking-wider">
+            <div className="font-bold text-slate-100 text-xs tracking-tight leading-none">HOGAR<span className="text-rose-500">PRO</span></div>
+            <div className="text-[9px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
               {isOwnerOrAdmin ? "VISTA VENDEDOR (ADMIN)" : "PORTAL REVENDEDOR"}
             </div>
           </div>
         </Link>
 
-        {/* CONTROLES DERECHA: BOTÓN OWNER (SI APLICA) Y BOTÓN DE 3 RAYAS */}
+        {/* CONTROLES DERECHA */}
         <div className="flex items-center gap-2">
           {isOwnerOrAdmin && (
             <Link
               href="/dashboard/owner"
-              className="px-2.5 py-1.5 text-[11px] text-white bg-[#E50914] hover:bg-[#b80710] rounded-xl flex items-center gap-1 font-bold transition shadow-sm"
+              className="px-2.5 py-1.5 text-[11px] text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 font-semibold transition shadow-sm"
               title="Regresar a Panel Owner"
             >
               <ArrowLeft className="w-3 h-3" />
@@ -646,11 +652,11 @@ export default function SellerLiveCodesPage() {
 
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="p-2 rounded-xl bg-[#202020] text-zinc-300 hover:text-white hover:bg-zinc-800 border border-[#333333] active:scale-95 transition shadow-sm flex items-center justify-center"
+            className="p-2 rounded-xl bg-[#141A25] text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 active:scale-95 transition shadow-sm flex items-center justify-center"
             title="Abrir menú de opciones"
             aria-label="Abrir menú"
           >
-            <Menu className="w-5 h-5 text-white" />
+            <Menu className="w-5 h-5 text-slate-200" />
           </button>
         </div>
       </div>
@@ -807,15 +813,15 @@ export default function SellerLiveCodesPage() {
       )}
 
       {/* SIDEBAR DESKTOP FIJO CONSTANTEMENTE VISIBLE */}
-      <aside className="w-64 border-r border-[#262626] bg-[#101010] p-5 hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0">
+      <aside className="w-64 border-r border-slate-800/80 bg-[#0E121B] p-5 hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0">
         <div className="flex-1 min-h-0 flex flex-col">
           <Link href={isOwnerOrAdmin ? "/dashboard/owner" : "/dashboard/seller"} className="flex items-center gap-3 mb-6 group shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-[#E50914] flex items-center justify-center font-black text-xl text-white shadow-lg shadow-red-600/40 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-xl text-white shadow-sm group-hover:scale-105 transition-transform">
               H
             </div>
             <div>
-              <div className="font-black text-white tracking-wider text-base">HOGAR<span className="text-[#E50914]">PRO</span></div>
-              <div className="text-[10px] text-[#E50914] font-bold uppercase tracking-wider">
+              <div className="font-bold text-slate-100 tracking-tight text-base">HOGAR<span className="text-rose-500">PRO</span></div>
+              <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
                 {isOwnerOrAdmin ? "VISTA VENDEDOR (ADMIN)" : "PORTAL REVENDEDOR"}
               </div>
             </div>
@@ -823,16 +829,16 @@ export default function SellerLiveCodesPage() {
 
           {/* BOTÓN REGRESAR A OWNER SI ES ADMINISTRADOR */}
           {isOwnerOrAdmin && (
-            <div className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-red-950/40 to-black border border-red-500/40 shadow-lg shadow-red-950/30 shrink-0">
+            <div className="mb-5 p-3 rounded-xl bg-[#141A25] border border-slate-800 shadow-sm shrink-0">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Sesión Owner Activa
                 </span>
               </div>
               <Link
                 href="/dashboard/owner"
-                className="w-full py-2 px-3 rounded-xl bg-[#E50914] hover:bg-[#b80710] text-white font-black text-xs flex items-center justify-center gap-2 transition shadow-md shadow-red-950/50"
+                className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs flex items-center justify-center gap-2 transition border border-slate-700"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Volver a Panel Owner</span>
@@ -841,38 +847,38 @@ export default function SellerLiveCodesPage() {
           )}
 
           {/* NAVEGACIÓN PRINCIPAL */}
-          <nav className="space-y-1.5 text-sm font-medium overflow-y-auto flex-1 pr-1">
+          <nav className="space-y-1 text-sm font-medium overflow-y-auto flex-1 pr-1">
             <button
               onClick={() => setActiveTab("cuentas")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-left ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition text-left ${
                 activeTab === "cuentas"
-                  ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
-                  : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-[#E50914]" : "text-zinc-400"}`} />
+              <div className="flex items-center gap-2.5">
+                <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-blue-400" : "text-slate-400"}`} />
                 <span>Pedir Códigos & Cuentas</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/60 text-zinc-300 font-mono">
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 font-mono">
                 {assignedAccounts.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab("calendario")}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-left ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition text-left ${
                 activeTab === "calendario"
-                  ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
-                  : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <Calendar className={`w-4 h-4 ${activeTab === "calendario" ? "text-[#E50914]" : "text-zinc-400"}`} />
+              <div className="flex items-center gap-2.5">
+                <Calendar className={`w-4 h-4 ${activeTab === "calendario" ? "text-blue-400" : "text-slate-400"}`} />
                 <span>Calendario de Vencimientos</span>
               </div>
               {expiringSoonAccounts.length > 0 ? (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-950 text-red-300 border border-red-500/40 font-mono font-bold animate-pulse">
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-950/60 text-rose-300 border border-rose-800/50 font-mono font-medium">
                   {expiringSoonAccounts.length} prox
                 </span>
               ) : null}
@@ -880,24 +886,24 @@ export default function SellerLiveCodesPage() {
 
             <button
               onClick={() => setActiveTab("configuracion")}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-left ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition text-left ${
                 activeTab === "configuracion"
-                  ? "bg-[#1f1f1f] text-white border-l-4 border-[#E50914] font-bold shadow-md shadow-black/40"
-                  : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
+                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
               }`}
             >
-              <Settings className={`w-4 h-4 ${activeTab === "configuracion" ? "text-[#E50914]" : "text-zinc-400"}`} />
+              <Settings className={`w-4 h-4 ${activeTab === "configuracion" ? "text-blue-400" : "text-slate-400"}`} />
               <span>Configuración</span>
             </button>
           </nav>
         </div>
 
-        {/* PIE DEL SIDEBAR FIJO CONSTANTEMENTE VISIBLE */}
-        <div className="pt-4 mt-2 border-t border-[#262626] space-y-2 shrink-0 bg-[#101010]">
+        {/* PIE DEL SIDEBAR */}
+        <div className="pt-4 mt-2 border-t border-slate-800/80 space-y-2 shrink-0 bg-[#0E121B]">
           {isOwnerOrAdmin && (
             <Link
               href="/dashboard/owner"
-              className="w-full flex items-center justify-center gap-2 text-xs text-white bg-[#E50914] hover:bg-[#b80710] transition py-2 px-3 rounded-xl font-bold shadow-md shadow-red-950/40"
+              className="w-full flex items-center justify-center gap-2 text-xs text-white bg-slate-800 hover:bg-slate-700 transition py-2 px-3 rounded-lg font-medium border border-slate-700"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Volver a Panel Owner</span>
@@ -905,7 +911,7 @@ export default function SellerLiveCodesPage() {
           )}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 text-xs text-red-400/90 hover:text-red-300 transition py-2 px-3 rounded-xl hover:bg-red-950/20 font-medium"
+            className="w-full flex items-center gap-2 text-xs text-slate-400 hover:text-rose-400 transition py-2 px-3 rounded-lg hover:bg-rose-950/20 font-medium"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Cerrar Sesión</span>
@@ -1699,26 +1705,26 @@ export default function SellerLiveCodesPage() {
                                 }}
                                 className={`p-3 rounded-xl border cursor-pointer transition-all ${
                                   isSelected
-                                    ? "bg-[#222222] border-2 border-[#E50914] text-white shadow-lg shadow-red-950/40 transform scale-[1.01]"
-                                    : "bg-[#141414] border-[#262626] text-zinc-400 hover:border-[#383838] hover:bg-[#181818]"
+                                    ? "bg-[#182234] border border-blue-500/80 text-slate-100 shadow-sm ring-1 ring-blue-500/30"
+                                    : "bg-[#0E131E] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#131926]"
                                 }`}
                               >
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-xs font-black truncate max-w-[120px] ${isSelected ? "text-white" : "text-zinc-300"}`}>
+                                  <span className={`text-xs font-semibold truncate max-w-[120px] ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
                                     {acc.service}
                                   </span>
-                                  <span className="text-[10px] text-zinc-400 bg-[#242424] px-1.5 py-0.2 rounded font-mono">
+                                  <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-mono">
                                     {acc.profiles}
                                   </span>
                                 </div>
-                                <div className="font-mono text-xs text-zinc-200 truncate mb-1">{acc.email}</div>
-                                <div className="flex items-center justify-between pt-1 border-t border-[#242424] text-[10px]">
-                                  <span className="inline-flex items-center gap-1 text-zinc-400 font-mono">
-                                    <Globe className="w-2.5 h-2.5 text-[#E50914]" />
+                                <div className="font-mono text-xs text-slate-300 truncate mb-1">{acc.email}</div>
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-800 text-[10px]">
+                                  <span className="inline-flex items-center gap-1 text-slate-400 font-mono">
+                                    <Globe className="w-2.5 h-2.5 text-blue-400" />
                                     <span>{acc.country}</span>
                                   </span>
                                   {isSelected && (
-                                    <span className="text-[#ff6666] font-bold text-[9px] uppercase tracking-wider">
+                                    <span className="text-blue-400 font-semibold text-[9px] uppercase tracking-wider">
                                       Activa
                                     </span>
                                   )}
@@ -1754,13 +1760,13 @@ export default function SellerLiveCodesPage() {
             {/* SECCIÓN 2: 5 BOTONES DE ACCIONES PRINCIPALES */}
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-5 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+                <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
+                <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   Acciones Rápidas Disponibles
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                 {ACTIONS.map((action) => {
                   const isDisabled = isWaiting || assignedAccounts.length === 0;
                   return (
@@ -1769,22 +1775,22 @@ export default function SellerLiveCodesPage() {
                       onClick={() => handleTriggerAction(action.id)}
                       disabled={isDisabled}
                       title={assignedAccounts.length === 0 ? "Asigna o solicita una cuenta primero para pedir códigos" : ""}
-                      className={`p-5 rounded-2xl bg-gradient-to-br ${action.color} border text-left shadow-lg transition-all transform hover:-translate-y-1 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:transform-none flex flex-col justify-between min-h-[140px]`}
+                      className="group relative p-4 rounded-2xl bg-[#121722] hover:bg-[#182030] border border-slate-800/80 hover:border-slate-700/80 text-left shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-40 disabled:transform-none flex flex-col justify-between min-h-[145px]"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="w-9 h-9 rounded-xl bg-black/35 flex items-center justify-center text-white shadow-inner">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${action.iconBg}`}>
                           {action.icon}
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-black/40 text-white px-2 py-0.5 rounded-md">
+                        <span className={`text-[10px] font-medium border px-2 py-0.5 rounded-md ${action.badgeClass}`}>
                           {action.badge}
                         </span>
                       </div>
 
                       <div>
-                        <div className="font-bold text-white text-base tracking-tight leading-snug">
+                        <div className="font-semibold text-slate-100 text-sm tracking-tight group-hover:text-white transition">
                           {action.title}
                         </div>
-                        <div className="text-[11px] text-white/80 mt-1 leading-tight">
+                        <div className="text-xs text-slate-400 mt-1 leading-snug line-clamp-2">
                           {action.subtitle}
                         </div>
                       </div>
@@ -1795,23 +1801,21 @@ export default function SellerLiveCodesPage() {
             </div>
 
             {/* SECCIÓN 3: TERMINAL DE RESULTADO EN TIEMPO REAL */}
-            <div className="bg-[#181818] border border-[#2f2f2f] rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-[#E50914]/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#262626]">
+            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-xl backdrop-blur-xl relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-[#E50914] rounded-full" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Terminal de Extracción</span>
+                    <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Terminal de Extracción</span>
                   </div>
-                  <div className="font-mono text-sm text-zinc-300 mt-1 pl-3.5">
-                    Cuenta: <strong className="text-white">{selectedAccount}</strong>
+                  <div className="font-mono text-sm text-slate-300 mt-1 pl-3.5">
+                    Cuenta: <strong className="text-slate-100">{selectedAccount}</strong>
                   </div>
                 </div>
 
                 {isWaiting && (
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 text-xs font-medium animate-pulse">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
                     <span>Esperando código entrante ({timerSeconds}s)...</span>
                   </div>
                 )}
@@ -1821,31 +1825,31 @@ export default function SellerLiveCodesPage() {
               <div className="my-8 text-center">
                 {isWaiting ? (
                   <div className="py-12 flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 rounded-full border-4 border-[#E50914]/20 border-t-[#E50914] animate-spin mb-4" />
-                    <h3 className="text-xl font-bold text-white">Obteniendo código en vivo...</h3>
-                    <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-                      El sistema está verificando la bandeja de entrada para extraer el código o enlace en segundos.
+                    <div className="w-12 h-12 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mb-4" />
+                    <h3 className="text-lg font-bold text-slate-100">Obteniendo código en vivo...</h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                      Consultando servidores de correo de Netflix para extraer el código en segundos.
                     </p>
                   </div>
                 ) : receivedCode ? (
                   <div className="py-4">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3.5 py-1 rounded-full">
+                    <span className="text-xs font-medium text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
                       ¡Código Recibido con Éxito!
                     </span>
 
                     {/* VISUALIZACIÓN DEL CÓDIGO O ENLACE */}
                     {isUrl ? (
-                      <div className="mt-6 max-w-2xl mx-auto p-5 rounded-2xl bg-[#121212] border border-[#2f2f2f] text-left shadow-xl">
+                      <div className="mt-6 max-w-2xl mx-auto p-5 rounded-2xl bg-[#0E131E] border border-slate-800 text-left shadow-md">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <ExternalLink className="w-4 h-4 text-[#E50914]" />
+                          <span className="text-xs text-slate-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                            <ExternalLink className="w-4 h-4 text-blue-400" />
                             Enlace Oficial de Netflix:
                           </span>
-                          <span className="text-[10px] text-zinc-400 bg-black/60 px-2 py-0.5 rounded font-mono">
+                          <span className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded font-mono">
                             {activeAction === "actualizar_hogar" ? "Actualización Hogar" : activeAction === "acceso_temporal" ? "Acceso Temporal / Viaje" : "Restablecer Clave"}
                           </span>
                         </div>
-                        <div className="font-mono text-xs text-[#ff5555] break-all bg-black/70 p-3.5 rounded-xl border border-[#262626] select-all">
+                        <div className="font-mono text-xs text-blue-300 break-all bg-[#080B10] p-3.5 rounded-xl border border-slate-800 select-all">
                           {receivedCode}
                         </div>
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1853,19 +1857,19 @@ export default function SellerLiveCodesPage() {
                             href={receivedCode}
                             target="_blank"
                             rel="noreferrer"
-                            className="py-3 px-4 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-red-950/40"
+                            className="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
                           >
                             <ExternalLink className="w-4 h-4" />
                             <span>Abrir Enlace Oficial</span>
                           </a>
                           <button
                             onClick={handleCopy}
-                            className="py-3 px-4 bg-[#262626] hover:bg-[#333333] border border-[#383838] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition"
+                            className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition"
                           >
                             {copied ? (
                               <>
                                 <Check className="w-4 h-4 text-emerald-400" />
-                                <span className="text-emerald-400">¡Enlace Copiado!</span>
+                                <span className="text-emerald-400 font-medium">¡Enlace Copiado!</span>
                               </>
                             ) : (
                               <>
@@ -1878,8 +1882,8 @@ export default function SellerLiveCodesPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="mt-6 inline-block bg-[#121212] border-2 border-[#E50914]/60 rounded-3xl px-8 py-6 shadow-2xl shadow-red-950/40">
-                          <span className="text-5xl sm:text-7xl font-black font-mono tracking-widest text-white select-all">
+                        <div className="mt-6 inline-block bg-[#0E131E] border border-slate-800 rounded-2xl px-10 py-6 shadow-inner">
+                          <span className="text-5xl sm:text-6xl font-bold font-mono tracking-widest text-slate-100 select-all">
                             {receivedCode}
                           </span>
                         </div>
@@ -1888,16 +1892,16 @@ export default function SellerLiveCodesPage() {
                         <div className="mt-6 flex justify-center">
                           <button
                             onClick={handleCopy}
-                            className="py-3.5 px-8 rounded-2xl bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-sm shadow-xl shadow-red-950/50 flex items-center gap-2 transition transform hover:scale-105 active:scale-95"
+                            className="py-3 px-8 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-sm flex items-center gap-2 transition transform active:scale-95"
                           >
                             {copied ? (
                               <>
-                                <Check className="w-5 h-5 text-white" />
+                                <Check className="w-4 h-4 text-white" />
                                 <span>¡Copiado al Portapapeles!</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-5 h-5" />
+                                <Copy className="w-4 h-4" />
                                 <span>Copiar Código</span>
                               </>
                             )}
