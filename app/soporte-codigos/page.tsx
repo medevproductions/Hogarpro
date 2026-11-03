@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { 
   Tv, 
@@ -17,69 +17,100 @@ import {
   Plane,
   ShieldCheck,
   KeyRound,
-  Lock
+  Lock,
+  User,
+  UserCheck,
+  Shield,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  LogOut,
+  Clock,
+  Zap,
+  X
 } from "lucide-react";
 import CodigoHelpGuide from "@/components/soporte/CodigoHelpGuide";
-import { getCurrentUser, SystemUser } from "@/lib/account-manager";
+import { 
+  getCurrentUser, 
+  setCurrentUser, 
+  getStoredAccounts, 
+  SystemUser, 
+  StoredStreamingAccount,
+  syncAccountsFromCloud,
+  syncUsersFromCloud
+} from "@/lib/account-manager";
+import { authenticateWithFirebase } from "@/lib/firebase/auth-service";
 
 type ActionType = "auto" | "actualizar_hogar" | "acceso_temporal" | "login_code" | "verification_code" | "reset_password";
 
 interface ActionOption {
   id: ActionType;
   label: string;
+  subtitle: string;
   badge: string;
   icon: React.ReactNode;
-  iconColor: string;
 }
 
 const ACTION_OPTIONS: ActionOption[] = [
   {
-    id: "auto",
-    label: "Detectar Automático",
-    badge: "Recomendado",
-    icon: <Sparkles className="w-4 h-4 text-amber-400" />,
-    iconColor: "text-amber-400"
-  },
-  {
-    id: "actualizar_hogar",
-    label: "Actualizar Hogar",
-    badge: "Enlace",
-    icon: <Home className="w-4 h-4 text-blue-400" />,
-    iconColor: "text-blue-400"
-  },
-  {
-    id: "acceso_temporal",
-    label: "Acceso de Viaje",
-    badge: "Enlace",
-    icon: <Plane className="w-4 h-4 text-sky-400" />,
-    iconColor: "text-sky-400"
-  },
-  {
     id: "login_code",
     label: "Código de Inicio",
+    subtitle: "4 dígitos en pantalla TV",
     badge: "4 dígitos",
-    icon: <Tv className="w-4 h-4 text-emerald-400" />,
-    iconColor: "text-emerald-400"
+    icon: <Zap className="w-4 h-4 text-emerald-400" />
   },
   {
     id: "verification_code",
     label: "Código de Confirmación",
+    subtitle: "6 dígitos de verificación",
     badge: "6 dígitos",
-    icon: <ShieldCheck className="w-4 h-4 text-indigo-400" />,
-    iconColor: "text-indigo-400"
+    icon: <Clock className="w-4 h-4 text-sky-400" />
+  },
+  {
+    id: "actualizar_hogar",
+    label: "Actualizar Hogar",
+    subtitle: "Confirmar red doméstica",
+    badge: "Enlace",
+    icon: <Home className="w-4 h-4 text-blue-400" />
+  },
+  {
+    id: "acceso_temporal",
+    label: "Acceso de Viaje",
+    subtitle: "TV fuera del hogar",
+    badge: "Enlace",
+    icon: <Plane className="w-4 h-4 text-indigo-400" />
   },
   {
     id: "reset_password",
-    label: "Cambiar Contraseña",
+    label: "Cambiar Clave",
+    subtitle: "Restablecer contraseña",
     badge: "Enlace",
-    icon: <KeyRound className="w-4 h-4 text-rose-400" />,
-    iconColor: "text-rose-400"
+    icon: <KeyRound className="w-4 h-4 text-rose-400" />
+  },
+  {
+    id: "auto",
+    label: "Detección Automática",
+    subtitle: "Cualquier solicitud reciente",
+    badge: "Automático",
+    icon: <Sparkles className="w-4 h-4 text-amber-400" />
   }
 ];
 
 export default function SoporteCodigosPage() {
+  const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
+  const [loadingInitialSession, setLoadingInitialSession] = useState(true);
+
+  // In-Page Authentication State
+  const [loginRole, setLoginRole] = useState<"seller" | "admin">("seller");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Code Query State
   const [email, setEmail] = useState("");
-  const [selectedAction, setSelectedAction] = useState<ActionType>("auto");
+  const [selectedAction, setSelectedAction] = useState<ActionType>("login_code");
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<{
     code?: string;
@@ -88,7 +119,6 @@ export default function SoporteCodigosPage() {
     message?: string;
     success?: boolean;
   } | null>(null);
-  const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
   const [copied, setCopied] = useState(false);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,6 +126,13 @@ export default function SoporteCodigosPage() {
   useEffect(() => {
     const user = getCurrentUser();
     setCurrentUserState(user);
+    setLoadingInitialSession(false);
+
+    // Sincronizar cuentas en segundo plano si hay sesión
+    if (user) {
+      syncAccountsFromCloud(true).catch(console.warn);
+      syncUsersFromCloud(true).catch(console.warn);
+    }
   }, []);
 
   useEffect(() => {
@@ -115,6 +152,75 @@ export default function SoporteCodigosPage() {
     return () => clearInterval(timer);
   }, [isSearching]);
 
+  // Cuentas asignadas al usuario actual
+  const assignedAccounts = useMemo(() => {
+    if (!currentUser) return [];
+    const all = getStoredAccounts();
+    if (currentUser.role === "owner" || (currentUser.role as string) === "admin") {
+      return all;
+    }
+    const uName = (currentUser.name || "").toLowerCase().trim();
+    const uEmail = (currentUser.email || "").toLowerCase().trim();
+    const uId = (currentUser.id || "").toLowerCase().trim();
+
+    return all.filter((a) => {
+      const sId = (a.sellerId || "").toLowerCase().trim();
+      const sName = (a.sellerName || (a as any).seller || "").toLowerCase().trim();
+      return (sId && (sId === uId || sId === uEmail)) || 
+             (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName)));
+    });
+  }, [currentUser]);
+
+  // Manejador de Login Directo en la Página
+  const handleInPageLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    setLoginLoading(true);
+
+    try {
+      let targetEmail = loginIdentifier.trim().toLowerCase();
+      if (loginRole === "seller" && !targetEmail.includes("@")) {
+        targetEmail = `${targetEmail}@hogarpro.com`;
+      }
+
+      const res = await authenticateWithFirebase(targetEmail, loginPassword);
+      if (res.success && res.user) {
+        if (loginRole === "admin") {
+          if (res.user.role === "owner" || (res.user.role as string) === "admin") {
+            setCurrentUserState(res.user);
+            setLoginPassword("");
+            setLoginError(null);
+          } else {
+            setLoginError("Esta cuenta no tiene permisos de Administrador. Cambia a la pestaña 'Revendedor' para iniciar sesión.");
+            setLoginLoading(false);
+            return;
+          }
+        } else {
+          setCurrentUserState(res.user);
+          setLoginPassword("");
+          setLoginError(null);
+        }
+      } else {
+        setLoginError(res.error || "Credenciales incorrectas. Verifica tus datos de acceso.");
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || "Error al autenticar. Por favor verifica tus credenciales.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // Cerrar Sesión Directo en la Página
+  const handleLogout = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    setCurrentUser(null);
+    setCurrentUserState(null);
+    setResult(null);
+    setIsSearching(false);
+    setEmail("");
+  };
+
+  // Consulta de Código
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -173,6 +279,11 @@ export default function SoporteCodigosPage() {
     }, 3000);
   };
 
+  const handleCancelSearch = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    setIsSearching(false);
+  };
+
   const handleCopyCode = (textToCopy: string) => {
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
@@ -184,7 +295,7 @@ export default function SoporteCodigosPage() {
       case "actualizar_hogar":
         return "Aprobación de Hogar Netflix";
       case "acceso_temporal":
-        return "Acceso Temporal / De Viaje";
+        return "Acceso de Viaje";
       case "reset_password":
         return "Restablecimiento de Contraseña";
       case "verification_code":
@@ -196,10 +307,20 @@ export default function SoporteCodigosPage() {
     }
   };
 
+  const isAdmin = currentUser?.role === "owner" || (currentUser?.role as string) === "admin";
+
+  if (loadingInitialSession) {
+    return (
+      <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-slate-700 border-t-rose-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col justify-between selection:bg-rose-500/30 selection:text-rose-200">
       {/* NAVBAR */}
-      <header className="border-b border-slate-800/80 bg-[#0E121B]/90 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-slate-800/80 bg-[#0E121B]/95 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-white shadow-sm group-hover:scale-105 transition-transform">
@@ -211,12 +332,43 @@ export default function SoporteCodigosPage() {
           </Link>
 
           <div className="flex items-center gap-2.5">
-            <Link
-              href={currentUser?.role === "owner" || (currentUser?.role as string) === "admin" ? "/dashboard/owner" : "/dashboard/seller"}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-100 border border-slate-700 transition shadow-sm"
-            >
-              <span>{currentUser ? "Ir a mi Panel" : "Acceso Revendedor / Admin"}</span>
-            </Link>
+            {currentUser ? (
+              <>
+                <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#141A25] border border-slate-800 text-xs">
+                  {isAdmin ? (
+                    <Shield className="w-3.5 h-3.5 text-blue-400" />
+                  ) : (
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span className="text-slate-300 font-medium">
+                    {isAdmin ? "Admin" : "Revendedor"}: <strong className="text-white">{currentUser.name}</strong>
+                  </span>
+                </div>
+
+                <Link
+                  href={isAdmin ? "/dashboard/owner" : "/dashboard/seller"}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition"
+                >
+                  {isAdmin ? "Panel Owner" : "Mi Panel"}
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-slate-800 transition"
+                  title="Cerrar Sesión"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/"
+                className="text-xs font-medium text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition"
+              >
+                Volver al Inicio
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -224,54 +376,168 @@ export default function SoporteCodigosPage() {
       {/* CONTENIDO PRINCIPAL */}
       <main className="max-w-4xl w-full mx-auto px-4 py-8 sm:py-10 flex-1">
         {!currentUser ? (
-          <div className="rounded-2xl bg-[#121722]/95 border border-slate-800 p-8 sm:p-10 text-center shadow-xl max-w-lg mx-auto my-8">
-            <div className="w-14 h-14 rounded-2xl bg-[#182030] border border-slate-700 text-slate-300 flex items-center justify-center mx-auto mb-4 shadow-sm">
-              <Lock className="w-7 h-7 text-rose-500" />
+          /* ========================================================================= */
+          /* FORMULARIO DE INGRESO DIRECTO (REVENDEDOR & ADMINISTRADOR) */
+          /* ========================================================================= */
+          <div className="max-w-md mx-auto my-4 animate-in fade-in duration-200">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 text-rose-500 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+                Acceso a Terminal de Códigos
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
+                Ingresa con tu cuenta autorizada para solicitar códigos de inicio, confirmación o enlaces de Netflix.
+              </p>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-lg">
-              Canal Privado Protegido
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-100 mt-3">Consulta Exclusiva para Revendedores</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
-              La extracción de códigos y enlaces no está abierta a clientes finales. Como revendedor o administrador, inicia sesión para solicitar los códigos de tus cuentas asignadas.
-            </p>
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                href="/"
-                className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-xl shadow-sm transition"
-              >
-                Iniciar Sesión como Revendedor
-              </Link>
-              <Link
-                href="/admin"
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white font-medium text-xs rounded-xl border border-slate-700 transition"
-              >
-                Acceso Administrador
-              </Link>
+
+            <div className="rounded-2xl bg-[#121722]/95 border border-slate-800/90 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+              {/* Selector de Rol (Revendedor vs Administrador) */}
+              <div className="grid grid-cols-2 p-1 bg-[#0E121B] border border-slate-800 rounded-xl mb-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginRole("seller");
+                    setLoginError(null);
+                  }}
+                  className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                    loginRole === "seller"
+                      ? "bg-[#1C2433] text-slate-100 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Revendedor</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginRole("admin");
+                    setLoginError(null);
+                  }}
+                  className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                    loginRole === "admin"
+                      ? "bg-[#1C2433] text-slate-100 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Administrador</span>
+                </button>
+              </div>
+
+              {loginError && (
+                <div className="mb-4 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-200 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{loginError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleInPageLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    {loginRole === "seller" ? "Usuario o Correo" : "Correo de Administrador"}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                      {loginRole === "seller" ? <User className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                    </div>
+                    <input
+                      type={loginRole === "admin" ? "email" : "text"}
+                      required
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      placeholder={loginRole === "seller" ? "usuario o usuario@hogarpro.com" : "admin@hogarpro.com"}
+                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition font-sans"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <input
+                      type={showLoginPassword ? "text" : "password"}
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
+                    >
+                      {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading || !loginIdentifier.trim() || !loginPassword.trim()}
+                  className={`w-full mt-2 py-3 px-4 rounded-xl text-white font-semibold text-sm shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] disabled:opacity-50 cursor-pointer ${
+                    loginRole === "admin"
+                      ? "bg-rose-600 hover:bg-rose-500 shadow-rose-950/40"
+                      : "bg-blue-600 hover:bg-blue-500 shadow-blue-950/40"
+                  }`}
+                >
+                  {loginLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>{loginRole === "admin" ? "Ingresar como Administrador" : "Iniciar Sesión como Revendedor"}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-5 pt-4 border-t border-slate-800/80 text-center">
+                <span className="text-[11px] text-slate-500">
+                  Canal seguro • Las solicitudes se auditan contra los registros de cuenta
+                </span>
+              </div>
             </div>
           </div>
         ) : (
+          /* ========================================================================= */
+          /* TERMINAL DE CONSULTA ACTIVA PARA USUARIO AUTENTICADO */
+          /* ========================================================================= */
           <>
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs font-medium mb-3">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Canal Privado • {currentUser.role === "owner" || (currentUser.role as string) === "admin" ? "Administrador" : `Revendedor: ${currentUser.name}`}</span>
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs font-medium mb-2.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Canal Autorizado • {isAdmin ? "Administrador" : `Revendedor: ${currentUser.name}`}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
                 Terminal de Códigos Netflix
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-2">
-                Consulta códigos de 4 dígitos para TV, verificación de 6 dígitos o enlace oficial de Hogar para tus cuentas asignadas.
+              <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-1.5 leading-relaxed">
+                Extracción instantánea de códigos de 4 y 6 dígitos o enlaces oficiales en tiempo real.
               </p>
             </div>
 
             {/* TARJETA DE BÚSQUEDA CENTRAL */}
-            <div className="rounded-2xl bg-[#121722]/90 border border-slate-800/80 p-5 sm:p-8 shadow-xl relative overflow-hidden mb-8">
+            <div className="rounded-2xl bg-[#121722]/95 border border-slate-800/80 p-5 sm:p-7 shadow-xl relative overflow-hidden mb-8">
               {/* SELECTOR DE ACCIÓN */}
               <div className="mb-6">
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2.5">
-                  1. Tipo de solicitud:
-                </label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    1. ¿Qué necesitas solicitar?
+                  </label>
+                  <span className="text-[11px] text-slate-500">
+                    Selecciona una acción
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {ACTION_OPTIONS.map((opt) => {
                     const isSelected = selectedAction === opt.id;
@@ -283,23 +549,30 @@ export default function SoporteCodigosPage() {
                           setSelectedAction(opt.id);
                           setResult(null);
                         }}
-                        className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between gap-1.5 ${
+                        className={`p-3 rounded-xl border text-left transition-all duration-150 flex flex-col justify-between gap-2 cursor-pointer ${
                           isSelected 
                             ? "bg-[#182234] border-blue-500/80 text-slate-100 shadow-sm ring-1 ring-blue-500/30" 
                             : "bg-[#0E131E] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#131926]"
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="p-1 rounded-lg bg-slate-800/80">{opt.icon}</span>
+                          <span className={`p-1.5 rounded-lg ${isSelected ? "bg-blue-500/20 text-blue-300" : "bg-slate-800/80 text-slate-400"}`}>
+                            {opt.icon}
+                          </span>
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
                             isSelected ? "bg-blue-500/20 text-blue-300" : "bg-slate-800 text-slate-400"
                           }`}>
                             {opt.badge}
                           </span>
                         </div>
-                        <span className="text-xs font-semibold tracking-tight">
-                          {opt.label}
-                        </span>
+                        <div>
+                          <div className={`text-xs font-semibold tracking-tight ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
+                            {opt.label}
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+                            {opt.subtitle}
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
@@ -308,9 +581,35 @@ export default function SoporteCodigosPage() {
 
               {/* FORMULARIO DE BÚSQUEDA */}
               <form onSubmit={handleSearch} className="space-y-4">
+                {/* Desplegable rápido de cuentas asignadas (si tiene) */}
+                {assignedAccounts.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                      {isAdmin ? "Inventario de Cuentas:" : "Tus Cuentas Asignadas:"}
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setEmail(e.target.value);
+                          setResult(null);
+                        }
+                      }}
+                      defaultValue=""
+                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
+                    >
+                      <option value="" disabled>Selecciona una cuenta de la lista ({assignedAccounts.length})...</option>
+                      {assignedAccounts.map((acc) => (
+                        <option key={acc.id} value={acc.email}>
+                          {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-                    2. Correo de la cuenta:
+                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                    2. Correo de la cuenta Netflix:
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -324,51 +623,88 @@ export default function SoporteCodigosPage() {
                       placeholder="ej: micuenta@gmail.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
+                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
                     />
+                  </div>
+
+                  {/* Chips para autocompletar dominio rápido */}
+                  <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                    <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
+                    {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
+                      <button
+                        key={dom}
+                        type="button"
+                        onClick={() => {
+                          const atIndex = email.indexOf("@");
+                          const prefix = atIndex !== -1 ? email.substring(0, atIndex) : email;
+                          if (prefix.trim()) {
+                            setEmail(`${prefix.trim()}${dom}`);
+                          }
+                        }}
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
+                      >
+                        {dom}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSearching || !email.trim()}
-                  className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
+                <div className="pt-1">
                   {isSearching ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Buscando en Netflix... ({secondsElapsed}s)</span>
-                    </>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled
+                        className="flex-1 py-3 px-6 bg-blue-600/80 text-white font-medium text-sm rounded-xl flex items-center justify-center gap-2 cursor-wait"
+                      >
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Buscando en servidores de Netflix... ({secondsElapsed}s)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelSearch}
+                        className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl border border-slate-700 transition"
+                        title="Cancelar consulta"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   ) : (
-                    <>
+                    <button
+                      type="submit"
+                      disabled={!email.trim()}
+                      className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    >
                       <Search className="w-4 h-4" />
                       <span>Buscar Código</span>
-                    </>
+                    </button>
                   )}
-                </button>
+                </div>
               </form>
 
-              {/* RESULTADO DE LA BÚSQUEDA */}
+              {/* ESTADO EN VIVO DURANTE LA BÚSQUEDA */}
               {isSearching && (
-                <div className="mt-6 p-6 rounded-xl bg-[#0E131E] border border-slate-800 text-center animate-in fade-in duration-200">
-                  <div className="w-10 h-10 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mx-auto mb-3" />
+                <div className="mt-6 p-5 rounded-xl bg-[#0E131E] border border-slate-800 text-center animate-in fade-in duration-200">
+                  <div className="w-9 h-9 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mx-auto mb-2.5" />
                   <p className="text-sm font-semibold text-slate-100">
-                    Rastreando servidores de Netflix para:
+                    Consultando correo entrante de Netflix
                   </p>
                   <p className="text-xs font-mono text-slate-400 mt-0.5">
                     {email}
                   </p>
                   <p className="text-xs text-amber-400 mt-2">
-                    ⏱️ Esperando correo... ({secondsElapsed} seg). Por favor no cierres esta ventana.
+                    ⏱️ Esperando emisión ({secondsElapsed} seg)... No cierres la ventana.
                   </p>
                 </div>
               )}
 
+              {/* RESULTADO DE LA BÚSQUEDA */}
               {result && !isSearching && (
                 <div className="mt-6 animate-in fade-in duration-200">
                   {result.success && result.code ? (
                     result.isLink ? (
-                      <div className="p-6 rounded-xl bg-[#0E131E] border border-slate-800 shadow-md">
+                      /* RESULTADO: ENLACE OFICIAL */
+                      <div className="p-5 sm:p-6 rounded-xl bg-[#0E131E] border border-slate-800 shadow-md">
                         <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium uppercase tracking-wider mb-2">
                           <CheckCircle2 className="w-4 h-4" />
                           <span>¡Enlace Encontrado con Éxito!</span>
@@ -378,15 +714,15 @@ export default function SoporteCodigosPage() {
                           {getActionTitle(result.actionType)}
                         </h3>
                         <p className="text-xs text-slate-400 mb-4">
-                          Presiona el botón a continuación para abrir Netflix y confirmar tu dispositivo de inmediato:
+                          Haz clic a continuación para abrir Netflix y confirmar tu dispositivo de inmediato:
                         </p>
 
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
                           <a
                             href={result.code}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
+                            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
                           >
                             <ExternalLink className="w-4 h-4" />
                             <span>Abrir Enlace Oficial de Netflix ↗</span>
@@ -395,12 +731,12 @@ export default function SoporteCodigosPage() {
                           <button
                             type="button"
                             onClick={() => handleCopyCode(result.code!)}
-                            className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition border border-slate-700"
+                            className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition border border-slate-700"
                           >
                             {copied ? (
                               <>
                                 <Check className="w-4 h-4 text-emerald-400" />
-                                <span className="text-emerald-400">¡Enlace Copiado al Portapapeles!</span>
+                                <span className="text-emerald-400">¡Enlace Copiado!</span>
                               </>
                             ) : (
                               <>
@@ -411,11 +747,12 @@ export default function SoporteCodigosPage() {
                           </button>
                         </div>
 
-                        <div className="mt-3 p-3 rounded-lg bg-[#080B10] border border-slate-800 text-[11px] text-blue-300 font-mono break-all select-all">
+                        <div className="p-3 rounded-lg bg-[#080B10] border border-slate-800 text-[11px] text-blue-300 font-mono break-all select-all">
                           {result.code}
                         </div>
                       </div>
                     ) : (
+                      /* RESULTADO: CÓDIGO NUMÉRICO */
                       <div className="p-6 rounded-xl bg-[#0E131E] border border-slate-800 text-center shadow-md">
                         <div className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-medium uppercase tracking-wider mb-2">
                           <CheckCircle2 className="w-4 h-4" />
@@ -453,16 +790,17 @@ export default function SoporteCodigosPage() {
                         </div>
 
                         <p className="text-[11px] text-slate-500 mt-4">
-                          Válido por tiempo limitado (aprox. 15 minutos). Si expiró, vuelve a solicitarlo en la pantalla.
+                          Válido por aprox. 15 minutos. Si expiró, vuelve a solicitarlo en la pantalla.
                         </p>
                       </div>
                     )
                   ) : (
+                    /* RESULTADO: NO ENCONTRADO O TIMEOUT */
                     <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                       <div className="flex-1">
                         <div className="font-semibold text-amber-300 uppercase tracking-wider text-[11px] mb-1">
-                          Aviso de Búsqueda
+                          Aviso de Consulta
                         </div>
                         <p className="text-slate-300 leading-relaxed font-sans mb-3">
                           {result.message}
@@ -470,7 +808,7 @@ export default function SoporteCodigosPage() {
                         <button
                           type="button"
                           onClick={() => handleSearch()}
-                          className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 rounded-lg font-medium text-xs transition inline-flex items-center gap-1.5"
+                          className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 rounded-lg font-medium text-xs transition inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
                           <span>Volver a intentar</span>
@@ -487,7 +825,8 @@ export default function SoporteCodigosPage() {
         )}
       </main>
 
-      <footer className="border-t border-slate-800/80 bg-[#0E121B] py-6 px-4 text-center text-xs text-slate-400">
+      {/* FOOTER */}
+      <footer className="border-t border-slate-800/80 bg-[#0E121B] py-5 px-4 text-center text-xs text-slate-500">
         <p>© {new Date().getFullYear()} HogarPro Streaming. Plataforma de Asistencia Técnica.</p>
       </footer>
     </div>
