@@ -97,7 +97,8 @@ import {
   ImportBatchRecord,
   CatalogPlatform,
   SystemUser, 
-  StoredStreamingAccount 
+  StoredStreamingAccount,
+  getSessionToken
 } from "@/lib/account-manager";
 
 export interface StreamingAccount {
@@ -1752,7 +1753,14 @@ export default function OwnerDashboard() {
     setCopiedTestCode(false);
 
     try {
-      const res = await fetch(`/api/codes/check?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(actionToUse)}&t=${Date.now()}`);
+      const token = getSessionToken();
+      const res = await fetch(
+        `/api/codes/check?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(actionToUse)}&auth=${encodeURIComponent(token || "")}&t=${Date.now()}`,
+        {
+          headers: token ? { "Authorization": `Bearer ${token}` } : {},
+          credentials: "include"
+        }
+      );
       const data = await res.json();
       if (data && data.success && data.code) {
         setTestResult(data.code);

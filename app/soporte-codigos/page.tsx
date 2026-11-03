@@ -35,6 +35,7 @@ import {
   setCurrentUser, 
   getStoredAccounts, 
   checkAccountAuthorization,
+  getSessionToken,
   SystemUser, 
   StoredStreamingAccount,
   syncAccountsFromCloud,
@@ -242,18 +243,12 @@ export default function SoporteCodigosPage() {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) return;
 
-    // 1. REGLA ESTRICTA DE SEGURIDAD PARA REVENDEDORES:
-    // Solo pueden consultar códigos de las cuentas que tienen asignadas y que no estén vencidas
-    if (!isAdmin) {
-      const auth = checkAccountAuthorization(cleanEmail, currentUser);
-      if (!auth.authorized) {
-        setResult({
-          success: false,
-          message: auth.reason || `Acceso Restringido: La cuenta '${cleanEmail}' no está asignada a tu usuario. Como revendedor autorizado, únicamente tienes acceso a los códigos de las cuentas que tienes asignadas.`
-        });
-        setIsSearching(false);
-        return;
-      }
+    if (!currentUser) {
+      setResult({
+        success: false,
+        message: "Por favor inicia sesión con tu usuario de Revendedor o Administrador para consultar códigos."
+      });
+      return;
     }
 
     setIsSearching(true);
@@ -265,7 +260,21 @@ export default function SoporteCodigosPage() {
 
     const queryEndpoint = async () => {
       try {
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(selectedAction)}&t=${Date.now()}`);
+        const sessionToken = getSessionToken() || btoa(encodeURIComponent(JSON.stringify({
+          id: currentUser.id,
+          email: currentUser.email,
+          role: currentUser.role,
+          name: currentUser.name,
+          exp: Date.now() + 7 * 24 * 3600 * 1000
+        })));
+
+        const res = await fetch(
+          `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(selectedAction)}&auth=${encodeURIComponent(sessionToken)}&t=${Date.now()}`,
+          {
+            headers: sessionToken ? { "Authorization": `Bearer ${sessionToken}` } : {},
+            credentials: "include"
+          }
+        );
         const data = await res.json().catch(() => null);
 
         if (res.ok && data && data.success && data.code) {
@@ -282,15 +291,26 @@ export default function SoporteCodigosPage() {
           return true;
         }
 
-        // Si el backend deniega el acceso (no asignada, expirada o no autorizada)
-        if (res.status === 403 || res.status === 401 || res.status === 404 || (data && !data.success && data.error)) {
+        // Si el backend reporta sesión no válida
+        if (res.status === 401) {
           setResult({
             success: false,
-            message: data?.error || data?.message || "Acceso denegado: Esta cuenta no está asignada a tu usuario de revendedor."
+            message: data?.error || data?.message || "Sesión expirada o no autorizada. Por favor vuelve a iniciar sesión."
           });
           setIsSearching(false);
           if (pollingRef.current) clearInterval(pollingRef.current);
-          return true; // Detener polling de inmediato
+          return true;
+        }
+
+        // Si hay un error explícito del backend (límite de tasa, etc.)
+        if (res.status === 429 || (data && !data.success && data.error)) {
+          setResult({
+            success: false,
+            message: data?.error || data?.message || "Error al consultar el código. Intenta de nuevo."
+          });
+          setIsSearching(false);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          return true;
         }
       } catch (err) {
         // Silencioso
@@ -626,135 +646,90 @@ export default function SoporteCodigosPage() {
 
               {/* FORMULARIO DE BÚSQUEDA */}
               <form onSubmit={handleSearch} className="space-y-4">
-                {!isAdmin && assignedAccounts.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-amber-950/25 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold text-amber-300 text-sm">Sin cuentas asignadas</div>
-                      <p className="mt-1 text-slate-300 leading-relaxed text-xs">
-                        Como revendedor autorizado, únicamente puedes consultar los códigos de las cuentas que tienes asignadas en el sistema. Actualmente no tienes cuentas vinculadas. Solicita a tu administrador que te asigne cuentas de streaming para habilitar la extracción de códigos.
-                      </p>
+                <div>
+                  {assignedAccounts.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                          {isAdmin ? `Cuentas en Inventario (${assignedAccounts.length})` : `Tus Cuentas Disponibles (${assignedAccounts.length})`}
+                        </label>
+                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 font-medium">
+                          Selección Rápida
+                        </span>
+                      </div>
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setEmail(e.target.value);
+                            setResult(null);
+                          }
+                        }}
+                        defaultValue=""
+                        className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
+                      >
+                        <option value="" disabled>Seleccionar de la lista ({assignedAccounts.length})...</option>
+                        {assignedAccounts.map((acc) => (
+                          <option key={acc.id} value={acc.email}>
+                            {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  </div>
-                ) : !isAdmin ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                        Tus Cuentas Asignadas ({assignedAccounts.length})
-                      </label>
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
-                        Acceso Exclusivo
-                      </span>
-                    </div>
+                  )}
 
-                    <select
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Correo de la Cuenta Netflix:
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      Búsqueda directa en Gmail
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      required
+                      placeholder="ej: micuenta@gmail.com"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
                         setResult(null);
                       }}
-                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
-                    >
-                      <option value="" disabled>Selecciona una de tus cuentas autorizadas...</option>
-                      {assignedAccounts.map((acc) => (
-                        <option key={acc.id} value={acc.email}>
-                          {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="mt-3">
-                      <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                        O confirma / escribe el correo asignado:
-                      </label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-                          <Mail className="w-4 h-4" />
-                        </div>
-                        <input
-                          type="email"
-                          inputMode="email"
-                          autoComplete="email"
-                          required
-                          placeholder="ej: micuenta@gmail.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
-                        />
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Solo puedes solicitar códigos de cuentas asignadas a tu usuario.
-                      </p>
-                    </div>
+                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
+                    />
                   </div>
-                ) : (
-                  <div>
-                    {assignedAccounts.length > 0 && (
-                      <div className="mb-3">
-                        <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                          Cuentas Disponibles en Inventario:
-                        </label>
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              setEmail(e.target.value);
-                              setResult(null);
-                            }
-                          }}
-                          defaultValue=""
-                          className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
-                        >
-                          <option value="" disabled>Seleccionar del inventario ({assignedAccounts.length})...</option>
-                          {assignedAccounts.map((acc) => (
-                            <option key={acc.id} value={acc.email}>
-                              {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
 
-                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                      Correo de la Cuenta Netflix:
-                    </label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        required
-                        placeholder="ej: micuenta@gmail.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
-                      />
-                    </div>
-
-                    {/* Chips para autocompletar dominio rápido */}
-                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                      <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
-                      {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
-                        <button
-                          key={dom}
-                          type="button"
-                          onClick={() => {
-                            const atIndex = email.indexOf("@");
-                            const prefix = atIndex !== -1 ? email.substring(0, atIndex) : email;
-                            if (prefix.trim()) {
-                              setEmail(`${prefix.trim()}${dom}`);
-                            }
-                          }}
-                          className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
-                        >
-                          {dom}
-                        </button>
-                      ))}
-                    </div>
+                  {/* Chips para autocompletar dominio rápido */}
+                  <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                    <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
+                    {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
+                      <button
+                        key={dom}
+                        type="button"
+                        onClick={() => {
+                          const atIndex = email.indexOf("@");
+                          const prefix = atIndex !== -1 ? email.substring(0, atIndex) : email;
+                          if (prefix.trim()) {
+                            setEmail(`${prefix.trim()}${dom}`);
+                          }
+                        }}
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
+                      >
+                        {dom}
+                      </button>
+                    ))}
                   </div>
-                )}
+
+                  <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                    El sistema buscará en Gmail el correo más reciente de Netflix correspondiente a esta cuenta y extraerá el código o enlace solicitado en tiempo real.
+                  </p>
+                </div>
 
                 <div className="pt-1">
                   {isSearching ? (

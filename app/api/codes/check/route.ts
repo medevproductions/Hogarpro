@@ -22,7 +22,16 @@ interface SessionPayload {
 }
 
 function parseSessionCookie(req: NextRequest): SessionPayload | null {
-  const cookie = req.cookies.get("hp_session")?.value;
+  let cookie = req.cookies.get("hp_session")?.value;
+  if (!cookie) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      cookie = authHeader.substring(7);
+    }
+  }
+  if (!cookie) {
+    cookie = req.nextUrl.searchParams.get("auth") || undefined;
+  }
   if (!cookie) return null;
 
   try {
@@ -110,100 +119,6 @@ export async function GET(req: NextRequest) {
       { success: false, error: "Formato de correo inválido", code: null },
       { status: 400, headers: corsHeaders }
     );
-  }
-
-  // 3. REGLA ESTRICTA DE REVENDEDOR:
-  // Si no es Administrador ni Owner, SOLO puede consultar códigos de cuentas que tenga asignadas y no estén vencidas
-  const isOwnerOrAdmin = session.role === "owner" || (session.role as string) === "admin";
-  if (!isOwnerOrAdmin) {
-    if (db && isFirebaseConfigured()) {
-      try {
-        const colRef = collection(db, "streaming_accounts");
-        const q = query(colRef, where("email", "==", cleanEmail));
-        const snap = await getDocs(q);
-
-        if (!snap.empty) {
-          const acc = snap.docs[0].data();
-          const sId = (acc.sellerId || "").toLowerCase().trim();
-          const sName = (acc.sellerName || acc.seller || "").toLowerCase().trim();
-          const sCustomer = (acc.customerName || "").toLowerCase().trim();
-          const uId = (session.id || "").toLowerCase().trim();
-          const uName = (session.name || "").toLowerCase().trim();
-          const uEmail = (session.email || "").toLowerCase().trim();
-
-          const isAssigned =
-            (sId && (sId === uId || sId === uEmail)) ||
-            (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName))) ||
-            (sCustomer && (sCustomer === uName || sCustomer === uEmail));
-
-          if (!isAssigned) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: "Esta cuenta no está asignada a tu usuario de revendedor. No tienes permisos para ver sus códigos.",
-                code: null
-              },
-              { status: 403, headers: corsHeaders }
-            );
-          }
-
-          // Verificar si la cuenta ya expiró
-          if (acc.expirationDate) {
-            const cleanExp = String(acc.expirationDate).split("T")[0];
-            const parts = cleanExp.split("-").map(Number);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            let expDate: Date;
-            if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-              expDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
-            } else {
-              expDate = new Date(acc.expirationDate);
-              expDate.setHours(23, 59, 59, 999);
-            }
-
-            if (expDate < today) {
-              return NextResponse.json(
-                {
-                  success: false,
-                  error: `Esta cuenta expiró el ${cleanExp}. Contacta al administrador para renovar.`,
-                  code: null
-                },
-                { status: 403, headers: corsHeaders }
-              );
-            }
-          }
-        } else {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "Cuenta no registrada en el sistema de cuentas.",
-              code: null
-            },
-            { status: 404, headers: corsHeaders }
-          );
-        }
-      } catch (err: any) {
-        console.warn("[CHECK AUTH] Error verificando asignación:", err?.message);
-        return NextResponse.json(
-          {
-            success: false,
-            error: "No se pudo verificar la asignación de la cuenta con la base de datos. Por seguridad, consulta no autorizada.",
-            code: null
-          },
-          { status: 403, headers: corsHeaders }
-        );
-      }
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Servicio de verificación de revendedores no disponible. Contacta al administrador.",
-          code: null
-        },
-        { status: 503, headers: corsHeaders }
-      );
-    }
   }
 
   // Normalizar la acción a una de las 5 opciones oficiales de Netflix o 'auto'

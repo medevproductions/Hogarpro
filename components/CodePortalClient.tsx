@@ -17,7 +17,7 @@ import {
   ShieldAlert,
   Lock
 } from "lucide-react";
-import { getCurrentUser, checkAccountAuthorization, SystemUser } from "@/lib/account-manager";
+import { getCurrentUser, checkAccountAuthorization, getSessionToken, SystemUser } from "@/lib/account-manager";
 import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 
 interface CodePagePortalProps {
@@ -91,7 +91,14 @@ export default function CodePortalClient({
       if (inFlight) return;
       inFlight = true;
       try {
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`);
+        const token = getSessionToken();
+        const res = await fetch(
+          `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&auth=${encodeURIComponent(token || "")}&t=${Date.now()}`,
+          {
+            headers: token ? { "Authorization": `Bearer ${token}` } : {},
+            credentials: "include"
+          }
+        );
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.code && isMounted) {
@@ -166,7 +173,14 @@ export default function CodePortalClient({
     setCopied(false);
 
     try {
-      fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&t=${Date.now()}`)
+      const token = getSessionToken();
+      fetch(
+        `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=${encodeURIComponent(platform)}&actionType=${encodeURIComponent(actionType)}&auth=${encodeURIComponent(token || "")}&t=${Date.now()}`,
+        {
+          headers: token ? { "Authorization": `Bearer ${token}` } : {},
+          credentials: "include"
+        }
+      )
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {

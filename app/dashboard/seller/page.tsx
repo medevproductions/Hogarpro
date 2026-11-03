@@ -49,6 +49,7 @@ import {
   getStoredAccounts, 
   getSystemUsers,
   checkAccountAuthorization, 
+  getSessionToken,
   syncAccountsFromCloud,
   syncUsersFromCloud,
   StoredStreamingAccount,
@@ -536,7 +537,22 @@ export default function SellerLiveCodesPage() {
       try {
         const cleanEmail = selectedAccount.trim().toLowerCase();
         if (!cleanEmail) return;
-        const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&actionType=${encodeURIComponent(activeAction || "login_code")}&service=netflix&t=${Date.now()}`);
+
+        const sessionToken = getSessionToken() || (currentUser ? btoa(encodeURIComponent(JSON.stringify({
+          id: currentUser.id,
+          email: currentUser.email,
+          role: currentUser.role,
+          name: currentUser.name,
+          exp: Date.now() + 7 * 24 * 3600 * 1000
+        }))) : "");
+
+        const res = await fetch(
+          `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&actionType=${encodeURIComponent(activeAction || "login_code")}&service=netflix&auth=${encodeURIComponent(sessionToken)}&t=${Date.now()}`,
+          {
+            headers: sessionToken ? { "Authorization": `Bearer ${sessionToken}` } : {},
+            credentials: "include"
+          }
+        );
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.code) {
@@ -563,12 +579,13 @@ export default function SellerLiveCodesPage() {
     setAuthError(null);
     const cleanEmail = selectedAccount.trim().toLowerCase();
 
-    // 1. REGLA ESTRICTA: Solo puede consultar si la cuenta está asignada al vendedor y no ha expirado
-    const authCheck = checkAccountAuthorization(cleanEmail, currentUser);
-    if (!authCheck.authorized) {
-      setAuthError(authCheck.reason || "No tienes autorización para consultar códigos de esta cuenta.");
-      setIsWaiting(false);
-      setReceivedCode(null);
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setAuthError("Por favor ingresa o selecciona un correo válido de Netflix.");
+      return;
+    }
+
+    if (!currentUser) {
+      setAuthError("Debes iniciar sesión con tu usuario de Revendedor para solicitar códigos.");
       return;
     }
 
@@ -579,7 +596,21 @@ export default function SellerLiveCodesPage() {
 
     // Consulta inicial inmediata a través del proxy seguro
     try {
-      fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(action)}&t=${Date.now()}`)
+      const sessionToken = getSessionToken() || (currentUser ? btoa(encodeURIComponent(JSON.stringify({
+        id: currentUser.id,
+        email: currentUser.email,
+        role: currentUser.role,
+        name: currentUser.name,
+        exp: Date.now() + 7 * 24 * 3600 * 1000
+      }))) : "");
+
+      fetch(
+        `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(action)}&auth=${encodeURIComponent(sessionToken)}&t=${Date.now()}`,
+        {
+          headers: sessionToken ? { "Authorization": `Bearer ${sessionToken}` } : {},
+          credentials: "include"
+        }
+      )
         .then(res => res.json())
         .then(data => {
           if (data && data.success && data.code) {
@@ -1535,69 +1566,83 @@ export default function SellerLiveCodesPage() {
                   <div className="w-4 h-4 border-2 border-slate-600 border-t-rose-500 rounded-full animate-spin" />
                   <span>Cargando cuentas asignadas...</span>
                 </div>
-              ) : assignedAccounts.length === 0 ? (
-                <div className="p-6 sm:p-8 rounded-xl bg-[#0E131E] border border-dashed border-slate-800 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-                    <AlertCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-semibold text-slate-100">
-                      {isOwnerOrAdmin && simulatedSellerObj
-                        ? `El revendedor "${simulatedSellerObj.name}" no tiene cuentas asignadas`
-                        : "No tienes cuentas asignadas actualmente"}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                      {isOwnerOrAdmin
-                        ? "Puedes asignarle cuentas libres desde el inventario general o cambiar a la vista global."
-                        : "Solicita a tu proveedor o administrador que te asigne tus cuentas para poder solicitar códigos."}
-                    </p>
-                  </div>
-
-                  {isOwnerOrAdmin ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSwitchSeller("all")}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-1.5 transition active:scale-95"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Ver Todas ({getStoredAccounts().length})</span>
-                      </button>
-                      <Link
-                        href="/dashboard/owner?tab=vendedores"
-                        className="px-4 py-2 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Asignar Cuentas</span>
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Selector Desplegable */}
+                  {assignedAccounts.length > 0 ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                          Elegir de Cuentas Asignadas:
+                        </label>
+                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 font-medium">
+                          {assignedAccounts.length} en inventario
+                        </span>
+                      </div>
+                      <select
+                        value={selectedAccount}
+                        onChange={(e) => {
+                          setSelectedAccount(e.target.value);
+                          setAuthError(null);
+                          setReceivedCode(null);
+                          setIsWaiting(false);
+                        }}
+                        className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none transition cursor-pointer shadow-sm"
+                      >
+                        {assignedAccounts.map((a) => (
+                          <option key={a.id} value={a.email}>
+                            {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+
+                  {/* Campo de Correo Directo (Búsqueda en Gmail) */}
                   <div>
-                    <select
-                      value={selectedAccount}
-                      onChange={(e) => {
-                        setSelectedAccount(e.target.value);
-                        setAuthError(null);
-                        setReceivedCode(null);
-                        setIsWaiting(false);
-                      }}
-                      className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none transition cursor-pointer shadow-sm"
-                    >
-                      {assignedAccounts.map((a) => (
-                        <option key={a.id} value={a.email}>
-                          {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
-                        </option>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                      Correo de la Cuenta Netflix:
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        placeholder="ej: micuenta@gmail.com"
+                        value={selectedAccount}
+                        onChange={(e) => {
+                          setSelectedAccount(e.target.value);
+                          setAuthError(null);
+                          setReceivedCode(null);
+                          setIsWaiting(false);
+                        }}
+                        className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 font-mono placeholder-slate-500 focus:outline-none transition shadow-sm"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
+                      {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
+                        <button
+                          key={dom}
+                          type="button"
+                          onClick={() => {
+                            const atIndex = selectedAccount.indexOf("@");
+                            const prefix = atIndex !== -1 ? selectedAccount.substring(0, atIndex) : selectedAccount;
+                            if (prefix.trim()) {
+                              setSelectedAccount(`${prefix.trim()}${dom}`);
+                            }
+                          }}
+                          className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
+                        >
+                          {dom}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
-                  {/* Fila de Resumen de Cuenta Activa con Botón de Copiado */}
+                  {/* Fila de Resumen si la cuenta está en inventario */}
                   {(() => {
-                    const activeAcc = rawSellerAccounts.find(a => (a.email || "").toLowerCase().trim() === (selectedAccount || "").toLowerCase().trim()) || rawSellerAccounts[0];
+                    const activeAcc = rawSellerAccounts.find(a => (a.email || "").toLowerCase().trim() === (selectedAccount || "").toLowerCase().trim());
                     if (!activeAcc) return null;
                     const isExp = activeAcc.expirationDate ? new Date(activeAcc.expirationDate) < new Date() : false;
 
@@ -1618,15 +1663,15 @@ export default function SellerLiveCodesPage() {
                             {activeAcc.expirationDate && (
                               <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
                                 isExp 
-                                  ? "bg-rose-950/80 text-rose-300 border border-rose-800/50" 
-                                  : "bg-emerald-950/60 text-emerald-300 border border-emerald-800/50"
+                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" 
+                                  : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
                               }`}>
-                                {isExp ? "Vencida: " : "Vence: "}{activeAcc.expirationDate}
+                                {isExp ? "Expirada" : `Vence: ${activeAcc.expirationDate.split("T")[0]}`}
                               </span>
                             )}
                           </div>
 
-                          <div className="font-mono text-xs sm:text-sm font-semibold text-slate-100 break-all flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
                             <span>{activeAcc.email}</span>
                             <button
                               type="button"
@@ -1666,13 +1711,14 @@ export default function SellerLiveCodesPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {ACTIONS.map((action) => {
-                  const isDisabled = isWaiting || assignedAccounts.length === 0;
+                  const hasValidEmail = Boolean(selectedAccount && selectedAccount.trim().includes("@"));
+                  const isDisabled = isWaiting || !hasValidEmail;
                   return (
                     <button
                       key={action.id}
                       onClick={() => handleTriggerAction(action.id)}
                       disabled={isDisabled}
-                      title={assignedAccounts.length === 0 ? "Asigna una cuenta primero" : ""}
+                      title={!hasValidEmail ? "Ingresa o selecciona un correo de Netflix primero" : ""}
                       className="group relative p-3.5 rounded-2xl bg-[#121722] hover:bg-[#182030] border border-slate-800/80 hover:border-slate-700 text-left shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-40 disabled:transform-none flex flex-col justify-between min-h-[135px]"
                     >
                       <div className="flex items-center justify-between mb-2">

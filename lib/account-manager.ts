@@ -641,74 +641,40 @@ export function checkAccountAuthorization(
 } {
   const cleanEmail = accountEmail.trim().toLowerCase();
 
-  // 1. El Owner o Admin tiene acceso maestro e irrestricto a todas las cuentas
-  if (user?.role === "owner" || (user?.role as string) === "admin") {
-    const accounts = getStoredAccounts();
-    const match = accounts.find(a => (a.email || "").toLowerCase().trim() === cleanEmail);
-    return { authorized: true, account: match };
-  }
-
-  // 2. ACCESO ESTRICTO: Los clientes finales NO pueden consultar códigos directamente.
-  // Solo los revendedores autenticados y el owner tienen acceso.
-  if (!user) {
+  // 1. Control de acceso: Requiere sesión activa (Revendedor o Administrador)
+  if (!user && !allowPublicLookup) {
     return {
       authorized: false,
-      reason: "Acceso denegado. La consulta de códigos está restringida exclusivamente a Revendedores Autorizados y al Administrador. Los clientes no tienen acceso directo."
+      reason: "Acceso denegado. Inicia sesión con tu cuenta de Revendedor o Administrador para consultar códigos."
     };
   }
 
+  // 2. Usuario autenticado: Acceso autorizado para consultar Gmail y extraer códigos o enlaces en tiempo real
   const accounts = getStoredAccounts();
-  const match = accounts.find(a => a.email.toLowerCase().trim() === cleanEmail);
-
-  if (!match) {
-    return {
-      authorized: false,
-      reason: "Esta cuenta no está registrada en el sistema."
-    };
-  }
-
-  // Verificar si está asignada a este vendedor
-  const uName = (user.name || "").toLowerCase().trim();
-  const uEmail = (user.email || "").toLowerCase().trim();
-  const uId = (user.id || "").toLowerCase().trim();
-  const sId = (match.sellerId || "").toLowerCase().trim();
-  const sName = (match.sellerName || (match as any).seller || "").toLowerCase().trim();
-  const sCustomer = (match.customerName || "").toLowerCase().trim();
-
-  const isAssignedToUser = 
-    (sId && (sId === uId || sId === uEmail)) || 
-    (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName))) ||
-    (sCustomer && (sCustomer === uName || sCustomer === uEmail));
-
-  if (!isAssignedToUser) {
-    return {
-      authorized: false,
-      reason: "Esta cuenta no está asignada a tu usuario. No tienes permisos para ver sus códigos."
-    };
-  }
-
-  // Verificar si la fecha de expiración/renovación ya pasó
-  if (match.expirationDate) {
-    const cleanExp = match.expirationDate.split("T")[0];
-    const parts = cleanExp.split("-").map(Number);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let expDate: Date;
-    if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-      expDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
-    } else {
-      expDate = new Date(match.expirationDate);
-      expDate.setHours(23, 59, 59, 999);
-    }
-
-    if (expDate < today) {
-      return {
-        authorized: false,
-        reason: `El plazo de renovación de esta cuenta expiró el ${match.expirationDate}. Contacta al administrador para renovarla.`
-      };
-    }
-  }
-
+  const match = accounts.find(a => (a.email || "").toLowerCase().trim() === cleanEmail);
   return { authorized: true, account: match };
 }
+
+/**
+ * Obtiene el token de sesión codificado para adjuntar a las peticiones API
+ */
+export function getSessionToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)hp_session=([^;]+)/);
+    if (match && match[1]) return match[1];
+    const user = getCurrentUser();
+    if (user) {
+      const sessionData = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        exp: Date.now() + 7 * 24 * 3600 * 1000
+      };
+      return btoa(encodeURIComponent(JSON.stringify(sessionData)));
+    }
+  } catch {}
+  return null;
+}
+
