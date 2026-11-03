@@ -123,7 +123,7 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
           <div className="p-3 rounded-lg bg-[#141A25] border border-slate-800">
             <div className="flex items-center gap-1.5 font-semibold text-emerald-400 mb-1">
               <Tv className="w-3.5 h-3.5" />
-              <span>Código TV (4 dígitos)</span>
+              <span>Código de Inicio (4 dígitos)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               Para iniciar sesión en Smart TV o TV Box. Formato numérico de 4 dígitos.
@@ -133,7 +133,7 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
           <div className="p-3 rounded-lg bg-[#141A25] border border-slate-800">
             <div className="flex items-center gap-1.5 font-semibold text-sky-400 mb-1">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Verificación OTP (6 dígitos)</span>
+              <span>Código de Confirmación (6 dígitos)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               Código numérico de 6 dígitos para validar acceso. Válido por 15 minutos.

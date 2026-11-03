@@ -79,7 +79,7 @@ interface ActionConfig {
 const ACTIONS: ActionConfig[] = [
   {
     id: "login_code",
-    title: "Código TV",
+    title: "Código de Inicio",
     subtitle: "4 dígitos en pantalla",
     icon: <Zap className="w-5 h-5 text-emerald-400" />,
     iconBg: "bg-emerald-500/10 border-emerald-500/20",
@@ -88,7 +88,7 @@ const ACTIONS: ActionConfig[] = [
   },
   {
     id: "verification_code",
-    title: "Código OTP",
+    title: "Código de Confirmación",
     subtitle: "6 dígitos de verificación",
     icon: <Clock className="w-5 h-5 text-sky-400" />,
     iconBg: "bg-sky-500/10 border-sky-500/20",

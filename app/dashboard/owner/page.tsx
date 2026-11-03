@@ -4908,8 +4908,8 @@ export default function OwnerDashboard() {
                     onChange={(e) => setTestAction(e.target.value)}
                     className="w-full bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E50914]"
                   >
-                    <option value="login_code">Código TV (4 dígitos)</option>
-                    <option value="verification_code">Código OTP (6 dígitos)</option>
+                    <option value="login_code">Código de Inicio (4 dígitos)</option>
+                    <option value="verification_code">Código de Confirmación (6 dígitos)</option>
                     <option value="actualizar_hogar">Actualizar Hogar (enlace)</option>
                     <option value="acceso_temporal">Acceso de Viaje (enlace)</option>
                     <option value="reset_password">Cambiar Clave (enlace)</option>
@@ -4976,8 +4976,8 @@ export default function OwnerDashboard() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                 {[
-                  { id: "login_code", label: "Código TV", desc: "4 dígitos en pantalla", icon: Zap },
-                  { id: "verification_code", label: "Código OTP", desc: "6 dígitos de verificación", icon: Clock },
+                  { id: "login_code", label: "Código de Inicio", desc: "4 dígitos en pantalla", icon: Zap },
+                  { id: "verification_code", label: "Código de Confirmación", desc: "6 dígitos de verificación", icon: Clock },
                   { id: "actualizar_hogar", label: "Actualizar Hogar", desc: "Confirmar red doméstica", icon: Home },
                   { id: "acceso_temporal", label: "Acceso de Viaje", desc: "TV fuera del hogar", icon: ExternalLink },
                   { id: "reset_password", label: "Cambiar Clave", desc: "Restablecer contraseña", icon: Lock },

@@ -56,14 +56,14 @@ const ACTION_OPTIONS: ActionOption[] = [
   },
   {
     id: "login_code",
-    label: "Código TV",
+    label: "Código de Inicio",
     badge: "4 dígitos",
     icon: <Tv className="w-4 h-4 text-emerald-400" />,
     iconColor: "text-emerald-400"
   },
   {
     id: "verification_code",
-    label: "Código OTP",
+    label: "Código de Confirmación",
     badge: "6 dígitos",
     icon: <ShieldCheck className="w-4 h-4 text-indigo-400" />,
     iconColor: "text-indigo-400"
@@ -188,9 +188,9 @@ export default function SoporteCodigosPage() {
       case "reset_password":
         return "Restablecimiento de Contraseña";
       case "verification_code":
-        return "Código de Verificación (OTP)";
+        return "Código de Confirmación (6 Dígitos)";
       case "login_code":
-        return "Código de Inicio de Sesión (TV)";
+        return "Código de Inicio (4 Dígitos)";
       default:
         return "Código o Enlace Encontrado";
     }
