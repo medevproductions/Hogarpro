@@ -125,19 +125,13 @@ export default function SoporteCodigosPage() {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    let user = getCurrentUser();
-    if (user && user.name === "Administrador Maestro") {
-      user = { ...user, name: "Administrador" };
-      setCurrentUser(user);
-    }
-    setCurrentUserState(user);
+    // Al entrar a la terminal de soporte códigos, NO auto-autenticamos con sesiones previas.
+    // Se requiere que el usuario ingrese sus credenciales explícitamente (Revendedor o Administrador).
+    setCurrentUserState(null);
     setLoadingInitialSession(false);
 
-    // Sincronizar cuentas en segundo plano si hay sesión
-    if (user) {
-      syncAccountsFromCloud(true).catch(console.warn);
-      syncUsersFromCloud(true).catch(console.warn);
-    }
+    syncAccountsFromCloud(true).catch(console.warn);
+    syncUsersFromCloud(true).catch(console.warn);
   }, []);
 
   useEffect(() => {
@@ -192,12 +186,20 @@ export default function SoporteCodigosPage() {
     setLoginLoading(true);
 
     try {
-      let targetEmail = loginIdentifier.trim().toLowerCase();
+      const cleanId = loginIdentifier.trim();
+      const cleanPass = loginPassword.trim();
+      if (!cleanId || !cleanPass) {
+        setLoginError("Por favor ingresa tus credenciales completas.");
+        setLoginLoading(false);
+        return;
+      }
+
+      let targetEmail = cleanId.toLowerCase();
       if (loginRole === "seller" && !targetEmail.includes("@")) {
         targetEmail = `${targetEmail}@hogarpro.com`;
       }
 
-      const res = await authenticateWithFirebase(targetEmail, loginPassword);
+      const res = await authenticateWithFirebase(targetEmail, cleanPass);
       if (res.success && res.user) {
         if (loginRole === "admin") {
           if (res.user.role === "owner" || (res.user.role as string) === "admin") {

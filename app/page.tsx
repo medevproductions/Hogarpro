@@ -49,24 +49,17 @@ export default function HomeOrSellerCatalogPage() {
   const [loggingIn, setLoggingIn] = useState(false);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    setCurrentUserState(user);
-    if (user) {
-      if (user.role === "owner" || (user.role as string) === "admin") {
-        router.push("/dashboard/owner");
-      } else {
-        router.push("/dashboard/seller");
-      }
-      return;
-    }
-
+    // Al entrar a la página de login principal, NO auto-autenticamos ni auto-redireccionamos.
+    // El usuario debe ingresar sus credenciales manualmente.
     setCatalogPlatforms(getCatalogPlatforms());
     setLoadingSession(false);
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("error") === "restricted") {
-        setLoginError("Acceso protegido: La consulta de códigos está restringida exclusivamente a Revendedores Autorizados y Administradores. Inicia sesión para continuar.");
+        setLoginError("Acceso protegido: Ingresa tus credenciales autorizadas para consultar códigos.");
+      } else if (params.get("error") === "login_required") {
+        setLoginError("Inicia sesión con tu cuenta para acceder al portal.");
       }
     }
 
@@ -83,7 +76,7 @@ export default function HomeOrSellerCatalogPage() {
       window.removeEventListener("streamhub_catalog_updated", handleCatalogUpdate);
       window.removeEventListener("storage", handleCatalogUpdate);
     };
-  }, [router]);
+  }, []);
 
   const handleSellerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +85,14 @@ export default function HomeOrSellerCatalogPage() {
 
     try {
       const cleanInput = loginEmail.trim().toLowerCase();
+      const cleanPass = loginPassword.trim();
+      if (!cleanInput || !cleanPass) {
+        setLoginError("Por favor ingresa tu correo y contraseña.");
+        setLoggingIn(false);
+        return;
+      }
       const targetEmail = cleanInput.includes("@") ? cleanInput : `${cleanInput}@hogarpro.com`;
-      const result = await authenticateWithFirebase(targetEmail, loginPassword);
+      const result = await authenticateWithFirebase(targetEmail, cleanPass);
       if (result.success && result.user) {
         if (result.user.role === "owner" || (result.user.role as string) === "admin") {
           router.push("/dashboard/owner");
@@ -143,9 +142,8 @@ export default function HomeOrSellerCatalogPage() {
     );
   }
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-[#0B0E14] flex flex-col justify-between p-4 sm:p-8 relative selection:bg-rose-500/30 selection:text-rose-200">
+  return (
+    <div className="min-h-screen bg-[#0B0E14] flex flex-col justify-between p-4 sm:p-8 relative selection:bg-rose-500/30 selection:text-rose-200">
         {/* Subtle, eye-friendly ambient lighting (Microsoft Fluent / Samsung One UI style) */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-blue-900/10 via-transparent to-transparent blur-3xl opacity-60" />
@@ -379,14 +377,4 @@ export default function HomeOrSellerCatalogPage() {
         </footer>
       </div>
     );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0B0E14] text-slate-100">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-slate-700 border-t-rose-500 rounded-full animate-spin" />
-        <p className="text-xs text-slate-400">Ingresando al panel de control...</p>
-      </div>
-    </div>
-  );
 }

@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDemoRole, setSelectedDemoRole] = useState<"owner" | "seller">("owner");
+  const [loginRole, setLoginRole] = useState<"seller" | "admin">("seller");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +20,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const targetEmail = email.trim() || (selectedDemoRole === "owner" ? "admin@hogarpro.com" : "carlos@ventas.com");
-      const targetPass = password.trim() || (selectedDemoRole === "owner" ? "admin2026" : "Ventas2026*");
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPass = password.trim();
 
-      const result = await authenticateWithFirebase(targetEmail, targetPass);
+      if (!cleanEmail || !cleanPass) {
+        setError("Por favor ingresa tus credenciales.");
+        setLoading(false);
+        return;
+      }
+
+      const targetEmail = cleanEmail.includes("@") ? cleanEmail : `${cleanEmail}@hogarpro.com`;
+
+      const result = await authenticateWithFirebase(targetEmail, cleanPass);
       if (result.success && result.user) {
         if (result.user.role === "owner" || (result.user.role as string) === "admin") {
           router.push("/dashboard/owner");
@@ -31,7 +39,7 @@ export default function LoginPage() {
           router.push("/dashboard/seller");
         }
       } else {
-        setError(result.error || "Credenciales incorrectas.");
+        setError(result.error || "Credenciales incorrectas. Verifica tus datos.");
         setLoading(false);
       }
     } catch (err: any) {
@@ -76,34 +84,32 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => {
-              setSelectedDemoRole("owner");
-              setEmail("admin@hogarpro.com");
-              setPassword("admin2026");
+              setLoginRole("seller");
+              setError(null);
             }}
             className={`py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              selectedDemoRole === "owner"
+              loginRole === "seller"
                 ? "bg-[#1C2433] text-slate-100 shadow-sm border border-slate-700/60"
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            <Shield className="w-3.5 h-3.5 text-blue-400" />
-            <span>Administrador</span>
+            <User className="w-3.5 h-3.5 text-blue-400" />
+            <span>Revendedor</span>
           </button>
           <button
             type="button"
             onClick={() => {
-              setSelectedDemoRole("seller");
-              setEmail("carlos@ventas.com");
-              setPassword("Ventas2026*");
+              setLoginRole("admin");
+              setError(null);
             }}
             className={`py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-              selectedDemoRole === "seller"
+              loginRole === "admin"
                 ? "bg-[#1C2433] text-slate-100 shadow-sm border border-slate-700/60"
                 : "text-slate-400 hover:text-slate-200"
             }`}
           >
-            <User className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Revendedor</span>
+            <Shield className="w-3.5 h-3.5 text-rose-400" />
+            <span>Administrador</span>
           </button>
         </div>
 
@@ -118,15 +124,15 @@ export default function LoginPage() {
             )}
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Correo Electrónico
+                {loginRole === "admin" ? "Correo de Administrador" : "Usuario o Correo"}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                 <input
-                  type="email"
+                  type={loginRole === "admin" ? "email" : "text"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="usuario@ejemplo.com"
+                  placeholder={loginRole === "admin" ? "admin@hogarpro.com" : "usuario o usuario@hogarpro.com"}
                   required
                   className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition font-sans"
                 />

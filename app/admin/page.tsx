@@ -14,20 +14,22 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const user = getCurrentUser();
-    if (user && (user.role === "owner" || (user.role as string) === "admin")) {
-      router.push("/dashboard/owner");
-    }
-  }, [router]);
-
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const result = await authenticateWithFirebase(email, password);
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPass = password.trim();
+
+      if (!cleanEmail || !cleanPass) {
+        setError("Por favor ingresa tu correo y contraseña.");
+        setLoading(false);
+        return;
+      }
+
+      const result = await authenticateWithFirebase(cleanEmail, cleanPass);
       if (result.success && result.user) {
         if (result.user.role === "owner" || (result.user.role as string) === "admin") {
           router.push("/dashboard/owner");
