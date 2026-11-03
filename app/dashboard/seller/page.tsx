@@ -632,7 +632,7 @@ export default function SellerLiveCodesPage() {
           <div>
             <div className="font-bold text-slate-100 text-xs tracking-tight leading-none">HOGAR<span className="text-rose-500">PRO</span></div>
             <div className="text-[9px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
-              {isOwnerOrAdmin ? "VISTA VENDEDOR (ADMIN)" : "PORTAL REVENDEDOR"}
+              {isOwnerOrAdmin ? "Vista Revendedor" : "Portal de Revendedor"}
             </div>
           </div>
         </Link>
@@ -643,10 +643,10 @@ export default function SellerLiveCodesPage() {
             <Link
               href="/dashboard/owner"
               className="px-2.5 py-1.5 text-[11px] text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 font-semibold transition shadow-sm"
-              title="Regresar a Panel Owner"
+              title="Regresar a Panel de Control"
             >
               <ArrowLeft className="w-3 h-3" />
-              <span>Owner</span>
+              <span>Admin</span>
             </Link>
           )}
 
@@ -683,8 +683,8 @@ export default function SellerLiveCodesPage() {
                     <div className="font-black text-white text-sm tracking-wider leading-none">
                       HOGAR<span className="text-[#E50914]">PRO</span>
                     </div>
-                    <div className="text-[9px] text-[#E50914] font-bold uppercase tracking-wider mt-0.5">
-                      {isOwnerOrAdmin ? "VISTA VENDEDOR (ADMIN)" : "PORTAL REVENDEDOR"}
+                    <div className="text-[9px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
+                      {isOwnerOrAdmin ? "Vista Revendedor" : "Portal de Revendedor"}
                     </div>
                   </div>
                 </div>
@@ -707,8 +707,8 @@ export default function SellerLiveCodesPage() {
                   <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
                     <span>{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</span>
                     {isOwnerOrAdmin && (
-                      <span className="text-[8px] px-1.5 py-0.2 rounded bg-[#E50914] text-white font-black uppercase">
-                        {simulatedSellerObj ? "Simulación" : "Owner"}
+                      <span className="text-[8px] px-1.5 py-0.2 rounded bg-blue-600 text-white font-semibold uppercase">
+                        {simulatedSellerObj ? "Simulación" : "Admin"}
                       </span>
                     )}
                   </div>
@@ -791,8 +791,8 @@ export default function SellerLiveCodesPage() {
                   className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-red-950/50 to-black border border-red-500/40 text-white font-bold hover:bg-red-900/30 transition shadow-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <ArrowLeft className="w-4 h-4 text-[#E50914]" />
-                    <span>Volver a Panel Owner</span>
+                    <ArrowLeft className="w-4 h-4 text-blue-400" />
+                    <span>Volver a Panel de Control</span>
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
                 </Link>
@@ -822,7 +822,7 @@ export default function SellerLiveCodesPage() {
             <div>
               <div className="font-bold text-slate-100 tracking-tight text-base">HOGAR<span className="text-rose-500">PRO</span></div>
               <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-                {isOwnerOrAdmin ? "VISTA VENDEDOR (ADMIN)" : "PORTAL REVENDEDOR"}
+                {isOwnerOrAdmin ? "Vista Revendedor" : "Portal de Revendedor"}
               </div>
             </div>
           </Link>
@@ -833,7 +833,7 @@ export default function SellerLiveCodesPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Sesión Owner Activa
+                  Sesión de Administrador
                 </span>
               </div>
               <Link
@@ -841,7 +841,7 @@ export default function SellerLiveCodesPage() {
                 className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs flex items-center justify-center gap-2 transition border border-slate-700"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Volver a Panel Owner</span>
+                <span>Volver a Panel de Control</span>
               </Link>
             </div>
           )}
@@ -906,7 +906,7 @@ export default function SellerLiveCodesPage() {
               className="w-full flex items-center justify-center gap-2 text-xs text-white bg-slate-800 hover:bg-slate-700 transition py-2 px-3 rounded-lg font-medium border border-slate-700"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Volver a Panel Owner</span>
+              <span>Volver a Panel de Control</span>
             </Link>
           )}
           <button
@@ -921,47 +921,47 @@ export default function SellerLiveCodesPage() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 min-w-0 md:ml-64 p-3.5 sm:p-6 md:p-8 max-w-full overflow-x-hidden">
-        {/* BANNER MODO VISTA OWNER CON SELECTOR DE REVENDEDORES */}
+        {/* BANNER MODO VISTA CON SELECTOR DE REVENDEDORES */}
         {isOwnerOrAdmin && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-black border-2 border-red-500/50 shadow-2xl">
+          <div className="mb-6 p-4 rounded-2xl bg-[#121722] border border-slate-800 shadow-md">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex items-start sm:items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-[#E50914] shrink-0 mt-1 sm:mt-0">
-                  <ArrowLeftRight className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 mt-1 sm:mt-0">
+                  <ArrowLeftRight className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black text-white uppercase tracking-wider">Modo Vista de Revendedor</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-semibold">
-                      Sesión Owner Activa
+                    <span className="text-xs font-semibold text-slate-100 uppercase tracking-wider">Modo Vista de Revendedor</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium">
+                      Sesión de Administrador
                     </span>
                     {simulatedSellerObj ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E50914]/20 text-[#ff8888] border border-red-500/30 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 font-medium">
                         Viendo como: {simulatedSellerObj.name}
                       </span>
                     ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 font-medium">
                         Vista Global (Todas las Cuentas)
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-300 mt-1">
-                    Puedes alternar entre cualquier revendedor para simular exactamente su portal y códigos disponibles.
+                  <p className="text-xs text-slate-400 mt-1">
+                    Puedes alternar entre cualquier revendedor para simular exactamente su portal y cuentas disponibles.
                   </p>
                 </div>
               </div>
 
               {/* CONTROLES DEL BANNER: SELECTOR DE REVENDEDOR Y VOLVER */}
               <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1.5 bg-[#181818] border border-zinc-700/80 rounded-xl px-2.5 py-1.5 shadow-sm">
-                  <Users className="w-3.5 h-3.5 text-[#E50914] shrink-0" />
-                  <span className="text-[11px] text-zinc-400 font-medium hidden sm:inline">Ver como:</span>
+                <div className="flex items-center gap-1.5 bg-[#0E121B] border border-slate-700/80 rounded-xl px-2.5 py-1.5 shadow-sm">
+                  <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Ver como:</span>
                   <select
                     value={simulatedSellerId}
                     onChange={(e) => handleSwitchSeller(e.target.value)}
-                    className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer pr-1"
+                    className="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1"
                   >
-                    <option value="all" className="bg-[#181818] text-white">
+                    <option value="all" className="bg-[#0E121B] text-slate-200">
                       🌟 Todas las Cuentas ({getStoredAccounts().length})
                     </option>
                     {availableSellers.filter(s => s.role !== "owner").map((s) => {
@@ -969,7 +969,7 @@ export default function SellerLiveCodesPage() {
                         a.sellerId === s.id || a.sellerId === s.email || a.sellerName === s.name || a.customerName === s.name
                       ).length;
                       return (
-                        <option key={s.id} value={s.id} className="bg-[#181818] text-white">
+                        <option key={s.id} value={s.id} className="bg-[#0E121B] text-slate-200">
                           👤 {s.name} ({count} {count === 1 ? "cuenta" : "cuentas"})
                         </option>
                       );
@@ -979,10 +979,10 @@ export default function SellerLiveCodesPage() {
 
                 <Link
                   href="/dashboard/owner"
-                  className="px-3.5 py-2 bg-[#E50914] hover:bg-[#b80710] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shrink-0 shadow-md shadow-red-950/60 active:scale-95"
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shrink-0 border border-slate-700 shadow-sm"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Volver a Owner</span>
+                  <span>Volver al Panel</span>
                 </Link>
               </div>
             </div>
@@ -1017,7 +1017,7 @@ export default function SellerLiveCodesPage() {
                 <span>{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</span>
                 {isOwnerOrAdmin && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-600 text-white font-semibold uppercase tracking-wider">
-                    {simulatedSellerObj ? "Simulación" : "Owner"}
+                    {simulatedSellerObj ? "Simulación" : "Admin"}
                   </span>
                 )}
               </div>
@@ -1548,7 +1548,7 @@ export default function SellerLiveCodesPage() {
                     </h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
                       {isOwnerOrAdmin
-                        ? "Puedes asignarle cuentas libres desde el inventario del Panel Owner o cambiar a la vista global."
+                        ? "Puedes asignarle cuentas libres desde el inventario general o cambiar a la vista global."
                         : "Solicita a tu proveedor o administrador que te asigne tus cuentas para poder solicitar códigos."}
                     </p>
                   </div>
@@ -1568,7 +1568,7 @@ export default function SellerLiveCodesPage() {
                         className="px-4 py-2 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5"
                       >
                         <Plus className="w-3.5 h-3.5 text-blue-400" />
-                        <span>Ir a Asignar en Panel Owner</span>
+                        <span>Asignar Cuentas</span>
                       </Link>
                     </div>
                   ) : null}

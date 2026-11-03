@@ -84,7 +84,7 @@ export async function authenticateWithFirebase(
         const masterAdmin: SystemUser = {
           id: "owner-1",
           email: cleanEmail,
-          name: "Administrador Maestro",
+          name: "Administrador",
           role: "owner",
           password: cleanPass,
           status: "active"
@@ -127,7 +127,7 @@ export async function authenticateWithFirebase(
     return { success: true, user: matchedLocal };
   }
 
-  // 3. Fallback de respaldo para Administrador Maestro
+  // 3. Fallback de respaldo para Administrador
   const isMasterAdminFallback = 
     (cleanEmail === "admin@hogarpro.com" && cleanPass === "admin2026") ||
     (cleanEmail === "owner@hogarpro.com" && cleanPass === "owner123");
@@ -136,7 +136,7 @@ export async function authenticateWithFirebase(
     const adminUser: SystemUser = {
       id: "owner-1",
       email: cleanEmail,
-      name: "Administrador Maestro",
+      name: "Administrador",
       role: "owner",
       status: "active"
     };

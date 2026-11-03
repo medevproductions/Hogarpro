@@ -588,7 +588,7 @@ export function getCurrentUser(): SystemUser | null {
         const fallbackUser: SystemUser = {
           id: decoded.id || "owner-1",
           email: decoded.email,
-          name: decoded.name || (decoded.role === "owner" ? "Administrador Maestro" : "Revendedor"),
+          name: decoded.name || (decoded.role === "owner" ? "Administrador" : "Revendedor"),
           role: decoded.role || "seller",
           status: "active"
         };

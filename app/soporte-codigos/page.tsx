@@ -125,7 +125,11 @@ export default function SoporteCodigosPage() {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const user = getCurrentUser();
+    let user = getCurrentUser();
+    if (user && user.name === "Administrador Maestro") {
+      user = { ...user, name: "Administrador" };
+      setCurrentUser(user);
+    }
     setCurrentUserState(user);
     setLoadingInitialSession(false);
 
@@ -368,22 +372,27 @@ export default function SoporteCodigosPage() {
           <div className="flex items-center gap-2.5">
             {currentUser ? (
               <>
-                <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#141A25] border border-slate-800 text-xs">
+                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141A25] border border-slate-800 text-xs">
                   {isAdmin ? (
-                    <Shield className="w-3.5 h-3.5 text-blue-400" />
+                    <>
+                      <Shield className="w-3.5 h-3.5 text-blue-400" />
+                      <span className="text-slate-200 font-semibold">Administrador</span>
+                    </>
                   ) : (
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <>
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-slate-300 font-medium">
+                        Revendedor: <strong className="text-white font-medium">{currentUser.name}</strong>
+                      </span>
+                    </>
                   )}
-                  <span className="text-slate-300 font-medium">
-                    {isAdmin ? "Admin" : "Revendedor"}: <strong className="text-white">{currentUser.name}</strong>
-                  </span>
                 </div>
 
                 <Link
                   href={isAdmin ? "/dashboard/owner" : "/dashboard/seller"}
                   className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition"
                 >
-                  {isAdmin ? "Panel Owner" : "Mi Panel"}
+                  {isAdmin ? "Panel de Control" : "Mi Panel"}
                 </Link>
 
                 <button
@@ -547,15 +556,15 @@ export default function SoporteCodigosPage() {
           /* ========================================================================= */
           <>
             <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60 text-slate-300 text-xs font-medium mb-2.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Canal Autorizado • {isAdmin ? "Administrador" : `Revendedor: ${currentUser.name}`}</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#141A25] border border-slate-800 text-slate-300 text-xs font-medium mb-2.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <span>{isAdmin ? "Acceso Administrador" : `Revendedor: ${currentUser.name}`}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
-                Terminal de Códigos Netflix
+                Consulta de Códigos Netflix
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-1.5 leading-relaxed">
-                Extracción instantánea de códigos de 4 y 6 dígitos o enlaces oficiales en tiempo real.
+                Acceso a códigos de inicio, confirmación y enlaces de verificación en tiempo real.
               </p>
             </div>
 
@@ -565,7 +574,7 @@ export default function SoporteCodigosPage() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    1. ¿Qué necesitas solicitar?
+                    Tipo de Solicitud
                   </label>
                   <span className="text-[11px] text-slate-500">
                     Selecciona una acción
@@ -629,7 +638,7 @@ export default function SoporteCodigosPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                        2. Tus Cuentas Asignadas ({assignedAccounts.length}):
+                        Tus Cuentas Asignadas ({assignedAccounts.length})
                       </label>
                       <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
                         Acceso Exclusivo
@@ -672,7 +681,7 @@ export default function SoporteCodigosPage() {
                         />
                       </div>
                       <p className="text-[10px] text-slate-500 mt-1">
-                        🔒 Seguridad: Solo se procesan solicitudes para cuentas vinculadas a tu usuario de revendedor.
+                        Solo puedes solicitar códigos de cuentas asignadas a tu usuario.
                       </p>
                     </div>
                   </div>
@@ -681,7 +690,7 @@ export default function SoporteCodigosPage() {
                     {assignedAccounts.length > 0 && (
                       <div className="mb-3">
                         <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                          Inventario Maestro de Cuentas:
+                          Cuentas Disponibles en Inventario:
                         </label>
                         <select
                           onChange={(e) => {
@@ -704,7 +713,7 @@ export default function SoporteCodigosPage() {
                     )}
 
                     <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                      2. Correo de la cuenta Netflix:
+                      Correo de la Cuenta Netflix:
                     </label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
