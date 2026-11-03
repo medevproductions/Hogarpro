@@ -34,6 +34,7 @@ import {
   getCurrentUser, 
   setCurrentUser, 
   getStoredAccounts, 
+  checkAccountAuthorization,
   SystemUser, 
   StoredStreamingAccount,
   syncAccountsFromCloud,
@@ -171,6 +172,15 @@ export default function SoporteCodigosPage() {
     });
   }, [currentUser]);
 
+  // Si el revendedor tiene cuentas asignadas y aún no ha seleccionado ninguna, auto-seleccionar la primera
+  useEffect(() => {
+    if (currentUser && currentUser.role !== "owner" && (currentUser.role as string) !== "admin") {
+      if (assignedAccounts.length > 0 && !email) {
+        setEmail(assignedAccounts[0].email);
+      }
+    }
+  }, [currentUser, assignedAccounts, email]);
+
   // Manejador de Login Directo en la Página
   const handleInPageLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,6 +236,20 @@ export default function SoporteCodigosPage() {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) return;
 
+    // 1. REGLA ESTRICTA DE SEGURIDAD PARA REVENDEDORES:
+    // Solo pueden consultar códigos de las cuentas que tienen asignadas y que no estén vencidas
+    if (!isAdmin) {
+      const auth = checkAccountAuthorization(cleanEmail, currentUser);
+      if (!auth.authorized) {
+        setResult({
+          success: false,
+          message: auth.reason || `Acceso Restringido: La cuenta '${cleanEmail}' no está asignada a tu usuario. Como revendedor autorizado, únicamente tienes acceso a los códigos de las cuentas que tienes asignadas.`
+        });
+        setIsSearching(false);
+        return;
+      }
+    }
+
     setIsSearching(true);
     setResult(null);
     setCopied(false);
@@ -236,21 +260,31 @@ export default function SoporteCodigosPage() {
     const queryEndpoint = async () => {
       try {
         const res = await fetch(`/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(selectedAction)}&t=${Date.now()}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.code) {
-            const finalCode = String(data.code).trim();
-            const isUrl = finalCode.startsWith("http://") || finalCode.startsWith("https://");
-            setResult({
-              success: true,
-              code: finalCode,
-              actionType: data.actionType || selectedAction,
-              isLink: isUrl
-            });
-            setIsSearching(false);
-            if (pollingRef.current) clearInterval(pollingRef.current);
-            return true;
-          }
+        const data = await res.json().catch(() => null);
+
+        if (res.ok && data && data.success && data.code) {
+          const finalCode = String(data.code).trim();
+          const isUrl = finalCode.startsWith("http://") || finalCode.startsWith("https://");
+          setResult({
+            success: true,
+            code: finalCode,
+            actionType: data.actionType || selectedAction,
+            isLink: isUrl
+          });
+          setIsSearching(false);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          return true;
+        }
+
+        // Si el backend deniega el acceso (no asignada, expirada o no autorizada)
+        if (res.status === 403 || res.status === 401 || res.status === 404 || (data && !data.success && data.error)) {
+          setResult({
+            success: false,
+            message: data?.error || data?.message || "Acceso denegado: Esta cuenta no está asignada a tu usuario de revendedor."
+          });
+          setIsSearching(false);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          return true; // Detener polling de inmediato
         }
       } catch (err) {
         // Silencioso
@@ -581,73 +615,135 @@ export default function SoporteCodigosPage() {
 
               {/* FORMULARIO DE BÚSQUEDA */}
               <form onSubmit={handleSearch} className="space-y-4">
-                {/* Desplegable rápido de cuentas asignadas (si tiene) */}
-                {assignedAccounts.length > 0 && (
+                {!isAdmin && assignedAccounts.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-amber-950/25 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-amber-300 text-sm">Sin cuentas asignadas</div>
+                      <p className="mt-1 text-slate-300 leading-relaxed text-xs">
+                        Como revendedor autorizado, únicamente puedes consultar los códigos de las cuentas que tienes asignadas en el sistema. Actualmente no tienes cuentas vinculadas. Solicita a tu administrador que te asigne cuentas de streaming para habilitar la extracción de códigos.
+                      </p>
+                    </div>
+                  </div>
+                ) : !isAdmin ? (
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                      {isAdmin ? "Inventario de Cuentas:" : "Tus Cuentas Asignadas:"}
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                        2. Tus Cuentas Asignadas ({assignedAccounts.length}):
+                      </label>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-medium">
+                        Acceso Exclusivo
+                      </span>
+                    </div>
+
                     <select
+                      value={email}
                       onChange={(e) => {
-                        if (e.target.value) {
-                          setEmail(e.target.value);
-                          setResult(null);
-                        }
+                        setEmail(e.target.value);
+                        setResult(null);
                       }}
-                      defaultValue=""
-                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
+                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
                     >
-                      <option value="" disabled>Selecciona una cuenta de la lista ({assignedAccounts.length})...</option>
+                      <option value="" disabled>Selecciona una de tus cuentas autorizadas...</option>
                       {assignedAccounts.map((acc) => (
                         <option key={acc.id} value={acc.email}>
                           {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
                         </option>
                       ))}
                     </select>
+
+                    <div className="mt-3">
+                      <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                        O confirma / escribe el correo asignado:
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                          <Mail className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          required
+                          placeholder="ej: micuenta@gmail.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        🔒 Seguridad: Solo se procesan solicitudes para cuentas vinculadas a tu usuario de revendedor.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    {assignedAccounts.length > 0 && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                          Inventario Maestro de Cuentas:
+                        </label>
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              setEmail(e.target.value);
+                              setResult(null);
+                            }
+                          }}
+                          defaultValue=""
+                          className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
+                        >
+                          <option value="" disabled>Seleccionar del inventario ({assignedAccounts.length})...</option>
+                          {assignedAccounts.map((acc) => (
+                            <option key={acc.id} value={acc.email}>
+                              {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                      2. Correo de la cuenta Netflix:
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        required
+                        placeholder="ej: micuenta@gmail.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Chips para autocompletar dominio rápido */}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
+                      {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
+                        <button
+                          key={dom}
+                          type="button"
+                          onClick={() => {
+                            const atIndex = email.indexOf("@");
+                            const prefix = atIndex !== -1 ? email.substring(0, atIndex) : email;
+                            if (prefix.trim()) {
+                              setEmail(`${prefix.trim()}${dom}`);
+                            }
+                          }}
+                          className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
+                        >
+                          {dom}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
-                    2. Correo de la cuenta Netflix:
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      required
-                      placeholder="ej: micuenta@gmail.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  {/* Chips para autocompletar dominio rápido */}
-                  <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                    <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
-                    {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
-                      <button
-                        key={dom}
-                        type="button"
-                        onClick={() => {
-                          const atIndex = email.indexOf("@");
-                          const prefix = atIndex !== -1 ? email.substring(0, atIndex) : email;
-                          if (prefix.trim()) {
-                            setEmail(`${prefix.trim()}${dom}`);
-                          }
-                        }}
-                        className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
-                      >
-                        {dom}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 <div className="pt-1">
                   {isSearching ? (
@@ -672,7 +768,7 @@ export default function SoporteCodigosPage() {
                   ) : (
                     <button
                       type="submit"
-                      disabled={!email.trim()}
+                      disabled={!email.trim() || (!isAdmin && assignedAccounts.length === 0)}
                       className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <Search className="w-4 h-4" />

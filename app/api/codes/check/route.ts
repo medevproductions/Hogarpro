@@ -185,7 +185,24 @@ export async function GET(req: NextRequest) {
         }
       } catch (err: any) {
         console.warn("[CHECK AUTH] Error verificando asignación:", err?.message);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "No se pudo verificar la asignación de la cuenta con la base de datos. Por seguridad, consulta no autorizada.",
+            code: null
+          },
+          { status: 403, headers: corsHeaders }
+        );
       }
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Servicio de verificación de revendedores no disponible. Contacta al administrador.",
+          code: null
+        },
+        { status: 503, headers: corsHeaders }
+      );
     }
   }
 
