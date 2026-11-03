@@ -622,7 +622,7 @@ export default function SellerLiveCodesPage() {
   const isOwnerOrAdmin = currentUser?.role === "owner" || (currentUser?.role as string) === "admin";
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col md:flex-row w-full max-w-full overflow-x-hidden selection:bg-rose-500/30 selection:text-rose-200">
+    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col md:flex-row w-full max-w-full selection:bg-rose-500/30 selection:text-rose-200">
       {/* BARRA SUPERIOR MÓVIL STICKY CON MENÚ DE 3 RAYAS */}
       <div className="md:hidden sticky top-0 z-40 bg-[#0E121B]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
         <Link href={isOwnerOrAdmin ? "/dashboard/owner" : "/dashboard/seller"} className="flex items-center gap-2.5">
@@ -813,7 +813,7 @@ export default function SellerLiveCodesPage() {
       )}
 
       {/* SIDEBAR DESKTOP FIJO CONSTANTEMENTE VISIBLE */}
-      <aside className="w-64 border-r border-slate-800/80 bg-[#0E121B] p-5 hidden md:flex flex-col justify-between shrink-0 h-screen sticky top-0">
+      <aside className="w-64 border-r border-slate-800/80 bg-[#0E121B] p-5 hidden md:flex flex-col justify-between fixed inset-y-0 left-0 z-30">
         <div className="flex-1 min-h-0 flex flex-col">
           <Link href={isOwnerOrAdmin ? "/dashboard/owner" : "/dashboard/seller"} className="flex items-center gap-3 mb-6 group shrink-0">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-xl text-white shadow-sm group-hover:scale-105 transition-transform">
@@ -920,7 +920,7 @@ export default function SellerLiveCodesPage() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 min-w-0 p-3.5 sm:p-6 md:p-8 overflow-y-auto max-w-full overflow-x-hidden">
+      <main className="flex-1 min-w-0 md:ml-64 p-3.5 sm:p-6 md:p-8 max-w-full overflow-x-hidden">
         {/* BANNER MODO VISTA OWNER CON SELECTOR DE REVENDEDORES */}
         {isOwnerOrAdmin && (
           <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-black border-2 border-red-500/50 shadow-2xl">
