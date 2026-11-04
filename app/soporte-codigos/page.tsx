@@ -190,7 +190,7 @@ export default function SoporteCodigosPage() {
   useEffect(() => {
     if (currentUser && currentUser.role !== "owner" && (currentUser.role as string) !== "admin") {
       if (assignedAccounts.length > 0 && !email) {
-        setEmail(assignedAccounts[0].email);
+        setEmail((assignedAccounts[0].email || "").trim().replace(/\s+/g, ""));
       }
     }
   }, [currentUser, assignedAccounts, email]);
@@ -255,8 +255,17 @@ export default function SoporteCodigosPage() {
   // Consulta de Código
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes("@")) return;
+    const cleanEmail = email.trim().toLowerCase().replace(/\s+/g, "");
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setResult({
+        success: false,
+        message: "Por favor ingresa un correo de Netflix válido (ej: micuenta@gmail.com)."
+      });
+      return;
+    }
+    if (email !== cleanEmail) {
+      setEmail(cleanEmail);
+    }
 
     if (!currentUser) {
       setResult({
@@ -660,7 +669,7 @@ export default function SoporteCodigosPage() {
               </div>
 
               {/* FORMULARIO DE BÚSQUEDA */}
-              <form onSubmit={handleSearch} className="space-y-4">
+              <form onSubmit={handleSearch} noValidate className="space-y-4">
                 <div>
                   {assignedAccounts.length > 0 && (
                     <div className="mb-3">
@@ -674,8 +683,9 @@ export default function SoporteCodigosPage() {
                       </div>
                       <select
                         onChange={(e) => {
-                          if (e.target.value) {
-                            setEmail(e.target.value);
+                          const cleanVal = (e.target.value || "").trim().replace(/\s+/g, "");
+                          if (cleanVal) {
+                            setEmail(cleanVal);
                             setResult(null);
                           }
                         }}
@@ -683,11 +693,14 @@ export default function SoporteCodigosPage() {
                         className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
                       >
                         <option value="" disabled>Seleccionar de la lista ({assignedAccounts.length})...</option>
-                        {assignedAccounts.map((acc) => (
-                          <option key={acc.id} value={acc.email}>
-                            {acc.email} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
-                          </option>
-                        ))}
+                        {assignedAccounts.map((acc) => {
+                          const cleanAccEmail = (acc.email || "").trim().replace(/\s+/g, "");
+                          return (
+                            <option key={acc.id} value={cleanAccEmail}>
+                              {cleanAccEmail} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
@@ -706,17 +719,22 @@ export default function SoporteCodigosPage() {
                       <Mail className="w-4 h-4" />
                     </div>
                     <input
-                      type="email"
+                      type="text"
                       inputMode="email"
                       autoComplete="email"
+                      spellCheck={false}
                       required
                       placeholder="ej: micuenta@gmail.com"
                       value={email}
                       onChange={(e) => {
-                        setEmail(e.target.value);
+                        const sanitized = (e.target.value || "").replace(/\s+/g, "");
+                        setEmail(sanitized);
                         setResult(null);
                       }}
-                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-sans focus:outline-none transition-all"
+                      onBlur={() => {
+                        setEmail(prev => prev.trim().replace(/\s+/g, ""));
+                      }}
+                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-mono focus:outline-none transition-all"
                     />
                   </div>
 

@@ -1606,18 +1606,21 @@ export default function SellerLiveCodesPage() {
                       <select
                         value={selectedAccount}
                         onChange={(e) => {
-                          setSelectedAccount(e.target.value);
+                          setSelectedAccount((e.target.value || "").trim().replace(/\s+/g, ""));
                           setAuthError(null);
                           setReceivedCode(null);
                           setIsWaiting(false);
                         }}
                         className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none transition cursor-pointer shadow-sm"
                       >
-                        {assignedAccounts.map((a) => (
-                          <option key={a.id} value={a.email}>
-                            {a.email} — {a.service} ({a.country}) • Perfiles: {a.profiles}
-                          </option>
-                        ))}
+                        {assignedAccounts.map((a) => {
+                          const cleanEmail = (a.email || "").trim().replace(/\s+/g, "");
+                          return (
+                            <option key={a.id} value={cleanEmail}>
+                              {cleanEmail} — {a.service} ({a.country}) • Perfiles: {a.profiles}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   ) : null}
@@ -1632,14 +1635,19 @@ export default function SellerLiveCodesPage() {
                         <Mail className="w-4 h-4" />
                       </div>
                       <input
-                        type="email"
+                        type="text"
+                        inputMode="email"
+                        spellCheck={false}
                         placeholder="ej: micuenta@gmail.com"
                         value={selectedAccount}
                         onChange={(e) => {
-                          setSelectedAccount(e.target.value);
+                          setSelectedAccount((e.target.value || "").replace(/\s+/g, ""));
                           setAuthError(null);
                           setReceivedCode(null);
                           setIsWaiting(false);
+                        }}
+                        onBlur={() => {
+                          setSelectedAccount(prev => prev.trim().replace(/\s+/g, ""));
                         }}
                         className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 font-mono placeholder-slate-500 focus:outline-none transition shadow-sm"
                       />

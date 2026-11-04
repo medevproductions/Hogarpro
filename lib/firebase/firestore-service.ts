@@ -239,7 +239,8 @@ export async function getAccountsFromFirestore(): Promise<StoredStreamingAccount
       const data = d.data();
       return {
         id: d.id,
-        ...data
+        ...data,
+        email: (data.email || "").trim()
       } as StoredStreamingAccount;
     });
   } catch (error: any) {

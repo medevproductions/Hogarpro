@@ -354,7 +354,11 @@ export function getStoredAccounts(): StoredStreamingAccount[] {
     return DEFAULT_ACCOUNTS;
   }
   try {
-    return JSON.parse(stored);
+    const list: StoredStreamingAccount[] = JSON.parse(stored);
+    return list.map(a => ({
+      ...a,
+      email: (a.email || "").trim()
+    }));
   } catch {
     return DEFAULT_ACCOUNTS;
   }
@@ -362,10 +366,14 @@ export function getStoredAccounts(): StoredStreamingAccount[] {
 
 export function saveStoredAccounts(accounts: StoredStreamingAccount[]) {
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
+    const cleanAccounts = accounts.map(a => ({
+      ...a,
+      email: (a.email || "").trim()
+    }));
+    localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(cleanAccounts));
     window.dispatchEvent(new Event("streamhub_accounts_updated"));
     // Guardar en Cloud Firestore
-    saveAccountsToFirestore(accounts).catch(err => {
+    saveAccountsToFirestore(cleanAccounts).catch(err => {
       console.warn("[CLOUD] Error guardando cuentas en Firestore:", err);
     });
   }
