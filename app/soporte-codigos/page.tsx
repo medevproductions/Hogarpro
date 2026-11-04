@@ -36,9 +36,11 @@ import {
   getStoredAccounts, 
   getSessionToken,
   SystemUser, 
+  StoredStreamingAccount,
   syncAccountsFromCloud,
   syncUsersFromCloud
 } from "@/lib/account-manager";
+import { cleanAccountEmail } from "@/lib/security";
 import { authenticateWithFirebase } from "@/lib/firebase/auth-service";
 
 type ActionType = "auto" | "actualizar_hogar" | "acceso_temporal" | "login_code" | "verification_code" | "reset_password";
@@ -123,6 +125,12 @@ export default function SoporteCodigosPage() {
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Autocomplete Suggestions State (Debounce 1 segundo)
+  const [suggestions, setSuggestions] = useState<StoredStreamingAccount[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const suggestionsBoxRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     // Sincronizar sesión activa si el usuario ya inició sesión previamente en la plataforma
     const active = getCurrentUser();
@@ -136,7 +144,7 @@ export default function SoporteCodigosPage() {
       const params = new URLSearchParams(window.location.search);
       const emailParam = params.get("email");
       if (emailParam) {
-        setEmail(emailParam.trim().replace(/\s+/g, ""));
+        setEmail(cleanAccountEmail(emailParam));
       }
       const actionParam = params.get("action") || params.get("actionType");
       if (actionParam && ["login_code", "verification_code", "actualizar_hogar", "acceso_temporal", "reset_password", "auto"].includes(actionParam)) {
@@ -151,6 +159,20 @@ export default function SoporteCodigosPage() {
   useEffect(() => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
+
+  // Cerrar sugerencias al hacer clic fuera del componente
+  useEffect(() => {
+    const handleClickOutside = (ev: MouseEvent) => {
+      if (suggestionsBoxRef.current && !suggestionsBoxRef.current.contains(ev.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -165,33 +187,29 @@ export default function SoporteCodigosPage() {
     return () => clearInterval(timer);
   }, [isSearching]);
 
-  // Cuentas asignadas al usuario actual
+  // Cuentas asignadas al usuario actual con correos sanitizados
   const assignedAccounts = useMemo(() => {
     if (!currentUser) return [];
     const all = getStoredAccounts();
+    const mapped = all.map(a => ({
+      ...a,
+      email: cleanAccountEmail(a.email)
+    }));
+
     if (currentUser.role === "owner" || (currentUser.role as string) === "admin") {
-      return all;
+      return mapped;
     }
     const uName = (currentUser.name || "").toLowerCase().trim();
     const uEmail = (currentUser.email || "").toLowerCase().trim();
     const uId = (currentUser.id || "").toLowerCase().trim();
 
-    return all.filter((a) => {
+    return mapped.filter((a) => {
       const sId = (a.sellerId || "").toLowerCase().trim();
       const sName = (a.sellerName || (a as any).seller || "").toLowerCase().trim();
       return (sId && (sId === uId || sId === uEmail)) || 
              (sName && (sName === uName || sName === uEmail || uName.includes(sName) || sName.includes(uName)));
     });
   }, [currentUser]);
-
-  // Si el revendedor tiene cuentas asignadas y aún no ha seleccionado ninguna, auto-seleccionar la primera
-  useEffect(() => {
-    if (currentUser && currentUser.role !== "owner" && (currentUser.role as string) !== "admin") {
-      if (assignedAccounts.length > 0 && !email) {
-        setEmail((assignedAccounts[0].email || "").trim().replace(/\s+/g, ""));
-      }
-    }
-  }, [currentUser, assignedAccounts, email]);
 
   // Manejador de Login Directo en la Página
   const handleInPageLogin = async (e: React.FormEvent) => {
@@ -243,6 +261,9 @@ export default function SoporteCodigosPage() {
   // Cerrar Sesión Directo en la Página
   const handleLogout = () => {
     if (pollingRef.current) clearInterval(pollingRef.current);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    setSuggestions([]);
+    setShowSuggestions(false);
     setCurrentUser(null);
     setCurrentUserState(null);
     setResult(null);
@@ -250,10 +271,51 @@ export default function SoporteCodigosPage() {
     setEmail("");
   };
 
+  // Manejador del cambio de texto con debounce de 1 segundo para sugerencias
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    setResult(null);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const trimmed = cleanAccountEmail(val);
+    if (!trimmed) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    // Esperar exactamente 1 segundo (1000ms) después de escribir para mostrar sugerencias
+    debounceTimerRef.current = setTimeout(() => {
+      if (assignedAccounts.length > 0) {
+        const matches = assignedAccounts.filter(acc => {
+          const accEmail = cleanAccountEmail(acc.email);
+          return accEmail.includes(trimmed);
+        });
+        setSuggestions(matches.slice(0, 6));
+        setShowSuggestions(matches.length > 0);
+      }
+    }, 1000);
+  };
+
+  const handleSelectSuggestion = (acc: StoredStreamingAccount) => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    const clean = cleanAccountEmail(acc.email);
+    setEmail(clean);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setResult(null);
+  };
+
   // Consulta de Código
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase().replace(/\s+/g, "");
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    setShowSuggestions(false);
+
+    const cleanEmail = cleanAccountEmail(email);
     if (!cleanEmail || !cleanEmail.includes("@")) {
       setResult({
         success: false,
@@ -669,40 +731,6 @@ export default function SoporteCodigosPage() {
               {/* FORMULARIO DE BÚSQUEDA */}
               <form onSubmit={handleSearch} noValidate className="space-y-4">
                 <div>
-                  {assignedAccounts.length > 0 && (
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          {isAdmin ? `Cuentas en Inventario (${assignedAccounts.length})` : `Tus Cuentas Disponibles (${assignedAccounts.length})`}
-                        </label>
-                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 font-medium shrink-0">
-                          Selección Rápida
-                        </span>
-                      </div>
-                      <select
-                        onChange={(e) => {
-                          const cleanVal = (e.target.value || "").trim().replace(/\s+/g, "");
-                          if (cleanVal) {
-                            setEmail(cleanVal);
-                            setResult(null);
-                          }
-                        }}
-                        value={email || ""}
-                        className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
-                      >
-                        <option value="" disabled>Seleccionar de la lista ({assignedAccounts.length})...</option>
-                        {assignedAccounts.map((acc) => {
-                          const cleanAccEmail = (acc.email || "").trim().replace(/\s+/g, "");
-                          return (
-                            <option key={acc.id} value={cleanAccEmail}>
-                              {cleanAccEmail} — {acc.platform || (acc as any).service || "Netflix"} ({acc.country || "Global"})
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  )}
-
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                       Correo de la Cuenta Netflix:
@@ -713,27 +741,81 @@ export default function SoporteCodigosPage() {
                   </div>
 
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none z-10">
                       <Mail className="w-4 h-4" />
                     </div>
                     <input
                       type="text"
                       inputMode="email"
-                      autoComplete="email"
+                      autoComplete="off"
                       spellCheck={false}
                       required
-                      placeholder="ej: micuenta@gmail.com"
+                      placeholder="Escribe el correo de tu cuenta (ej: micuenta@gmail.com)"
                       value={email}
-                      onChange={(e) => {
-                        const sanitized = (e.target.value || "").replace(/\s+/g, "");
-                        setEmail(sanitized);
-                        setResult(null);
-                      }}
+                      onChange={(e) => handleEmailChange(e.target.value)}
                       onBlur={() => {
-                        setEmail(prev => prev.trim().replace(/\s+/g, ""));
+                        setEmail(prev => cleanAccountEmail(prev));
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setShowSuggestions(false);
+                        }
                       }}
                       className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 font-mono focus:outline-none transition-all"
                     />
+
+                    {/* DROPDOWN DE SUGERENCIAS DE CUENTAS ASIGNADAS (DEBOUNCE 1 SEGUNDO) */}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div
+                        ref={suggestionsBoxRef}
+                        className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-[#0E131E]/95 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-1 duration-150"
+                      >
+                        <div className="px-3 py-1.5 bg-[#141A25] border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1.5 font-medium text-blue-300">
+                            <Sparkles className="w-3 h-3 text-amber-400" />
+                            <span>Cuentas sugeridas de tu inventario:</span>
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {suggestions.length} {suggestions.length === 1 ? "cuenta" : "cuentas"}
+                          </span>
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/60">
+                          {suggestions.map((acc) => {
+                            const clean = cleanAccountEmail(acc.email);
+                            return (
+                              <button
+                                key={acc.id}
+                                type="button"
+                                onClick={() => handleSelectSuggestion(acc)}
+                                className="w-full px-3.5 py-2.5 text-left hover:bg-[#162032] flex items-center justify-between gap-3 transition cursor-pointer group"
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-xs font-mono font-medium text-slate-200 group-hover:text-blue-300 transition truncate">
+                                    {clean}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                    <span>{acc.platform || (acc as any).service || "Netflix"}</span>
+                                    <span>•</span>
+                                    <span>{acc.country || "Global"}</span>
+                                    {acc.occupiedProfiles !== undefined && (
+                                      <>
+                                        <span>•</span>
+                                        <span>Perfiles: {acc.occupiedProfiles}/{acc.maxProfiles || 5}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500 transition shrink-0">
+                                  Usar cuenta
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Chips para autocompletar dominio rápido */}

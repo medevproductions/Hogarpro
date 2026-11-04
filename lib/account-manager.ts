@@ -9,6 +9,7 @@ import {
   getSalesFromFirestore,
   saveSaleToFirestore
 } from "./firebase/firestore-service";
+import { cleanAccountEmail } from "./security";
 
 export interface SystemUser {
   id: string;
@@ -232,13 +233,17 @@ export async function syncAccountsFromCloud(force: boolean = false): Promise<Sto
     const local = stored ? JSON.parse(stored) : [];
 
     if (cloudAccounts && cloudAccounts.length > 0) {
-      const serializedCloud = JSON.stringify(cloudAccounts);
+      const sanitizedCloud = cloudAccounts.map(a => ({
+        ...a,
+        email: cleanAccountEmail(a.email)
+      }));
+      const serializedCloud = JSON.stringify(sanitizedCloud);
       // Solo disparar evento y actualizar si los datos realmente cambiaron
       if (stored !== serializedCloud) {
         localStorage.setItem(STORAGE_KEY_ACCOUNTS, serializedCloud);
         window.dispatchEvent(new Event("streamhub_accounts_updated"));
       }
-      return cloudAccounts;
+      return sanitizedCloud;
     } else if (local && local.length > 0) {
       // Subir a la nube SOLO si no son las 2 cuentas dummy
       const isDummyOnly = local.length <= 2 && local.every((a: any) => a.id === "acc-1" || a.id === "acc-2");
@@ -357,7 +362,7 @@ export function getStoredAccounts(): StoredStreamingAccount[] {
     const list: StoredStreamingAccount[] = JSON.parse(stored);
     return list.map(a => ({
       ...a,
-      email: (a.email || "").trim()
+      email: cleanAccountEmail(a.email)
     }));
   } catch {
     return DEFAULT_ACCOUNTS;
@@ -368,7 +373,7 @@ export function saveStoredAccounts(accounts: StoredStreamingAccount[]) {
   if (typeof window !== "undefined") {
     const cleanAccounts = accounts.map(a => ({
       ...a,
-      email: (a.email || "").trim()
+      email: cleanAccountEmail(a.email)
     }));
     localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(cleanAccounts));
     window.dispatchEvent(new Event("streamhub_accounts_updated"));

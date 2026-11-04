@@ -158,12 +158,48 @@ export function sanitizeInput(input: string): string {
 }
 
 /**
+ * Limpieza profunda y sanitización estricta de correos electrónicos
+ * Elimina BOM (\uFEFF), espacios de ancho cero (\u200B), non-breaking spaces (\u00A0),
+ * colones o contraseñas pegadas (ej: correo@gmail.com:pass), caracteres de control y espacios invisibles.
+ */
+export function cleanAccountEmail(raw: string | null | undefined): string {
+  if (!raw || typeof raw !== "string") return "";
+
+  // 1. Eliminar BOM, espacios invisibles Unicode y caracteres de control
+  let cleaned = raw
+    .replace(/[\uFEFF\u200B\u200C\u200D\u200E\u200F\u00A0\u2028\u2029]/g, "")
+    .replace(/[\x00-\x1F\x7F]/g, "")
+    .trim();
+
+  // 2. Si viene en formato combo "correo@dominio.com:clave", "correo@dominio.com|clave" o "correo@dominio.com;clave"
+  if (cleaned.includes("@")) {
+    const match = cleaned.match(/([a-zA-Z0-9._%+ -]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (match) {
+      cleaned = match[1];
+    }
+  }
+
+  // 3. Normalizar espacios: si en query params vino '+' decodificado como ' ' en la parte local
+  if (cleaned.includes("@") && cleaned.includes(" ")) {
+    const [localPart, ...domainParts] = cleaned.split("@");
+    const domainPart = domainParts.join("@");
+    cleaned = `${localPart.replace(/\s+/g, "+")}@${domainPart.replace(/\s+/g, "")}`;
+  } else {
+    cleaned = cleaned.replace(/\s+/g, "");
+  }
+
+  return cleaned.toLowerCase().trim();
+}
+
+/**
  * Validación de Formato de Correo Electrónico
  */
 export function isValidEmail(email: string): boolean {
   if (!email || typeof email !== "string") return false;
+  const cleaned = cleanAccountEmail(email);
+  if (!cleaned || !cleaned.includes("@")) return false;
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email.trim());
+  return emailRegex.test(cleaned);
 }
 
 /**

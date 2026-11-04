@@ -54,6 +54,7 @@ import {
   SystemUser
 } from "@/lib/account-manager";
 import { updatePasswordInFirebase } from "@/lib/firebase/auth-service";
+import { cleanAccountEmail } from "@/lib/security";
 import LatamPhoneInput from "@/components/LatamPhoneInput";
 import CodigoHelpGuide from "@/components/soporte/CodigoHelpGuide";
 
@@ -1263,7 +1264,7 @@ export default function SellerLiveCodesPage() {
 
                               <div className="mt-3 pt-3 border-t border-[#262626] flex justify-end">
                                 <Link
-                                  href={`/soporte-codigos?email=${encodeURIComponent(acc.email.trim())}`}
+                                  href={`/soporte-codigos?email=${encodeURIComponent(cleanAccountEmail(acc.email))}`}
                                   target="_blank"
                                   className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95"
                                 >
@@ -1364,7 +1365,7 @@ export default function SellerLiveCodesPage() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {displayAccounts.map((acc) => {
-                          const cleanAccEmail = (acc.email || "").trim().replace(/\s+/g, "");
+                          const cleanAccEmail = cleanAccountEmail(acc.email);
                           return (
                             <div
                               key={acc.id}

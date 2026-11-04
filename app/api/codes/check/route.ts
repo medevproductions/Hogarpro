@@ -5,6 +5,7 @@ import {
   checkRateLimit, 
   getClientIp, 
   isValidEmail, 
+  cleanAccountEmail,
   sanitizeInput,
   sanitizeStreamingLink
 } from "@/lib/security";
@@ -98,23 +99,15 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  let rawEmail = searchParams.get("email");
+  const rawEmail = searchParams.get("email");
   const rawActionType = searchParams.get("actionType") || "login_code";
 
   if (!rawEmail) {
     return NextResponse.json({ success: false, code: null, message: "Parámetro 'email' requerido" }, { headers: corsHeaders });
   }
 
-  // Si en la URL venía '+' sin escapar (ej: ?email=cuenta+embudo@gmail.com), URLSearchParams lo decodifica como espacio ' '
-  if (rawEmail.includes(" ")) {
-    const [localPart, domainPart] = rawEmail.split("@");
-    if (domainPart) {
-      rawEmail = `${localPart.replace(/\s+/g, "+")}@${domainPart}`;
-    }
-  }
-
-  const cleanEmail = rawEmail.toLowerCase().trim();
-  if (!isValidEmail(cleanEmail)) {
+  const cleanEmail = cleanAccountEmail(rawEmail);
+  if (!cleanEmail || !isValidEmail(cleanEmail)) {
     return NextResponse.json(
       { success: false, error: "Formato de correo inválido", code: null },
       { status: 400, headers: corsHeaders }

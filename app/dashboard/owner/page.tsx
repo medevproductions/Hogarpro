@@ -99,6 +99,7 @@ import {
   StoredStreamingAccount,
   getSessionToken
 } from "@/lib/account-manager";
+import { cleanAccountEmail } from "@/lib/security";
 
 export interface StreamingAccount {
   id: string;
@@ -1303,7 +1304,7 @@ export default function OwnerDashboard() {
   // GUARDAR CUENTA (CREAR O EDITAR)
   const handleSaveAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = (formData.email || "").trim();
+    const cleanEmail = cleanAccountEmail(formData.email);
     if (!cleanEmail || !cleanEmail.includes("@")) {
       alert("Por favor ingresa un correo válido para la cuenta (puede contener alias con '+').");
       return;
@@ -1480,7 +1481,7 @@ export default function OwnerDashboard() {
           defaultIncome: 14.0
         };
         
-        const email = String(row["Correo"] || row["Email"] || row["Usuario"] || "").trim();
+        const email = cleanAccountEmail(String(row["Correo"] || row["Email"] || row["Usuario"] || ""));
         if (!email) return;
 
         const password = String(row["Clave"] || row["Contraseña"] || row["Password"] || "Password2026*").trim();
