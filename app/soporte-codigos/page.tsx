@@ -34,10 +34,8 @@ import {
   getCurrentUser, 
   setCurrentUser, 
   getStoredAccounts, 
-  checkAccountAuthorization,
   getSessionToken,
   SystemUser, 
-  StoredStreamingAccount,
   syncAccountsFromCloud,
   syncUsersFromCloud
 } from "@/lib/account-manager";
@@ -138,7 +136,7 @@ export default function SoporteCodigosPage() {
       const params = new URLSearchParams(window.location.search);
       const emailParam = params.get("email");
       if (emailParam) {
-        setEmail(emailParam.trim());
+        setEmail(emailParam.trim().replace(/\s+/g, ""));
       }
       const actionParam = params.get("action") || params.get("actionType");
       if (actionParam && ["login_code", "verification_code", "actualizar_hogar", "acceso_temporal", "reset_password", "auto"].includes(actionParam)) {
@@ -402,33 +400,33 @@ export default function SoporteCodigosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-slate-100 flex flex-col justify-between selection:bg-rose-500/30 selection:text-rose-200">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#0B0E14] text-slate-100 flex flex-col justify-between selection:bg-rose-500/30 selection:text-rose-200">
       {/* NAVBAR */}
       <header className="border-b border-slate-800/80 bg-[#0E121B]/95 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-white shadow-sm group-hover:scale-105 transition-transform">
-              <Tv className="w-4 h-4" />
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center font-bold text-white shadow-sm group-hover:scale-105 transition-transform">
+              <Tv className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="font-bold text-sm text-slate-100 tracking-tight">
               HOGAR<span className="text-rose-500">PRO</span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {currentUser ? (
               <>
-                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141A25] border border-slate-800 text-xs">
+                <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#141A25] border border-slate-800 text-xs">
                   {isAdmin ? (
                     <>
-                      <Shield className="w-3.5 h-3.5 text-blue-400" />
+                      <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                       <span className="text-slate-200 font-semibold">Administrador</span>
                     </>
                   ) : (
                     <>
-                      <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-slate-300 font-medium">
-                        Revendedor: <strong className="text-white font-medium">{currentUser.name}</strong>
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span className="text-slate-300 font-medium truncate max-w-[140px]">
+                        Revendedor: <strong className="text-white">{currentUser.name}</strong>
                       </span>
                     </>
                   )}
@@ -436,15 +434,15 @@ export default function SoporteCodigosPage() {
 
                 <Link
                   href={isAdmin ? "/dashboard/owner" : "/dashboard/seller"}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition"
                 >
-                  {isAdmin ? "Panel de Control" : "Mi Panel"}
+                  {isAdmin ? "Panel" : "Mi Panel"}
                 </Link>
 
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-slate-800 transition"
+                  className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-slate-800 transition cursor-pointer"
                   title="Cerrar Sesión"
                 >
                   <LogOut className="w-4 h-4" />
@@ -453,7 +451,7 @@ export default function SoporteCodigosPage() {
             ) : (
               <Link
                 href="/"
-                className="text-xs font-medium text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition"
+                className="text-xs font-medium text-slate-400 hover:text-slate-200 px-2.5 py-1.5 rounded-lg hover:bg-slate-800 transition"
               >
                 Volver al Inicio
               </Link>
@@ -463,41 +461,41 @@ export default function SoporteCodigosPage() {
       </header>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="max-w-4xl w-full mx-auto px-4 py-8 sm:py-10 flex-1">
+      <main className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-6 sm:py-10 flex-1">
         {!currentUser ? (
           /* ========================================================================= */
           /* FORMULARIO DE INGRESO DIRECTO (REVENDEDOR & ADMINISTRADOR) */
           /* ========================================================================= */
-          <div className="max-w-md mx-auto my-4 animate-in fade-in duration-200">
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 text-rose-500 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Lock className="w-6 h-6" />
+          <div className="max-w-md mx-auto my-2 sm:my-4 animate-in fade-in duration-200">
+            <div className="text-center mb-5 sm:mb-6">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 text-rose-500 flex items-center justify-center mx-auto mb-2.5 sm:mb-3 shadow-md">
+                <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">
                 Acceso a Terminal de Códigos
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
                 Ingresa con tu cuenta autorizada para solicitar códigos de inicio, confirmación o enlaces de Netflix.
               </p>
             </div>
 
-            <div className="rounded-2xl bg-[#121722]/95 border border-slate-800/90 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-2xl bg-[#121722]/95 border border-slate-800/90 p-4 sm:p-7 shadow-2xl backdrop-blur-xl">
               {/* Selector de Rol (Revendedor vs Administrador) */}
-              <div className="grid grid-cols-2 p-1 bg-[#0E121B] border border-slate-800 rounded-xl mb-5">
+              <div className="grid grid-cols-2 p-1 bg-[#0E121B] border border-slate-800 rounded-xl mb-4 sm:mb-5">
                 <button
                   type="button"
                   onClick={() => {
                     setLoginRole("seller");
                     setLoginError(null);
                   }}
-                  className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  className={`py-2 px-1 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     loginRole === "seller"
                       ? "bg-[#1C2433] text-slate-100 shadow-sm border border-slate-700/60"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Revendedor</span>
+                  <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span className="truncate">Revendedor</span>
                 </button>
                 <button
                   type="button"
@@ -505,21 +503,21 @@ export default function SoporteCodigosPage() {
                     setLoginRole("admin");
                     setLoginError(null);
                   }}
-                  className={`py-2 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  className={`py-2 px-1 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     loginRole === "admin"
                       ? "bg-[#1C2433] text-slate-100 shadow-sm border border-slate-700/60"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  <Shield className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Administrador</span>
+                  <Shield className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span className="truncate">Administrador</span>
                 </button>
               </div>
 
               {loginError && (
-                <div className="mb-4 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-200 text-xs flex items-start gap-2.5">
+                <div className="mb-4 p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-200 text-xs flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">{loginError}</span>
+                  <span className="leading-snug">{loginError}</span>
                 </div>
               )}
 
@@ -529,7 +527,7 @@ export default function SoporteCodigosPage() {
                     {loginRole === "seller" ? "Usuario o Correo" : "Correo de Administrador"}
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
                       {loginRole === "seller" ? <User className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
                     </div>
                     <input
@@ -538,7 +536,7 @@ export default function SoporteCodigosPage() {
                       value={loginIdentifier}
                       onChange={(e) => setLoginIdentifier(e.target.value)}
                       placeholder={loginRole === "seller" ? "usuario o usuario@hogarpro.com" : "admin@hogarpro.com"}
-                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition font-sans"
+                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition font-sans"
                     />
                   </div>
                 </div>
@@ -548,7 +546,7 @@ export default function SoporteCodigosPage() {
                     Contraseña
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
                       <Lock className="w-4 h-4" />
                     </div>
                     <input
@@ -557,12 +555,12 @@ export default function SoporteCodigosPage() {
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1 cursor-pointer"
                     >
                       {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -572,7 +570,7 @@ export default function SoporteCodigosPage() {
                 <button
                   type="submit"
                   disabled={loginLoading || !loginIdentifier.trim() || !loginPassword.trim()}
-                  className={`w-full mt-2 py-3 px-4 rounded-xl text-white font-semibold text-sm shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] disabled:opacity-50 cursor-pointer ${
+                  className={`w-full mt-2 py-2.5 sm:py-3 px-4 rounded-xl text-white font-semibold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-[0.99] disabled:opacity-50 cursor-pointer ${
                     loginRole === "admin"
                       ? "bg-rose-600 hover:bg-rose-500 shadow-rose-950/40"
                       : "bg-blue-600 hover:bg-blue-500 shadow-blue-950/40"
@@ -582,14 +580,14 @@ export default function SoporteCodigosPage() {
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>{loginRole === "admin" ? "Ingresar como Administrador" : "Iniciar Sesión como Revendedor"}</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span className="truncate">{loginRole === "admin" ? "Ingresar como Administrador" : "Iniciar Sesión como Revendedor"}</span>
+                      <ArrowRight className="w-4 h-4 shrink-0" />
                     </>
                   )}
                 </button>
               </form>
 
-              <div className="mt-5 pt-4 border-t border-slate-800/80 text-center">
+              <div className="mt-4 pt-3.5 border-t border-slate-800/80 text-center">
                 <span className="text-[11px] text-slate-500">
                   Canal seguro • Las solicitudes se auditan contra los registros de cuenta
                 </span>
@@ -601,24 +599,24 @@ export default function SoporteCodigosPage() {
           /* TERMINAL DE CONSULTA ACTIVA PARA USUARIO AUTENTICADO */
           /* ========================================================================= */
           <>
-            <div className="text-center mb-6">
+            <div className="text-center mb-5 sm:mb-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#141A25] border border-slate-800 text-slate-300 text-xs font-medium mb-2.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 <span>{isAdmin ? "Acceso Administrador" : `Revendedor: ${currentUser.name}`}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
+              <h1 className="text-xl sm:text-3xl font-bold text-slate-100 tracking-tight">
                 Consulta de Códigos Netflix
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-1.5 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto mt-1 leading-relaxed">
                 Acceso a códigos de inicio, confirmación y enlaces de verificación en tiempo real.
               </p>
             </div>
 
             {/* TARJETA DE BÚSQUEDA CENTRAL */}
-            <div className="rounded-2xl bg-[#121722]/95 border border-slate-800/80 p-5 sm:p-7 shadow-xl relative overflow-hidden mb-8">
+            <div className="rounded-2xl bg-[#121722]/95 border border-slate-800/80 p-4 sm:p-7 shadow-xl relative overflow-hidden mb-8">
               {/* SELECTOR DE ACCIÓN */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
+              <div className="mb-5 sm:mb-6">
+                <div className="flex items-center justify-between mb-2.5">
                   <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Tipo de Solicitud
                   </label>
@@ -627,7 +625,7 @@ export default function SoporteCodigosPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
                   {ACTION_OPTIONS.map((opt) => {
                     const isSelected = selectedAction === opt.id;
                     return (
@@ -638,27 +636,27 @@ export default function SoporteCodigosPage() {
                           setSelectedAction(opt.id);
                           setResult(null);
                         }}
-                        className={`p-3 rounded-xl border text-left transition-all duration-150 flex flex-col justify-between gap-2 cursor-pointer ${
+                        className={`p-2.5 sm:p-3 rounded-xl border text-left transition-all duration-150 flex flex-col justify-between gap-1.5 sm:gap-2 cursor-pointer min-h-[82px] sm:min-h-[92px] ${
                           isSelected 
                             ? "bg-[#182234] border-blue-500/80 text-slate-100 shadow-sm ring-1 ring-blue-500/30" 
                             : "bg-[#0E131E] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#131926]"
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className={`p-1.5 rounded-lg ${isSelected ? "bg-blue-500/20 text-blue-300" : "bg-slate-800/80 text-slate-400"}`}>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`p-1 sm:p-1.5 rounded-lg shrink-0 ${isSelected ? "bg-blue-500/20 text-blue-300" : "bg-slate-800/80 text-slate-400"}`}>
                             {opt.icon}
                           </span>
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md ${
+                          <span className={`text-[9px] sm:text-[10px] font-medium px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 ${
                             isSelected ? "bg-blue-500/20 text-blue-300" : "bg-slate-800 text-slate-400"
                           }`}>
                             {opt.badge}
                           </span>
                         </div>
-                        <div>
-                          <div className={`text-xs font-semibold tracking-tight ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
+                        <div className="min-w-0">
+                          <div className={`text-[11px] sm:text-xs font-semibold tracking-tight truncate ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
                             {opt.label}
                           </div>
-                          <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">
+                          <div className="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 leading-tight truncate">
                             {opt.subtitle}
                           </div>
                         </div>
@@ -677,7 +675,7 @@ export default function SoporteCodigosPage() {
                         <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                           {isAdmin ? `Cuentas en Inventario (${assignedAccounts.length})` : `Tus Cuentas Disponibles (${assignedAccounts.length})`}
                         </label>
-                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 font-medium">
+                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 font-medium shrink-0">
                           Selección Rápida
                         </span>
                       </div>
@@ -689,8 +687,8 @@ export default function SoporteCodigosPage() {
                             setResult(null);
                           }
                         }}
-                        defaultValue=""
-                        className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
+                        value={email || ""}
+                        className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer"
                       >
                         <option value="" disabled>Seleccionar de la lista ({assignedAccounts.length})...</option>
                         {assignedAccounts.map((acc) => {
@@ -715,7 +713,7 @@ export default function SoporteCodigosPage() {
                   </div>
 
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
                       <Mail className="w-4 h-4" />
                     </div>
                     <input
@@ -734,13 +732,13 @@ export default function SoporteCodigosPage() {
                       onBlur={() => {
                         setEmail(prev => prev.trim().replace(/\s+/g, ""));
                       }}
-                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 font-mono focus:outline-none transition-all"
+                      className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 font-mono focus:outline-none transition-all"
                     />
                   </div>
 
                   {/* Chips para autocompletar dominio rápido */}
                   <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                    <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
+                    <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium">Autocompletar:</span>
                     {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
                       <button
                         key={dom}
@@ -752,7 +750,7 @@ export default function SoporteCodigosPage() {
                             setEmail(`${prefix.trim()}${dom}`);
                           }
                         }}
-                        className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
+                        className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
                       >
                         {dom}
                       </button>
@@ -770,15 +768,15 @@ export default function SoporteCodigosPage() {
                       <button
                         type="button"
                         disabled
-                        className="flex-1 py-3 px-6 bg-blue-600/80 text-white font-medium text-sm rounded-xl flex items-center justify-center gap-2 cursor-wait"
+                        className="flex-1 py-2.5 sm:py-3 px-4 bg-blue-600/80 text-white font-medium text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 cursor-wait"
                       >
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Buscando en servidores de Netflix... ({secondsElapsed}s)</span>
+                        <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                        <span className="truncate">Buscando en Netflix... ({secondsElapsed}s)</span>
                       </button>
                       <button
                         type="button"
                         onClick={handleCancelSearch}
-                        className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl border border-slate-700 transition"
+                        className="py-2.5 sm:py-3 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl border border-slate-700 transition shrink-0 cursor-pointer"
                         title="Cancelar consulta"
                       >
                         <X className="w-4 h-4" />
@@ -787,10 +785,10 @@ export default function SoporteCodigosPage() {
                   ) : (
                     <button
                       type="submit"
-                      disabled={!email.trim() || (!isAdmin && assignedAccounts.length === 0)}
-                      className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      disabled={!email.trim()}
+                      className="w-full py-2.5 sm:py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      <Search className="w-4 h-4" />
+                      <Search className="w-4 h-4 shrink-0" />
                       <span>Buscar Código</span>
                     </button>
                   )}
@@ -799,12 +797,12 @@ export default function SoporteCodigosPage() {
 
               {/* ESTADO EN VIVO DURANTE LA BÚSQUEDA */}
               {isSearching && (
-                <div className="mt-6 p-5 rounded-xl bg-[#0E131E] border border-slate-800 text-center animate-in fade-in duration-200">
-                  <div className="w-9 h-9 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mx-auto mb-2.5" />
-                  <p className="text-sm font-semibold text-slate-100">
+                <div className="mt-5 p-4 sm:p-5 rounded-xl bg-[#0E131E] border border-slate-800 text-center animate-in fade-in duration-200">
+                  <div className="w-8 h-8 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mx-auto mb-2" />
+                  <p className="text-xs sm:text-sm font-semibold text-slate-100">
                     Consultando correo entrante de Netflix
                   </p>
-                  <p className="text-xs font-mono text-slate-400 mt-0.5">
+                  <p className="text-xs font-mono text-slate-400 mt-0.5 break-all">
                     {email}
                   </p>
                   <p className="text-xs text-amber-400 mt-2">
@@ -815,62 +813,62 @@ export default function SoporteCodigosPage() {
 
               {/* RESULTADO DE LA BÚSQUEDA */}
               {result && !isSearching && (
-                <div className="mt-6 animate-in fade-in duration-200">
+                <div className="mt-5 sm:mt-6 animate-in fade-in duration-200">
                   {result.success && result.code ? (
                     result.isLink ? (
                       /* RESULTADO: ENLACE OFICIAL */
-                      <div className="p-5 sm:p-6 rounded-xl bg-[#0E131E] border border-slate-800 shadow-md">
+                      <div className="p-4 sm:p-6 rounded-xl bg-[#0E131E] border border-slate-800 shadow-md">
                         <div className="flex items-center gap-2 text-emerald-400 text-xs font-medium uppercase tracking-wider mb-2">
-                          <CheckCircle2 className="w-4 h-4" />
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>¡Enlace Encontrado con Éxito!</span>
                         </div>
 
-                        <h3 className="text-base font-bold text-slate-100 mb-1">
+                        <h3 className="text-sm sm:text-base font-bold text-slate-100 mb-1">
                           {getActionTitle(result.actionType)}
                         </h3>
-                        <p className="text-xs text-slate-400 mb-4">
+                        <p className="text-xs text-slate-400 mb-3 sm:mb-4">
                           Haz clic a continuación para abrir Netflix y confirmar tu dispositivo de inmediato:
                         </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                           <a
                             href={result.code}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
+                            className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm text-center"
                           >
-                            <ExternalLink className="w-4 h-4" />
-                            <span>Abrir Enlace Oficial de Netflix ↗</span>
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                            <span className="truncate">Abrir Enlace Oficial de Netflix ↗</span>
                           </a>
 
                           <button
                             type="button"
                             onClick={() => handleCopyCode(result.code!)}
-                            className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition border border-slate-700"
+                            className="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition border border-slate-700 cursor-pointer"
                           >
                             {copied ? (
                               <>
-                                <Check className="w-4 h-4 text-emerald-400" />
+                                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                                 <span className="text-emerald-400">¡Enlace Copiado!</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-4 h-4" />
+                                <Copy className="w-4 h-4 shrink-0" />
                                 <span>Copiar Enlace Directo</span>
                               </>
                             )}
                           </button>
                         </div>
 
-                        <div className="p-3 rounded-lg bg-[#080B10] border border-slate-800 text-[11px] text-blue-300 font-mono break-all select-all">
+                        <div className="p-3 rounded-lg bg-[#080B10] border border-slate-800 text-[10px] sm:text-[11px] text-blue-300 font-mono break-all select-all">
                           {result.code}
                         </div>
                       </div>
                     ) : (
                       /* RESULTADO: CÓDIGO NUMÉRICO */
-                      <div className="p-6 rounded-xl bg-[#0E131E] border border-slate-800 text-center shadow-md">
+                      <div className="p-4 sm:p-6 rounded-xl bg-[#0E131E] border border-slate-800 text-center shadow-md">
                         <div className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-medium uppercase tracking-wider mb-2">
-                          <CheckCircle2 className="w-4 h-4" />
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>{getActionTitle(result.actionType)}</span>
                         </div>
 
@@ -878,8 +876,8 @@ export default function SoporteCodigosPage() {
                           Ingresa estos dígitos en la pantalla de Netflix:
                         </p>
 
-                        <div className="my-3 py-4 px-8 rounded-2xl bg-[#080B10] border border-slate-800 inline-block shadow-inner">
-                          <span className="text-4xl sm:text-5xl font-bold font-mono tracking-widest text-slate-100 select-all">
+                        <div className="my-2.5 sm:my-3 py-3 px-6 sm:py-4 sm:px-8 rounded-2xl bg-[#080B10] border border-slate-800 inline-block shadow-inner max-w-full overflow-hidden">
+                          <span className="text-3xl sm:text-5xl font-bold font-mono tracking-wider sm:tracking-widest text-slate-100 select-all break-all">
                             {result.code}
                           </span>
                         </div>
@@ -888,36 +886,36 @@ export default function SoporteCodigosPage() {
                           <button
                             type="button"
                             onClick={() => handleCopyCode(result.code!)}
-                            className="w-full py-2.5 px-5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
+                            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm cursor-pointer"
                           >
                             {copied ? (
                               <>
-                                <Check className="w-4 h-4" />
-                                <span>¡Código Copiado!</span>
+                                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <span className="text-emerald-400">¡Código Copiado!</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-4 h-4" />
+                                <Copy className="w-4 h-4 shrink-0" />
                                 <span>Copiar Código</span>
                               </>
                             )}
                           </button>
                         </div>
 
-                        <p className="text-[11px] text-slate-500 mt-4">
+                        <p className="text-[11px] text-slate-500 mt-3 sm:mt-4">
                           Válido por aprox. 15 minutos. Si expiró, vuelve a solicitarlo en la pantalla.
                         </p>
                       </div>
                     )
                   ) : (
                     /* RESULTADO: NO ENCONTRADO O TIMEOUT */
-                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                      <div className="flex-1">
+                    <div className="p-3.5 sm:p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5 sm:gap-3">
+                      <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
                         <div className="font-semibold text-amber-300 uppercase tracking-wider text-[11px] mb-1">
                           Aviso de Consulta
                         </div>
-                        <p className="text-slate-300 leading-relaxed font-sans mb-3">
+                        <p className="text-slate-300 leading-relaxed font-sans mb-3 text-xs">
                           {result.message}
                         </p>
                         <button
@@ -925,7 +923,7 @@ export default function SoporteCodigosPage() {
                           onClick={() => handleSearch()}
                           className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 rounded-lg font-medium text-xs transition inline-flex items-center gap-1.5 cursor-pointer"
                         >
-                          <RefreshCw className="w-3.5 h-3.5" />
+                          <RefreshCw className="w-3.5 h-3.5 shrink-0" />
                           <span>Volver a intentar</span>
                         </button>
                       </div>
@@ -935,13 +933,13 @@ export default function SoporteCodigosPage() {
               )}
             </div>
 
-            <CodigoHelpGuide className="mt-8" />
+            <CodigoHelpGuide className="mt-6 sm:mt-8" />
           </>
         )}
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-800/80 bg-[#0E121B] py-5 px-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-800/80 bg-[#0E121B] py-4 sm:py-5 px-4 text-center text-xs text-slate-500">
         <p>© {new Date().getFullYear()} HogarPro Streaming. Plataforma de Asistencia Técnica.</p>
       </footer>
     </div>

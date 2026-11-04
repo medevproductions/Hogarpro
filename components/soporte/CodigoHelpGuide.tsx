@@ -59,15 +59,15 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
   ];
 
   return (
-    <div className={`w-full rounded-2xl bg-[#121722]/90 border border-slate-800/80 p-5 sm:p-7 shadow-xl backdrop-blur-xl ${className}`}>
+    <div className={`w-full rounded-2xl bg-[#121722]/90 border border-slate-800/80 p-4 sm:p-7 shadow-xl backdrop-blur-xl ${className}`}>
       {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-sm">
-            <HelpCircle className="w-5 h-5" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-sm shrink-0">
+            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-100 tracking-tight">
+            <h2 className="text-base sm:text-xl font-bold text-slate-100 tracking-tight">
               Guía de Ayuda: ¿Cómo obtener tus códigos?
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -85,27 +85,27 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
       </div>
 
       {/* Steps List */}
-      <div className="space-y-2.5 mb-6">
+      <div className="space-y-2.5 mb-5 sm:mb-6">
         {steps.map((item) => (
           <div
             key={item.step}
-            className="flex items-start gap-3.5 p-3.5 rounded-xl bg-[#0E131E] border border-slate-800/80 hover:border-slate-700 transition-all duration-150"
+            className="flex items-start gap-3 p-3 sm:p-3.5 rounded-xl bg-[#0E131E] border border-slate-800/80 hover:border-slate-700 transition-all duration-150"
           >
-            <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center font-semibold text-xs">
+            <div className="shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center font-semibold text-xs mt-0.5">
               {item.step}
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <span className="shrink-0">{item.icon}</span>
-                <h4 className="text-xs sm:text-sm font-semibold text-slate-100">
-                  {item.title}
-                </h4>
-                <span className="text-[10px] font-medium text-slate-400 bg-slate-800 px-2 py-0.5 rounded ml-auto">
+              <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                <div className="flex items-center gap-1.5 font-semibold text-xs sm:text-sm text-slate-100 min-w-0">
+                  <span className="shrink-0">{item.icon}</span>
+                  <span className="truncate">{item.title}</span>
+                </div>
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-800 px-2 py-0.5 rounded shrink-0">
                   {item.highlight}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed pl-6">
+              <p className="text-xs text-slate-400 leading-relaxed">
                 {item.desc}
               </p>
             </div>
@@ -114,16 +114,16 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
       </div>
 
       {/* Explanation Cards */}
-      <div className="p-4 rounded-xl bg-[#0E131E] border border-slate-800 text-xs text-slate-300">
+      <div className="p-3.5 sm:p-4 rounded-xl bg-[#0E131E] border border-slate-800 text-xs text-slate-300">
         <div className="flex items-center gap-2 mb-2.5 font-semibold text-slate-200 text-xs tracking-wider">
-          <Info className="w-4 h-4 text-blue-400" />
+          <Info className="w-4 h-4 text-blue-400 shrink-0" />
           <span>Tipos de Códigos y Enlaces Soportados</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5">
           <div className="p-3 rounded-lg bg-[#141A25] border border-slate-800">
             <div className="flex items-center gap-1.5 font-semibold text-emerald-400 mb-1">
-              <Tv className="w-3.5 h-3.5" />
-              <span>Código de Inicio (4 dígitos)</span>
+              <Tv className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-xs">Código de Inicio (4 dígitos)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               Para iniciar sesión en Smart TV o TV Box. Formato numérico de 4 dígitos.
@@ -132,8 +132,8 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
 
           <div className="p-3 rounded-lg bg-[#141A25] border border-slate-800">
             <div className="flex items-center gap-1.5 font-semibold text-sky-400 mb-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Código de Confirmación (6 dígitos)</span>
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-xs">Código de Confirmación (6 dígitos)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               Código numérico de 6 dígitos para validar acceso. Válido por 15 minutos.
@@ -142,8 +142,8 @@ export default function CodigoHelpGuide({ className = "" }: CodigoHelpGuideProps
 
           <div className="p-3 rounded-lg bg-[#141A25] border border-slate-800">
             <div className="flex items-center gap-1.5 font-semibold text-blue-400 mb-1">
-              <Home className="w-3.5 h-3.5" />
-              <span>Enlaces Directos HTTPS</span>
+              <Home className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-xs">Enlaces Directos HTTPS</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               Para 'Actualizar Hogar' o 'Estoy de viaje'. Enlace oficial directo para confirmar con 1 clic.

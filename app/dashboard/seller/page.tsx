@@ -40,8 +40,6 @@ import {
   Search,
   Plus
 } from "lucide-react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 import { 
   getCurrentUser, 
   setCurrentUser,
@@ -55,89 +53,12 @@ import {
   StoredStreamingAccount,
   SystemUser
 } from "@/lib/account-manager";
-import { createPendingCodeRequestFirestore } from "@/lib/firebase/firestore-service";
 import { updatePasswordInFirebase } from "@/lib/firebase/auth-service";
 import LatamPhoneInput from "@/components/LatamPhoneInput";
 import CodigoHelpGuide from "@/components/soporte/CodigoHelpGuide";
 
-export type CodeAction = 
-  | "login_code" 
-  | "verification_code" 
-  | "actualizar_hogar" 
-  | "acceso_temporal" 
-  | "reset_password";
-
-interface ActionConfig {
-  id: CodeAction;
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  badge: string;
-  badgeClass: string;
-}
-
-const ACTIONS: ActionConfig[] = [
-  {
-    id: "login_code",
-    title: "Código de Inicio",
-    subtitle: "4 dígitos en pantalla",
-    icon: <Zap className="w-5 h-5 text-emerald-400" />,
-    iconBg: "bg-emerald-500/10 border-emerald-500/20",
-    badge: "4 dígitos",
-    badgeClass: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
-  },
-  {
-    id: "verification_code",
-    title: "Código de Confirmación",
-    subtitle: "6 dígitos de verificación",
-    icon: <Clock className="w-5 h-5 text-sky-400" />,
-    iconBg: "bg-sky-500/10 border-sky-500/20",
-    badge: "6 dígitos",
-    badgeClass: "bg-sky-500/10 text-sky-300 border-sky-500/20"
-  },
-  {
-    id: "actualizar_hogar",
-    title: "Actualizar Hogar",
-    subtitle: "Confirmar red doméstica",
-    icon: <Home className="w-5 h-5 text-blue-400" />,
-    iconBg: "bg-blue-500/10 border-blue-500/20",
-    badge: "Enlace",
-    badgeClass: "bg-blue-500/10 text-blue-300 border-blue-500/20"
-  },
-  {
-    id: "acceso_temporal",
-    title: "Acceso de Viaje",
-    subtitle: "TV fuera del hogar",
-    icon: <ShieldCheck className="w-5 h-5 text-amber-400" />,
-    iconBg: "bg-amber-500/10 border-amber-500/20",
-    badge: "Enlace",
-    badgeClass: "bg-amber-500/10 text-amber-300 border-amber-500/20"
-  },
-  {
-    id: "reset_password",
-    title: "Cambiar Clave",
-    subtitle: "Restablecer contraseña",
-    icon: <Lock className="w-5 h-5 text-rose-400" />,
-    iconBg: "bg-rose-500/10 border-rose-500/20",
-    badge: "Enlace",
-    badgeClass: "bg-rose-500/10 text-rose-300 border-rose-500/20"
-  }
-];
-
 export default function SellerLiveCodesPage() {
-  const [selectedAccount, setSelectedAccount] = useState<string>("netflix01@hogarpro.com");
-  const [activeAction, setActiveAction] = useState<CodeAction | null>(null);
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
-  const [isWaiting, setIsWaiting] = useState<boolean>(false);
-  const [receivedCode, setReceivedCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState<boolean>(false);
-  const [timerSeconds, setTimerSeconds] = useState<number>(0);
-
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   const [currentUser, setCurrentUserState] = useState<SystemUser | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
   const [assignedAccounts, setAssignedAccounts] = useState<Array<{ id: string; service: string; email: string; profiles: string; country: string }>>([]);
   const [rawSellerAccounts, setRawSellerAccounts] = useState<StoredStreamingAccount[]>([]);
 
@@ -431,17 +352,6 @@ export default function SellerLiveCodesPage() {
     setAssignedAccounts(formatted);
     setRawSellerAccounts(validAccs);
     setIsLoadingAccounts(false);
-
-    if (formatted.length > 0) {
-      setSelectedAccount((prev) => {
-        if (prev && formatted.some(f => (f.email || "").toLowerCase().trim() === (prev || "").toLowerCase().trim())) {
-          return prev;
-        }
-        return formatted[0].email;
-      });
-    } else {
-      setSelectedAccount("");
-    }
   };
 
   useEffect(() => {
@@ -486,170 +396,6 @@ export default function SellerLiveCodesPage() {
     return availableSellers.find(s => s.id === simulatedSellerId || (s.email && s.email.toLowerCase() === simulatedSellerId.toLowerCase())) || null;
   }, [simulatedSellerId, availableSellers]);
 
-  // Temporizador de espera visual
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isWaiting) {
-      timer = setInterval(() => {
-        setTimerSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setTimerSeconds(0);
-    }
-    return () => clearInterval(timer);
-  }, [isWaiting]);
-
-  // SUSCRIPCIÓN EN TIEMPO REAL CON FIREBASE FIRESTORE & POLLING DE RESPALDO
-  useEffect(() => {
-    if (!isWaiting || !currentRequestId) return;
-
-    // 1. Escuchar actualizaciones en tiempo real de Firebase Firestore
-    let unsub: (() => void) | null = null;
-    if (db) {
-      try {
-        unsub = onSnapshot(doc(db, "code_requests", currentRequestId), (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.status === "completado" && data.extracted_code) {
-              setReceivedCode(data.extracted_code);
-              setIsWaiting(false);
-            }
-          }
-        }, (err) => {
-          console.warn("[FIRESTORE REALTIME] Listener error:", err?.message);
-        });
-      } catch (e) {
-        console.warn("[FIRESTORE] Error inicializando listener:", e);
-      }
-    }
-
-    // 2. Polling cada 3 segundos como respaldo automático (máximo 15 intentos = 45s)
-    let attempts = 0;
-    const maxAttempts = 15;
-    const pollingInterval = setInterval(async () => {
-      attempts++;
-      if (attempts >= maxAttempts) {
-        clearInterval(pollingInterval);
-        setIsWaiting(false);
-        return;
-      }
-
-      try {
-        const cleanEmail = selectedAccount.trim().toLowerCase();
-        if (!cleanEmail) return;
-
-        const sessionToken = getSessionToken() || (currentUser ? btoa(encodeURIComponent(JSON.stringify({
-          id: currentUser.id,
-          email: currentUser.email,
-          role: currentUser.role,
-          name: currentUser.name,
-          exp: Date.now() + 7 * 24 * 3600 * 1000
-        }))) : "");
-
-        const res = await fetch(
-          `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&actionType=${encodeURIComponent(activeAction || "login_code")}&service=netflix&auth=${encodeURIComponent(sessionToken)}&t=${Date.now()}`,
-          {
-            headers: sessionToken ? { "Authorization": `Bearer ${sessionToken}` } : {},
-            credentials: "include"
-          }
-        );
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.code) {
-            setReceivedCode(json.code);
-            setIsWaiting(false);
-            clearInterval(pollingInterval);
-          }
-        }
-      } catch (err) {
-        // Silencioso
-      }
-    }, 3000);
-
-    pollingIntervalRef.current = pollingInterval;
-
-    return () => {
-      if (unsub) unsub();
-      clearInterval(pollingInterval);
-    };
-  }, [isWaiting, currentRequestId, selectedAccount, activeAction]);
-
-  // DISPARAR SOLICITUD DE ACCIÓN CON VALIDACIÓN ESTRICTA DE VENDEDOR
-  const handleTriggerAction = async (action: CodeAction) => {
-    setAuthError(null);
-    const cleanEmail = selectedAccount.trim().toLowerCase();
-
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      setAuthError("Por favor ingresa o selecciona un correo válido de Netflix.");
-      return;
-    }
-
-    if (!currentUser) {
-      setAuthError("Debes iniciar sesión con tu usuario de Revendedor para solicitar códigos.");
-      return;
-    }
-
-    setActiveAction(action);
-    setIsWaiting(true);
-    setReceivedCode(null);
-    setCopied(false);
-
-    // Consulta inicial inmediata a través del proxy seguro
-    try {
-      const sessionToken = getSessionToken() || (currentUser ? btoa(encodeURIComponent(JSON.stringify({
-        id: currentUser.id,
-        email: currentUser.email,
-        role: currentUser.role,
-        name: currentUser.name,
-        exp: Date.now() + 7 * 24 * 3600 * 1000
-      }))) : "");
-
-      fetch(
-        `/api/codes/check?email=${encodeURIComponent(cleanEmail)}&service=netflix&actionType=${encodeURIComponent(action)}&auth=${encodeURIComponent(sessionToken)}&t=${Date.now()}`,
-        {
-          headers: sessionToken ? { "Authorization": `Bearer ${sessionToken}` } : {},
-          credentials: "include"
-        }
-      )
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.success && data.code) {
-            setReceivedCode(data.code);
-            setIsWaiting(false);
-          }
-        })
-        .catch(() => {});
-    } catch (e) {}
-
-    // Registrar solicitud pendiente en Cloud Firestore y vincular el listener realtime al ID exacto
-    try {
-      const pendingRes = await createPendingCodeRequestFirestore({
-        account_email: cleanEmail,
-        action_type: action,
-        service: "netflix"
-      });
-      if (pendingRes && pendingRes.success && pendingRes.id) {
-        setCurrentRequestId(pendingRes.id);
-      }
-    } catch (e) {}
-
-    // Timeout de seguridad: Si tras 90 segundos no hay respuesta del correo, detener la espera limpiamente
-    setTimeout(() => {
-      setIsWaiting((prev) => {
-        if (prev) return false;
-        return false;
-      });
-    }, 90000);
-  };
-
-  const handleCopy = () => {
-    if (!receivedCode) return;
-    navigator.clipboard.writeText(receivedCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
-  const isUrl = receivedCode && (receivedCode.startsWith("http://") || receivedCode.startsWith("https://"));
   const isOwnerOrAdmin = currentUser?.role === "owner" || (currentUser?.role as string) === "admin";
 
   return (
@@ -767,7 +513,7 @@ export default function SellerLiveCodesPage() {
                 >
                   <div className="flex items-center gap-2.5">
                     <KeyRound className="w-4 h-4 text-blue-400" />
-                    <span>Mis Cuentas y Códigos</span>
+                    <span>Mis Cuentas Asignadas</span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono">
                     {assignedAccounts.length}
@@ -902,7 +648,7 @@ export default function SellerLiveCodesPage() {
             >
               <div className="flex items-center gap-2.5">
                 <KeyRound className={`w-4 h-4 ${activeTab === "cuentas" ? "text-blue-400" : "text-slate-400"}`} />
-                <span>Mis Cuentas y Códigos</span>
+                <span>Mis Cuentas Asignadas</span>
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 font-mono">
                 {assignedAccounts.length}
@@ -1051,12 +797,12 @@ export default function SellerLiveCodesPage() {
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-7 bg-[#E50914] rounded-full shadow-sm shadow-red-600/50" />
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {activeTab === "cuentas" ? "Gestión y Solicitud de Códigos" : activeTab === "calendario" ? "Calendario de Vencimientos" : "Configuración de tu Cuenta"}
+                {activeTab === "cuentas" ? "Mis Cuentas Asignadas" : activeTab === "calendario" ? "Calendario de Vencimientos" : "Configuración de tu Cuenta"}
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1 pl-4">
               {activeTab === "cuentas" 
-                ? "Selecciona tu cuenta autorizada y pulsa la acción deseada para extraer el código o enlace en segundos." 
+                ? "Consulta tus cuentas activas en inventario y extrae códigos en tiempo real desde el portal de soporte." 
                 : activeTab === "calendario"
                 ? "Consulta las fechas en que vencen tus cuentas asignadas para renovarlas con el administrador a tiempo."
                 : "Actualiza tus datos de revendedor y tu contraseña personal de acceso."}
@@ -1516,23 +1262,15 @@ export default function SellerLiveCodesPage() {
                               </div>
 
                               <div className="mt-3 pt-3 border-t border-[#262626] flex justify-end">
-                                <button
-                                  onClick={() => {
-                                    const targetEmail = acc.email.trim();
-                                    setSelectedAccount(targetEmail);
-                                    setActiveTab("cuentas");
-                                    setAuthError(null);
-                                    setReceivedCode(null);
-                                    setIsWaiting(false);
-                                    setTimeout(() => {
-                                      window.scrollTo({ top: 120, behavior: "smooth" });
-                                    }, 80);
-                                  }}
+                                <Link
+                                  href={`/soporte-codigos?email=${encodeURIComponent(acc.email.trim())}`}
+                                  target="_blank"
                                   className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95"
                                 >
-                                  <Zap className="w-3.5 h-3.5" />
-                                  <span>Seleccionar y Pedir Códigos</span>
-                                </button>
+                                  <KeyRound className="w-3.5 h-3.5" />
+                                  <span>Extraer Códigos en Terminal</span>
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </Link>
                               </div>
                             </div>
                           );
@@ -1547,372 +1285,44 @@ export default function SellerLiveCodesPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* VISTA 3: GESTIÓN DE CUENTAS (TERMINAL Y SOLICITUD DE CÓDIGOS) */}
+        {/* VISTA 3: MIS CUENTAS ASIGNADAS Y PORTAL DE CÓDIGOS */}
         {/* ========================================================================= */}
         {activeTab === "cuentas" && (
           <>
-            {/* BANNER DE ERROR DE AUTORIZACIÓN O EXPIRACIÓN */}
-            {authError && (
-              <div className="mb-6 p-4 rounded-2xl bg-rose-950/60 border border-rose-800/60 text-rose-200 flex items-start gap-3 shadow-lg">
-                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-semibold text-sm text-rose-200">Acción Bloqueada</div>
-                  <div className="text-xs text-rose-200/90 mt-0.5">{authError}</div>
+            {/* PORTAL DE CÓDIGOS LINK BANNER */}
+            <div className="bg-[#121722]/95 border border-slate-800/80 rounded-2xl p-5 sm:p-6 mb-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center text-white shadow-md shrink-0">
+                  <Tv className="w-6 h-6" />
                 </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-100 tracking-tight">
+                    Extractor de Códigos y Enlaces en Vivo
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Consulta códigos de inicio (4 dígitos), confirmación (6 dígitos) y enlaces directos de Netflix en tiempo real.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/soporte-codigos"
+                target="_blank"
+                className="py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-xl flex items-center gap-2 transition shadow-sm shrink-0"
+              >
+                <span>Abrir Extractor de Códigos</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {assignedAccounts.length === 0 && (
+              <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-8 text-center mb-6">
+                <Tv className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                <h3 className="text-base font-semibold text-slate-200">No tienes cuentas asignadas actualmente</h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                  Contacta con el Administrador para que asigne cuentas de streaming a tu usuario.
+                </p>
               </div>
             )}
-
-            {/* SECCIÓN 1: CUENTA ACTIVA */}
-            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-5 mb-5 shadow-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800/80">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-4 bg-rose-500 rounded-full" />
-                  <label className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                    Cuenta Activa
-                  </label>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-slate-400">
-                  <span>
-                    Revendedor: <strong className="text-slate-200">{simulatedSellerObj ? simulatedSellerObj.name : (currentUser?.name || "Vendedor")}</strong>
-                  </span>
-                  {assignedAccounts.length > 0 && (
-                    <>
-                      <span className="text-slate-600">•</span>
-                      <span className="font-mono text-emerald-400 font-medium">
-                        {assignedAccounts.length} {assignedAccounts.length === 1 ? "cuenta disponible" : "cuentas disponibles"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {isLoadingAccounts ? (
-                <div className="p-6 rounded-xl bg-[#0E131E] border border-slate-800 flex items-center justify-center gap-3 text-xs text-slate-400">
-                  <div className="w-4 h-4 border-2 border-slate-600 border-t-rose-500 rounded-full animate-spin" />
-                  <span>Cargando cuentas asignadas...</span>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {assignedAccounts.length > 0 ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Elegir de Cuentas Asignadas:
-                        </label>
-                        <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 font-medium">
-                          {assignedAccounts.length} en inventario
-                        </span>
-                      </div>
-                      <select
-                        value={selectedAccount}
-                        onChange={(e) => {
-                          setSelectedAccount((e.target.value || "").trim().replace(/\s+/g, ""));
-                          setAuthError(null);
-                          setReceivedCode(null);
-                          setIsWaiting(false);
-                        }}
-                        className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none transition cursor-pointer shadow-sm"
-                      >
-                        {assignedAccounts.map((a) => {
-                          const cleanEmail = (a.email || "").trim().replace(/\s+/g, "");
-                          return (
-                            <option key={a.id} value={cleanEmail}>
-                              {cleanEmail} — {a.service} ({a.country}) • Perfiles: {a.profiles}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  ) : null}
-
-                  {/* Campo de Correo Directo (Búsqueda en Gmail) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                      Correo de la Cuenta Netflix:
-                    </label>
-                    <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                      <input
-                        type="text"
-                        inputMode="email"
-                        spellCheck={false}
-                        placeholder="ej: micuenta@gmail.com"
-                        value={selectedAccount}
-                        onChange={(e) => {
-                          setSelectedAccount((e.target.value || "").replace(/\s+/g, ""));
-                          setAuthError(null);
-                          setReceivedCode(null);
-                          setIsWaiting(false);
-                        }}
-                        onBlur={() => {
-                          setSelectedAccount(prev => prev.trim().replace(/\s+/g, ""));
-                        }}
-                        className="w-full bg-[#0E131E] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 font-mono placeholder-slate-500 focus:outline-none transition shadow-sm"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                      <span className="text-[11px] text-slate-500 font-medium">Autocompletar:</span>
-                      {["@gmail.com", "@hotmail.com", "@outlook.com"].map((dom) => (
-                        <button
-                          key={dom}
-                          type="button"
-                          onClick={() => {
-                            const atIndex = selectedAccount.indexOf("@");
-                            const prefix = atIndex !== -1 ? selectedAccount.substring(0, atIndex) : selectedAccount;
-                            if (prefix.trim()) {
-                              setSelectedAccount(`${prefix.trim()}${dom}`);
-                            }
-                          }}
-                          className="text-[11px] px-2 py-0.5 rounded-md bg-[#162032] hover:bg-[#1E2B44] text-slate-300 hover:text-white border border-slate-800 transition cursor-pointer"
-                        >
-                          {dom}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Fila de Resumen si la cuenta está en inventario */}
-                  {(() => {
-                    const activeAcc = rawSellerAccounts.find(a => (a.email || "").toLowerCase().trim() === (selectedAccount || "").toLowerCase().trim());
-                    if (!activeAcc) return null;
-                    const isExp = activeAcc.expirationDate ? new Date(activeAcc.expirationDate) < new Date() : false;
-
-                    return (
-                      <div className="p-3.5 rounded-xl bg-[#0E131E] border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1.5 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20">
-                              {activeAcc.platform}
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 bg-slate-800/80 border border-slate-700">
-                              <Globe className="w-2.5 h-2.5 text-blue-400" />
-                              <span>{activeAcc.country || "Global"}</span>
-                            </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono text-slate-300 bg-slate-800/80 border border-slate-700">
-                              Perfiles: <strong className="text-slate-100">{activeAcc.occupiedProfiles || 0}/{activeAcc.maxProfiles || 5}</strong>
-                            </span>
-                            {activeAcc.expirationDate && (
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-medium ${
-                                isExp 
-                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" 
-                                  : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
-                              }`}>
-                                {isExp ? "Expirada" : `Vence: ${activeAcc.expirationDate.split("T")[0]}`}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-                            <span>{activeAcc.email}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(activeAcc.email);
-                                setCopied(true);
-                                setTimeout(() => setCopied(false), 2000);
-                              }}
-                              className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition"
-                              title="Copiar correo"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="text-[10px] font-semibold tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                            Lista para Extraer
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-            {/* SECCIÓN 2: 5 BOTONES DE ACCIÓN */}
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-                <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  Solicitar Código o Enlace
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {ACTIONS.map((action) => {
-                  const hasValidEmail = Boolean(selectedAccount && selectedAccount.trim().includes("@"));
-                  const isDisabled = isWaiting || !hasValidEmail;
-                  return (
-                    <button
-                      key={action.id}
-                      onClick={() => handleTriggerAction(action.id)}
-                      disabled={isDisabled}
-                      title={!hasValidEmail ? "Ingresa o selecciona un correo de Netflix primero" : ""}
-                      className="group relative p-3.5 rounded-2xl bg-[#121722] hover:bg-[#182030] border border-slate-800/80 hover:border-slate-700 text-left shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-40 disabled:transform-none flex flex-col justify-between min-h-[135px]"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${action.iconBg}`}>
-                          {action.icon}
-                        </div>
-                        <span className={`text-[10px] font-medium border px-2 py-0.5 rounded-md ${action.badgeClass}`}>
-                          {action.badge}
-                        </span>
-                      </div>
-
-                      <div>
-                        <div className="font-semibold text-slate-100 text-xs sm:text-sm tracking-tight group-hover:text-white transition">
-                          {action.title}
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5 leading-snug line-clamp-2">
-                          {action.subtitle}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SECCIÓN 3: RESULTADO EN TIEMPO REAL */}
-            <div className="bg-[#121722] border border-slate-800/80 rounded-2xl p-5 sm:p-6 mb-6 shadow-xl relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                    <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Terminal de Resultado</span>
-                  </div>
-                  <div className="font-mono text-xs text-slate-400 mt-1 pl-3.5">
-                    Cuenta: <strong className="text-slate-200">{selectedAccount || "Ninguna seleccionada"}</strong>
-                  </div>
-                </div>
-
-                {isWaiting && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                    <span>Consultando correo ({timerSeconds}s)...</span>
-                  </div>
-                )}
-              </div>
-
-              {/* CONTENEDOR PRINCIPAL DEL CÓDIGO */}
-              <div className="my-6 text-center">
-                {isWaiting ? (
-                  <div className="py-8 flex flex-col items-center justify-center">
-                    <div className="w-10 h-10 rounded-full border-2 border-slate-700 border-t-blue-500 animate-spin mb-3" />
-                    <h3 className="text-base font-semibold text-slate-100">Buscando código en tiempo real...</h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                      Consultando el correo de la cuenta para extraer el código o enlace en segundos.
-                    </p>
-                  </div>
-                ) : receivedCode ? (
-                  <div className="py-2">
-                    <span className="text-xs font-medium text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
-                      ¡Código Recibido con Éxito!
-                    </span>
-
-                    {/* VISUALIZACIÓN DEL CÓDIGO O ENLACE */}
-                    {isUrl ? (
-                      <div className="mt-5 max-w-2xl mx-auto p-4 sm:p-5 rounded-2xl bg-[#0E131E] border border-slate-800 text-left shadow-md">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-slate-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                            <ExternalLink className="w-4 h-4 text-blue-400" />
-                            Enlace Oficial:
-                          </span>
-                          <span className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded font-mono">
-                            {activeAction === "actualizar_hogar" ? "Actualización Hogar" : activeAction === "acceso_temporal" ? "Acceso de Viaje" : "Cambiar Clave"}
-                          </span>
-                        </div>
-                        <div className="font-mono text-xs text-blue-300 break-all bg-[#080B10] p-3 rounded-xl border border-slate-800 select-all mb-4">
-                          {receivedCode}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          <a
-                            href={receivedCode}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            <span>Abrir Enlace Oficial</span>
-                          </a>
-                          <button
-                            onClick={handleCopy}
-                            className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium text-xs rounded-xl flex items-center justify-center gap-2 transition"
-                          >
-                            {copied ? (
-                              <>
-                                <Check className="w-4 h-4 text-emerald-400" />
-                                <span className="text-emerald-400 font-medium">¡Enlace Copiado!</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-4 h-4" />
-                                <span>Copiar Enlace</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="mt-5 inline-block bg-[#0E131E] border border-slate-800 rounded-2xl px-8 sm:px-12 py-5 shadow-inner">
-                          <span className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-slate-100 select-all">
-                            {receivedCode}
-                          </span>
-                        </div>
-
-                        {/* BOTÓN DE COPIADO RÁPIDO */}
-                        <div className="mt-5 flex justify-center">
-                          <button
-                            onClick={handleCopy}
-                            className="py-2.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition transform active:scale-95"
-                          >
-                            {copied ? (
-                              <>
-                                <Check className="w-4 h-4 text-white" />
-                                <span>¡Copiado al Portapapeles!</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-4 h-4" />
-                                <span>Copiar Código</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 text-slate-500 flex flex-col items-center justify-center">
-                    <KeyRound className="w-10 h-10 text-slate-700 mb-2" />
-                    <h3 className="text-sm font-semibold text-slate-400">Listo para consultar</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Haz clic en cualquiera de los 5 botones para solicitar el código o enlace.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Los códigos expiran automáticamente a los 5 minutos.</span>
-                </div>
-                {receivedCode && (
-                  <button
-                    onClick={() => setReceivedCode(null)}
-                    className="text-slate-400 hover:text-slate-200 underline transition text-xs"
-                  >
-                    Limpiar pantalla
-                  </button>
-                )}
-              </div>
-            </div>
 
             {/* SECCIÓN 4: CATÁLOGO DE CUENTAS ASIGNADAS */}
             {assignedAccounts.length > 0 && (
@@ -1954,46 +1364,36 @@ export default function SellerLiveCodesPage() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {displayAccounts.map((acc) => {
-                          const isSelected = (selectedAccount || "").toLowerCase().trim() === (acc.email || "").toLowerCase().trim();
+                          const cleanAccEmail = (acc.email || "").trim().replace(/\s+/g, "");
                           return (
                             <div
                               key={acc.id}
-                              onClick={() => {
-                                setSelectedAccount((acc.email || "").trim());
-                                setAuthError(null);
-                                setReceivedCode(null);
-                                setIsWaiting(false);
-                                window.scrollTo({ top: 120, behavior: "smooth" });
-                              }}
-                              className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                                isSelected
-                                  ? "bg-[#182234] border border-blue-500/80 text-slate-100 shadow-sm ring-1 ring-blue-500/30"
-                                  : "bg-[#0E131E] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#131926]"
-                              }`}
+                              className="p-3.5 rounded-xl border border-slate-800 bg-[#0E131E] hover:border-slate-700 hover:bg-[#131926] text-slate-400 transition-all flex flex-col justify-between"
                             >
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span className={`text-xs font-semibold truncate max-w-[120px] ${isSelected ? "text-slate-100" : "text-slate-300"}`}>
-                                  {acc.service}
-                                </span>
-                                <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-mono">
-                                  {acc.profiles}
-                                </span>
+                              <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-xs font-semibold truncate max-w-[120px] text-slate-300">
+                                    {acc.service}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-mono">
+                                    {acc.profiles}
+                                  </span>
+                                </div>
+                                <div className="font-mono text-xs text-slate-200 truncate mb-2">{cleanAccEmail}</div>
                               </div>
-                              <div className="font-mono text-xs text-slate-200 truncate mb-2">{acc.email}</div>
-                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 text-[10px]">
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px]">
                                 <span className="inline-flex items-center gap-1 text-slate-400 font-mono">
-                                  <Globe className="w-2.5 h-2.5 text-blue-400" />
-                                  <span>{acc.country}</span>
+                                  <Globe className="w-2.5 h-2.5 text-blue-400 shrink-0" />
+                                  <span className="truncate max-w-[70px]">{acc.country}</span>
                                 </span>
-                                {isSelected ? (
-                                  <span className="text-blue-400 font-semibold text-[9px] uppercase tracking-wider">
-                                    Seleccionada
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-500 hover:text-slate-300 transition">
-                                    Seleccionar
-                                  </span>
-                                )}
+                                <Link
+                                  href={`/soporte-codigos?email=${encodeURIComponent(cleanAccEmail)}`}
+                                  target="_blank"
+                                  className="text-blue-400 hover:text-blue-300 font-semibold text-[10px] inline-flex items-center gap-1 transition"
+                                >
+                                  <span>Extraer Códigos</span>
+                                  <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                </Link>
                               </div>
                             </div>
                           );
