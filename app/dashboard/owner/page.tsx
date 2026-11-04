@@ -68,7 +68,6 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import LatamPhoneInput from "@/components/LatamPhoneInput";
 import HogarProEmailInput from "@/components/HogarProEmailInput";
-import CodigoHelpGuide from "@/components/soporte/CodigoHelpGuide";
 import { 
   getStoredAccounts, 
   saveStoredAccounts, 
@@ -373,14 +372,6 @@ export default function OwnerDashboard() {
   const [chartMonth, setChartMonth] = useState<number>(new Date().getMonth());
   const [chartHoveredIndex, setChartHoveredIndex] = useState<number | null>(null);
 
-  // Probador de Códigos en Vivo para Owner
-  const [testEmail, setTestEmail] = useState("");
-  const [testService, setTestService] = useState("netflix");
-  const [testAction, setTestAction] = useState("temporal");
-  const [testResult, setTestResult] = useState<string | null>(null);
-  const [isTestingCode, setIsTestingCode] = useState(false);
-  const [copiedTestCode, setCopiedTestCode] = useState(false);
-
   // Función para refrescar vendedores, cuentas y catálogo
   const reloadData = () => {
     const rawUsers = getSystemUsers();
@@ -482,7 +473,11 @@ export default function OwnerDashboard() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get("tab");
-      if (tabParam && ["resumen", "ventas", "cuentas", "vendedores", "calendario", "catalogo", "codigos", "todo"].includes(tabParam)) {
+      if (tabParam === "codigos") {
+        window.location.href = "/soporte-codigos";
+        return;
+      }
+      if (tabParam && ["resumen", "ventas", "cuentas", "vendedores", "calendario", "catalogo", "todo"].includes(tabParam)) {
         setActiveTab(tabParam as any);
       }
     }
@@ -1743,37 +1738,6 @@ export default function OwnerDashboard() {
     reloadData();
   };
 
-  // PROBAR CÓDIGO DIRECTO DESDE PANEL OWNER (BYPASS TOTAL)
-  const handleExecuteCodeTest = async (overrideAction?: string) => {
-    if (!testEmail.trim()) return;
-    const actionToUse = overrideAction || testAction;
-    if (overrideAction) setTestAction(overrideAction);
-    setIsTestingCode(true);
-    setTestResult(null);
-    setCopiedTestCode(false);
-
-    try {
-      const token = getSessionToken();
-      const res = await fetch(
-        `/api/codes/check?email=${encodeURIComponent(testEmail.trim())}&service=${encodeURIComponent(testService)}&actionType=${encodeURIComponent(actionToUse)}&auth=${encodeURIComponent(token || "")}&t=${Date.now()}`,
-        {
-          headers: token ? { "Authorization": `Bearer ${token}` } : {},
-          credentials: "include"
-        }
-      );
-      const data = await res.json();
-      if (data && data.success && data.code) {
-        setTestResult(data.code);
-      } else {
-        setTestResult(data?.message || data?.error || "No se encontró código reciente para este correo.");
-      }
-    } catch (err: any) {
-      setTestResult("Error consultando el servicio: " + err.message);
-    } finally {
-      setIsTestingCode(false);
-    }
-  };
-
   const togglePasswordVisibility = (id: string) => {
     setShowPassword((prev) => ({ ...prev, [id]: !prev[id] }));
   };
@@ -1959,22 +1923,18 @@ export default function OwnerDashboard() {
                 </button>
 
 
-                <button
-                  onClick={() => {
-                    setActiveTab("codigos");
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition ${
-                    activeTab === "codigos" 
-                      ? "bg-[#E50914] text-white shadow-lg shadow-red-950/50 font-bold" 
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
-                  }`}
+                <Link
+                  href="/soporte-codigos"
+                  target="_blank"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition text-zinc-400 hover:text-white hover:bg-zinc-800/60"
                 >
                   <div className="flex items-center gap-3">
-                    <KeyRound className="w-4 h-4" />
+                    <KeyRound className="w-4 h-4 text-rose-400" />
                     <span>Extractor de Códigos</span>
                   </div>
-                </button>
+                  <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+                </Link>
 
                 <button
                   onClick={() => {
@@ -2126,19 +2086,17 @@ export default function OwnerDashboard() {
               )}
             </button>
 
-            <button
-              onClick={() => setActiveTab("codigos")}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition ${
-                activeTab === "codigos" 
-                  ? "bg-[#182030] text-slate-100 border-l-2 border-blue-500 font-semibold shadow-sm" 
-                  : "text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
-              }`}
+            <Link
+              href="/soporte-codigos"
+              target="_blank"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-slate-200 hover:bg-[#141A25] group"
             >
               <div className="flex items-center gap-2.5">
                 <KeyRound className="w-4 h-4 text-rose-400" />
                 <span>Extractor de Códigos</span>
               </div>
-            </button>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition" />
+            </Link>
 
             <div className="pt-2">
               <button
@@ -2287,17 +2245,15 @@ export default function OwnerDashboard() {
             <Users className="w-3.5 h-3.5" />
             <span>Revendedores ({sellers.length})</span>
           </button>
-          <button
-            onClick={() => setActiveTab("codigos")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 ${
-              activeTab === "codigos" 
-                ? "bg-[#E50914] text-white shadow-md shadow-red-950/60" 
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
-            }`}
+          <Link
+            href="/soporte-codigos"
+            target="_blank"
+            className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition shrink-0 text-zinc-400 hover:text-white hover:bg-zinc-800/50"
           >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Códigos</span>
-          </button>
+            <KeyRound className="w-3.5 h-3.5 text-rose-400" />
+            <span>Extractor de Códigos</span>
+            <ExternalLink className="w-3 h-3 text-zinc-500" />
+          </Link>
           <button
             onClick={() => setActiveTab("todo")}
             className={`ml-auto px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${
@@ -3721,16 +3677,10 @@ export default function OwnerDashboard() {
                           </button>
                           <button
                             onClick={() => {
-                              setActiveTab("codigos");
-                              setTestEmail(acc.email.trim());
-                              setTestService("netflix");
-                              setTimeout(() => {
-                                const codigosEl = document.getElementById("codigos-owner");
-                                codigosEl?.scrollIntoView({ behavior: "smooth" });
-                              }, 100);
+                              window.open(`/soporte-codigos?email=${encodeURIComponent(acc.email.trim())}`, "_blank");
                             }}
                             className="px-2 py-1 text-xs text-[#ff6666] hover:text-white bg-[#E50914]/20 hover:bg-[#E50914]/40 border border-[#E50914]/30 rounded-lg transition"
-                            title="Extraer códigos de esta cuenta"
+                            title="Extraer códigos de esta cuenta en Soporte Códigos"
                           >
                             <KeyRound className="w-3.5 h-3.5 inline" />
                           </button>
@@ -4082,16 +4032,10 @@ export default function OwnerDashboard() {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => {
-                                    setActiveTab("codigos");
-                                    setTestEmail(acc.email.trim());
-                                    setTestService("netflix");
-                                    setTimeout(() => {
-                                      const codigosEl = document.getElementById("codigos-owner");
-                                      codigosEl?.scrollIntoView({ behavior: "smooth" });
-                                    }, 100);
+                                    window.open(`/soporte-codigos?email=${encodeURIComponent(acc.email.trim())}`, "_blank");
                                   }}
                                   className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 shadow-sm transition"
-                                  title="Extraer código en vivo de esta cuenta"
+                                  title="Abrir extractor de códigos para esta cuenta"
                                 >
                                   <Zap className="w-3 h-3" />
                                   <span>Código</span>
@@ -4427,16 +4371,10 @@ export default function OwnerDashboard() {
                                   <div className="mt-3 pt-2.5 border-t border-[#222222] flex items-center justify-end gap-2">
                                     <button
                                       onClick={() => {
-                                        setActiveTab("codigos");
-                                        setTestEmail(acc.email.trim());
-                                        setTestService("netflix");
-                                        setTimeout(() => {
-                                          const codigosEl = document.getElementById("codigos-owner");
-                                          codigosEl?.scrollIntoView({ behavior: "smooth" });
-                                        }, 100);
+                                        window.open(`/soporte-codigos?email=${encodeURIComponent(acc.email.trim())}`, "_blank");
                                       }}
                                       className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 transition"
-                                      title="Extraer código de esta cuenta"
+                                      title="Abrir extractor de códigos para esta cuenta"
                                     >
                                       <Zap className="w-3 h-3" />
                                       <span>Código</span>
@@ -4649,15 +4587,10 @@ export default function OwnerDashboard() {
                           <div className="mt-3 pt-3 border-t border-[#262626] flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
-                                setActiveTab("codigos");
-                                setTestEmail(acc.email.trim());
-                                setTestService("netflix");
-                                setTimeout(() => {
-                                  const codigosEl = document.getElementById("codigos-owner");
-                                  codigosEl?.scrollIntoView({ behavior: "smooth" });
-                                }, 100);
+                                window.open(`/soporte-codigos?email=${encodeURIComponent(acc.email.trim())}`, "_blank");
                               }}
                               className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#E50914] hover:bg-[#f40612] rounded-lg flex items-center gap-1 transition"
+                              title="Abrir extractor de códigos para esta cuenta"
                             >
                               <Zap className="w-3 h-3" />
                               <span>Código</span>
@@ -4795,393 +4728,7 @@ export default function OwnerDashboard() {
           </section>
         )}
 
-        {/* SECCIÓN 3: GESTOR Y CONSULTA DE CÓDIGOS */}
-        {(activeTab === "codigos" || activeTab === "todo") && (
-          <section id="codigos-owner" className="bg-[#121722] border border-slate-800/90 rounded-2xl p-4 sm:p-6 mb-8 shadow-sm relative overflow-hidden max-w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800/80">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-6 bg-rose-500 rounded-full" />
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
-                    <KeyRound className="w-5 h-5 text-rose-500" />
-                    <span>Consulta y Extracción de Códigos</span>
-                  </h2>
-                </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Acceso directo a códigos de inicio, confirmación y enlaces oficiales de Netflix en tiempo real.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-slate-300 bg-[#0E121B] px-3 py-1.5 rounded-lg border border-slate-800">
-                  {accounts.length} Cuentas en Inventario
-                </span>
-              </div>
-            </div>
 
-            {/* PASO 1: SELECCIONAR CUENTA */}
-            <div className="mb-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                  1. Cuenta a Consultar
-                </label>
-                {testEmail && (
-                  <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span className="truncate max-w-[220px]">{testEmail}</span>
-                  </span>
-                )}
-              </div>
-
-              {/* Selector desplegable de todas las cuentas */}
-              <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                  Elige una cuenta de la lista:
-                </label>
-                <select
-                  value={testEmail}
-                  onChange={(e) => {
-                    setTestEmail(e.target.value);
-                    setTestService("netflix");
-                    setTestResult(null);
-                  }}
-                  className="w-full bg-[#0E121B] border border-slate-800 hover:border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 font-mono focus:outline-none transition cursor-pointer shadow-sm"
-                >
-                  <option value="">-- Selecciona una cuenta del inventario ({accounts.length}) --</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.email}>
-                      {a.email} — {(a.platform || "NETFLIX").toUpperCase()} {a.country ? `[${a.country}]` : ""} • Vence: {a.expirationDate || "N/A"} {a.seller ? `(Vendido a: ${a.seller})` : "(Libre en Stock)"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Input manual alternativo */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="md:col-span-2">
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    O escribe / pega el correo manualmente:
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      inputMode="email"
-                      autoComplete="off"
-                      spellCheck={false}
-                      placeholder="ej: hogaryutu+acido@gmail.com"
-                      value={testEmail}
-                      onChange={(e) => {
-                        setTestEmail(e.target.value);
-                        setTestResult(null);
-                      }}
-                      className="w-full bg-[#0E121B] border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono"
-                    />
-                    {testEmail && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTestEmail("");
-                          setTestResult(null);
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 text-xs"
-                        title="Limpiar"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    Servicio
-                  </label>
-                  <select
-                    value={testService}
-                    onChange={(e) => setTestService(e.target.value)}
-                    className="w-full bg-[#0E121B] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="netflix">Netflix</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    Acción Seleccionada
-                  </label>
-                  <select
-                    value={testAction}
-                    onChange={(e) => setTestAction(e.target.value)}
-                    className="w-full bg-[#0E121B] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="login_code">Código de Inicio (4 dígitos)</option>
-                    <option value="verification_code">Código de Confirmación (6 dígitos)</option>
-                    <option value="actualizar_hogar">Actualizar Hogar (enlace)</option>
-                    <option value="acceso_temporal">Acceso de Viaje (enlace)</option>
-                    <option value="reset_password">Cambiar Clave (enlace)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Tarjetas interactivas de cuentas rápidas */}
-              {accounts.length > 0 && (
-                <div className="pt-2">
-                  <span className="block text-[11px] font-medium text-slate-400 mb-2">
-                    Cuentas de Netflix en Inventario (Haz clic en cualquiera para seleccionarla):
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                    {accounts.map((acc) => {
-                      const isSelected = testEmail.trim().toLowerCase() === acc.email.trim().toLowerCase();
-                      return (
-                        <div
-                          key={acc.id}
-                          onClick={() => {
-                            setTestEmail(acc.email.trim());
-                            setTestService("netflix");
-                            setTestResult(null);
-                          }}
-                          className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            isSelected
-                              ? "bg-[#182234] border-blue-500/80 text-white shadow-sm ring-1 ring-blue-500/30"
-                              : "bg-[#0E121B] border-slate-800 text-slate-400 hover:border-slate-700 hover:bg-[#141A25]"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-[11px] font-semibold ${isSelected ? "text-blue-400" : "text-slate-300"}`}>
-                              {(acc.platform || "NETFLIX").toUpperCase()}
-                            </span>
-                            {isSelected ? (
-                              <span className="text-[9px] font-semibold uppercase text-blue-200 bg-blue-500/20 border border-blue-500/30 px-1.5 py-0.5 rounded">
-                                Seleccionada
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-500 font-mono">
-                                {acc.profilesOccupied || 0}/{acc.maxProfiles || 5}
-                              </span>
-                            )}
-                          </div>
-                          <div className="font-mono text-xs text-slate-200 truncate font-medium">{acc.email}</div>
-                          <div className="flex items-center justify-between pt-1 mt-1 border-t border-slate-800/80 text-[10px] text-slate-400">
-                            <span className="truncate">País: <strong className="text-slate-300">{acc.country || "N/A"}</strong></span>
-                            <span className="font-mono text-slate-400">{acc.expirationDate || ""}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* PASO 2: BOTONES DE ACCIÓN DIRECTA DE NETFLIX */}
-            <div className="mb-5 pt-4 border-t border-slate-800/80">
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5">
-                2. Tipo de Solicitud
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-                {[
-                  { id: "login_code", label: "Código de Inicio", desc: "4 dígitos en pantalla", icon: Zap },
-                  { id: "verification_code", label: "Código de Confirmación", desc: "6 dígitos de verificación", icon: Clock },
-                  { id: "actualizar_hogar", label: "Actualizar Hogar", desc: "Confirmar red doméstica", icon: Home },
-                  { id: "acceso_temporal", label: "Acceso de Viaje", desc: "TV fuera del hogar", icon: ExternalLink },
-                  { id: "reset_password", label: "Cambiar Clave", desc: "Restablecer contraseña", icon: Lock },
-                ].map((action) => {
-                  const isCurrentAction = testAction === action.id;
-                  const Icon = action.icon;
-                  return (
-                    <button
-                      key={action.id}
-                      type="button"
-                      onClick={() => handleExecuteCodeTest(action.id)}
-                      disabled={isTestingCode || !testEmail.trim()}
-                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
-                        isCurrentAction
-                          ? "bg-[#182234] border-blue-500/80 text-white shadow-sm ring-1 ring-blue-500/30"
-                          : "bg-[#0E121B] border-slate-800 hover:border-slate-700 hover:bg-[#141A25] text-slate-300 hover:text-white"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <Icon className={`w-4 h-4 ${isCurrentAction ? "text-blue-400" : "text-slate-400"}`} />
-                        {isTestingCode && isCurrentAction && (
-                          <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
-                        )}
-                      </div>
-                      <div className="text-xs font-semibold text-slate-100 leading-tight">{action.label}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">{action.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Botón principal de consulta */}
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleExecuteCodeTest()}
-                  disabled={isTestingCode || !testEmail.trim()}
-                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition active:scale-95 disabled:opacity-50"
-                >
-                  {isTestingCode ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Consultando servidores...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Solicitar Código</span>
-                    </>
-                  )}
-                </button>
-
-                {!testEmail.trim() && (
-                  <span className="text-xs text-amber-400/90 flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>Selecciona una cuenta arriba para pedir códigos</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Resultado de la extracción */}
-            {testResult && (
-              <div className="mt-5 animate-in fade-in duration-200">
-                {testResult.toLowerCase().includes("no se encontró") || testResult.toLowerCase().includes("error") || testResult.toLowerCase().includes("solicita") ? (
-                  /* Mensaje informativo / Error */
-                  <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3 shadow-sm">
-                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold text-amber-300 text-xs mb-1">
-                        Aviso de Consulta:
-                      </div>
-                      <div className="text-slate-300 leading-relaxed font-sans">
-                        {testResult}
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-2">
-                        Tip: Si solicitaste el código hace un momento en Netflix, espera unos segundos a que llegue el correo y presiona nuevamente el botón.
-                      </div>
-                    </div>
-                  </div>
-                ) : testResult.startsWith("http://") || testResult.startsWith("https://") ? (
-                  /* ENLACE OFICIAL DE NETFLIX */
-                  <div className="p-5 rounded-2xl bg-[#0E121B] border border-slate-800 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-slate-200 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                        <ExternalLink className="w-4 h-4 text-blue-400" />
-                        <span>Enlace Oficial de Netflix:</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded font-mono">
-                        {testAction === "actualizar_hogar" ? "Actualización Hogar" : testAction === "acceso_temporal" ? "Acceso de Viaje" : "Restablecer Clave"}
-                      </span>
-                    </div>
-                    <div className="font-mono text-xs text-blue-300 break-all bg-[#080B10] p-3.5 rounded-xl border border-slate-800/80 select-all my-3">
-                      {testResult}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <a
-                        href={testResult}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span>Abrir Enlace Oficial</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(testResult);
-                          setCopiedTestCode(true);
-                          setTimeout(() => setCopiedTestCode(false), 2000);
-                        }}
-                        className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition"
-                      >
-                        {copiedTestCode ? (
-                          <>
-                            <Check className="w-4 h-4 text-emerald-400" />
-                            <span className="text-emerald-400">¡Enlace Copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4" />
-                            <span>Copiar Enlace</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* CÓDIGO NUMÉRICO (INICIO DE SESIÓN / VERIFICACIÓN) */
-                  <div className="p-6 rounded-2xl bg-[#0E121B] border border-slate-800 text-center shadow-sm">
-                    <span className="inline-block text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full mb-3">
-                      ✓ Código Recibido con Éxito
-                    </span>
-                    <div className="my-3">
-                      <span className="text-4xl sm:text-6xl font-bold font-mono tracking-widest text-white select-all">
-                        {testResult}
-                      </span>
-                    </div>
-                    <div className="mt-4 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(testResult);
-                          setCopiedTestCode(true);
-                          setTimeout(() => setCopiedTestCode(false), 2000);
-                        }}
-                        className="py-2.5 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-sm flex items-center gap-2 transition active:scale-95"
-                      >
-                        {copiedTestCode ? (
-                          <>
-                            <Check className="w-4 h-4 text-white" />
-                            <span>¡Código Copiado!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4" />
-                            <span>Copiar Código</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* PORTAL PÚBLICO Y GUÍA PASO A PASO */}
-            <div className="mt-8 pt-6 border-t border-slate-800/80 space-y-6">
-              <div className="p-4 rounded-2xl bg-[#0E121B] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-600 to-rose-700 flex items-center justify-center text-white shrink-0 shadow-sm">
-                    <Tv className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">
-                      Portal Privado de Consulta de Códigos
-                    </h4>
-                    <p className="text-xs text-zinc-400">
-                      Acceso exclusivo para Administrador y Revendedores autorizados (solo sus cuentas asignadas). Los clientes finales tienen el acceso bloqueado.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link
-                    href="/soporte-codigos"
-                    target="_blank"
-                    className="px-4 py-2 bg-[#E50914] hover:bg-[#b80710] text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm"
-                  >
-                    <span>Abrir Portal de Códigos</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* Guía Paso a Paso */}
-              <CodigoHelpGuide />
-            </div>
-          </section>
-        )}
 
         {/* MODAL CREAR / EDITAR CUENTA MAESTRA */}
         {isAccountModalOpen && (

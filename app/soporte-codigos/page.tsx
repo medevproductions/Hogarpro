@@ -126,10 +126,25 @@ export default function SoporteCodigosPage() {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Al entrar a la terminal de soporte códigos, NO auto-autenticamos con sesiones previas.
-    // Se requiere que el usuario ingrese sus credenciales explícitamente (Revendedor o Administrador).
-    setCurrentUserState(null);
+    // Sincronizar sesión activa si el usuario ya inició sesión previamente en la plataforma
+    const active = getCurrentUser();
+    if (active) {
+      setCurrentUserState(active);
+    }
     setLoadingInitialSession(false);
+
+    // Leer posibles parámetros de consulta de la URL (ej: ?email=cuenta@gmail.com&action=login_code)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const emailParam = params.get("email");
+      if (emailParam) {
+        setEmail(emailParam.trim());
+      }
+      const actionParam = params.get("action") || params.get("actionType");
+      if (actionParam && ["login_code", "verification_code", "actualizar_hogar", "acceso_temporal", "reset_password", "auto"].includes(actionParam)) {
+        setSelectedAction(actionParam as ActionType);
+      }
+    }
 
     syncAccountsFromCloud(true).catch(console.warn);
     syncUsersFromCloud(true).catch(console.warn);

@@ -810,6 +810,19 @@ export default function SellerLiveCodesPage() {
                   <Settings className="w-4 h-4 text-blue-400" />
                   <span>Mi Cuenta</span>
                 </button>
+
+                <Link
+                  href="/soporte-codigos"
+                  target="_blank"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-slate-200 hover:bg-[#141A25]"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <KeyRound className="w-4 h-4 text-rose-400" />
+                    <span>Extractor de Códigos</span>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                </Link>
               </nav>
             </div>
 
@@ -926,6 +939,18 @@ export default function SellerLiveCodesPage() {
               <Settings className={`w-4 h-4 ${activeTab === "configuracion" ? "text-blue-400" : "text-slate-400"}`} />
               <span>Mi Cuenta</span>
             </button>
+
+            <Link
+              href="/soporte-codigos"
+              target="_blank"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition text-slate-400 hover:text-slate-200 hover:bg-[#141A25] group"
+            >
+              <div className="flex items-center gap-2.5">
+                <KeyRound className="w-4 h-4 text-rose-400" />
+                <span>Extractor de Códigos</span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition" />
+            </Link>
           </nav>
         </div>
 
